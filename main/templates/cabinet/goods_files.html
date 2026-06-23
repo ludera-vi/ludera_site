@@ -1,0 +1,76 @@
+{% extends "cabinet/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="cabinet-form-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+        <div>
+            <h3 style="font-size:1rem;font-weight:700;color:var(--cab-text);margin:0;">Файлы: {{ goods.title }}</h3>
+            <p style="font-size:0.8125rem;color:var(--cab-text-muted);margin:4px 0 0 0;">Загрузите файлы для скачивания пользователями (PDF, архивы, инструкции, видео и т.д.)</p>
+        </div>
+        <a href="{% url 'cabinet:goods_edit' goods.pk %}" class="btn cabinet-btn-ghost" style="gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Назад к товару
+        </a>
+    </div>
+
+    {% if goods.files.all %}
+    <div class="files-grid">
+        {% for f in goods.files.all %}
+        <div class="file-card">
+            <div class="file-card__icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <div class="file-card__title">{{ f.title }}</div>
+            {% if f.file_type %}<div class="file-card__type">{{ f.file_type }}</div>{% endif %}
+            <div class="file-card__type" style="margin-top:4px;font-size:0.625rem;">{{ f.filename }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="cabinet-form">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+            {% for f in formset %}
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--cab-bg);border:1px solid var(--cab-border);border-radius:8px;padding:12px 16px;">
+                {{ f.id }}
+                {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                <div style="flex:1;min-width:120px;">
+                    <label style="font-size:0.6875rem;color:var(--cab-text-muted);display:block;margin-bottom:2px;">Название</label>
+                    {{ f.title }}
+                </div>
+                <div style="min-width:160px;">
+                    <label style="font-size:0.6875rem;color:var(--cab-text-muted);display:block;margin-bottom:2px;">Файл</label>
+                    {{ f.file }}
+                </div>
+                <div style="min-width:100px;">
+                    <label style="font-size:0.6875rem;color:var(--cab-text-muted);display:block;margin-bottom:2px;">Тип</label>
+                    {{ f.file_type }}
+                </div>
+                <div style="min-width:60px;">
+                    <label style="font-size:0.6875rem;color:var(--cab-text-muted);display:block;margin-bottom:2px;">Порядок</label>
+                    {{ f.order }}
+                </div>
+                {% if formset.can_delete %}
+                <div style="padding-top:14px;">
+                    <label style="font-size:0.6875rem;color:var(--cab-danger);display:block;margin-bottom:2px;">Удалить</label>
+                    {{ f.DELETE }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="cabinet-form-actions" style="margin-top:20px;">
+            <button type="submit" class="btn btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Сохранить файлы
+            </button>
+            <a href="{% url 'cabinet:goods_list' %}" class="btn cabinet-btn-ghost">Назад к списку</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

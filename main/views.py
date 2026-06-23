@@ -1,0 +1,153 @@
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse, HttpResponse
+from django.utils.xmlutils import SimplerXMLGenerator
+
+from .models import (
+    SiteSetting, HeroSection, NavLink, Service, Project,
+    Product, Principle, BlogPost, PageView,
+    ContactRequest,
+)
+
+
+def index(request):
+    hero = HeroSection.get_active()
+    nav_links = NavLink.objects.filter(is_visible=True)
+    services = Service.objects.all()
+    projects = Project.objects.filter(is_visible=True)
+    products = Product.objects.filter(is_visible=True)
+    principles = Principle.objects.all()
+    blog_posts = BlogPost.objects.filter(is_visible=True)
+    settings = SiteSetting.objects.first()
+
+    context = {
+        'hero': hero,
+        'nav_links': nav_links,
+        'services': services,
+        'projects': projects,
+        'products': products,
+        'principles': principles,
+        'footer_products': products,
+        'blog_posts': blog_posts,
+        'settings': settings,
+    }
+
+    return render(request, 'main/index.html', context)
+
+
+def _common_context(request):
+    return {
+        'nav_links': NavLink.objects.filter(is_visible=True),
+        'footer_products': Product.objects.filter(is_visible=True),
+        'settings': SiteSetting.objects.first(),
+    }
+
+
+def _get_prev_next(qs, obj):
+    if not qs:
+        return None, None
+    idx = None
+    for i, o in enumerate(qs):
+        if o.pk == obj.pk:
+            idx = i
+            break
+    if idx is None:
+        return None, None
+    prev = qs[idx - 1] if idx > 0 else None
+    next_obj = qs[idx + 1] if idx < len(qs) - 1 else None
+    return prev, next_obj
+
+
+def blog_detail(request, slug):
+    obj = get_object_or_404(BlogPost, slug=slug)
+    qs = list(BlogPost.objects.filter(is_visible=True))
+    prev, next_obj = _get_prev_next(qs, obj)
+    ctx = {'obj': obj, 'prev': prev, 'next': next_obj, 'detail_type': 'blog'}
+    ctx.update(_common_context(request))
+    return render(request, 'main/detail.html', ctx)
+
+
+def project_detail(request, slug):
+    obj = get_object_or_404(Project, slug=slug)
+    qs = list(Project.objects.filter(is_visible=True))
+    prev, next_obj = _get_prev_next(qs, obj)
+    ctx = {'obj': obj, 'prev': prev, 'next': next_obj, 'detail_type': 'project'}
+    ctx.update(_common_context(request))
+    return render(request, 'main/detail.html', ctx)
+
+
+def service_detail(request, slug):
+    obj = get_object_or_404(Service, slug=slug)
+    qs = list(Service.objects.all())
+    prev, next_obj = _get_prev_next(qs, obj)
+    ctx = {'obj': obj, 'prev': prev, 'next': next_obj, 'detail_type': 'service'}
+    ctx.update(_common_context(request))
+    return render(request, 'main/detail.html', ctx)
+
+
+def product_detail(request, slug):
+    obj = get_object_or_404(Product, slug=slug)
+    qs = list(Product.objects.filter(is_visible=True))
+    prev, next_obj = _get_prev_next(qs, obj)
+    ctx = {'obj': obj, 'prev': prev, 'next': next_obj, 'detail_type': 'product'}
+    ctx.update(_common_context(request))
+    return render(request, 'main/detail.html', ctx)
+
+
+def contact_submit(request):
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        email = request.POST.get('email', '').strip()
+        message = request.POST.get('message', '').strip()
+        if email:
+            ContactRequest.objects.create(name=name, email=email, message=message)
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'ok'})
+            return render(request, 'main/contact_success.html', _common_context(request))
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'status': 'error'}, status=400)
+    return redirect('/#contact')
+
+
+def sitemap_xml(request):
+    base_url = f'{request.scheme}://{request.get_host()}'
+
+    xml = SimplerXMLGenerator('utf-8')
+    xml.startDocument()
+    xml.startElement('urlset', {'xmlns': 'http://www.sitemaps.org/schemas/sitemap/0.9'})
+
+    for service in Service.objects.all():
+        xml.startElement('url', {})
+        xml.addQuickElement('loc', f'{base_url}{service.get_absolute_url()}')
+        xml.addQuickElement('changefreq', 'monthly')
+        xml.addQuickElement('priority', '0.8')
+        xml.endElement('url')
+
+    for project in Project.objects.filter(is_visible=True):
+        xml.startElement('url', {})
+        xml.addQuickElement('loc', f'{base_url}{project.get_absolute_url()}')
+        xml.addQuickElement('changefreq', 'monthly')
+        xml.addQuickElement('priority', '0.7')
+        xml.endElement('url')
+
+    for product in Product.objects.filter(is_visible=True):
+        xml.startElement('url', {})
+        xml.addQuickElement('loc', f'{base_url}{product.get_absolute_url()}')
+        xml.addQuickElement('changefreq', 'monthly')
+        xml.addQuickElement('priority', '0.8')
+        xml.endElement('url')
+
+    for post in BlogPost.objects.filter(is_visible=True):
+        xml.startElement('url', {})
+        xml.addQuickElement('loc', f'{base_url}{post.get_absolute_url()}')
+        xml.addQuickElement('lastmod', post.updated_at.strftime('%Y-%m-%d'))
+        xml.addQuickElement('changefreq', 'weekly')
+        xml.addQuickElement('priority', '0.6')
+        xml.endElement('url')
+
+    xml.endElement('urlset')
+
+    return HttpResponse(xml.output(), content_type='application/xml')
+
+
+def ecosystem_test(request):
+    return render(request, 'main/ecosystem_test.html')

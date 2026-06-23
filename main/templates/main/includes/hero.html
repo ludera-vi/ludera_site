@@ -1,0 +1,77 @@
+<section class="hero" id="hero">
+    <div class="container">
+        <div class="hero__decor" aria-hidden="true">
+            <div class="hero__circle hero__circle--1"></div>
+            <div class="hero__circle hero__circle--2"></div>
+            <div class="hero__circle hero__circle--3"></div>
+            <div class="hero__line hero__line--1"></div>
+            <div class="hero__line hero__line--2"></div>
+            <div class="hero__line hero__line--3"></div>
+            <div class="hero__line hero__line--4"></div>
+        </div>
+
+        <div class="hero__content">
+            <p class="hero__tagline">{{ hero.tagline }}</p>
+            <h1 class="hero__title">{{ hero.title }}</h1>
+            <p class="hero__description">{{ hero.description }}</p>
+            <a href="{{ hero.cta_link }}" class="btn btn--primary btn--large hero__cta">{{ hero.cta_text }}</a>
+        </div>
+
+        <div class="hero__dashboard" aria-hidden="true">
+            <div class="dashboard__cards">
+                <div class="dashboard__card dashboard__card--1">
+                    <div class="dashboard__card-header">
+                        <span class="dashboard__card-label">Спринт</span>
+                        <span class="dashboard__card-value">47</span>
+                    </div>
+                    <div class="dashboard__bar">
+                        <div class="dashboard__bar-fill"></div>
+                    </div>
+                </div>
+                <div class="dashboard__card dashboard__card--2">
+                    <div class="dashboard__card-header">
+                        <span class="dashboard__card-label">Команда</span>
+                        <span class="dashboard__card-value">92%</span>
+                    </div>
+                    <div class="dashboard__dots">
+                        <span class="dashboard__dot"></span>
+                        <span class="dashboard__dot"></span>
+                        <span class="dashboard__dot"></span>
+                        <span class="dashboard__dot"></span>
+                        <span class="dashboard__dot"></span>
+                    </div>
+                </div>
+                <div class="dashboard__card dashboard__card--3">
+                    <div class="dashboard__card-header">
+                        <span class="dashboard__card-label">Проекты</span>
+                        <span class="dashboard__card-value">12</span>
+                    </div>
+                    <div class="dashboard__pills">
+                        <span class="dashboard__pill dashboard__pill--green"></span>
+                        <span class="dashboard__pill dashboard__pill--blue"></span>
+                        <span class="dashboard__pill dashboard__pill--amber"></span>
+                        <span class="dashboard__pill dashboard__pill--teal"></span>
+                    </div>
+                </div>
+                <div class="dashboard__card dashboard__card--4">
+                    <div class="dashboard__card-header">
+                        <span class="dashboard__card-label">В срок</span>
+                        <span class="dashboard__card-value">8/12</span>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard__timeline">
+                <div class="dashboard__timeline-track">
+                    <div class="dashboard__timeline-progress"></div>
+                </div>
+                <div class="dashboard__timeline-milestones">
+                    <span class="dashboard__milestone dashboard__milestone--done"></span>
+                    <span class="dashboard__milestone dashboard__milestone--done"></span>
+                    <span class="dashboard__milestone dashboard__milestone--active"></span>
+                    <span class="dashboard__milestone dashboard__milestone--pending"></span>
+                    <span class="dashboard__milestone dashboard__milestone--pending"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

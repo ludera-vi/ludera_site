@@ -1,0 +1,185 @@
+{% extends "cabinet/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="cabinet-form-card" style="max-width: 100%;">
+    <div style="display: flex; gap: 32px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 300px;">
+            <h3 class="cabinet-form-section-title">Информация о пользователе</h3>
+            <div class="cabinet-message-box">
+                <p><strong>Email:</strong> {{ user_obj.email }}</p>
+                <p><strong>Имя:</strong> {{ user_obj.first_name|default:'—' }}</p>
+                <p><strong>Фамилия:</strong> {{ user_obj.last_name|default:'—' }}</p>
+                <p><strong>Телефон:</strong> {{ profile.phone|default:'—' }}</p>
+                <p><strong>Активен:</strong> {% if user_obj.is_active %}<span class="badge badge--active">Да</span>{% else %}<span class="badge badge--new">Нет</span>{% endif %}</p>
+                <p><strong>Администратор:</strong> {% if user_obj.is_staff %}<span class="badge badge--active">Да</span>{% else %}<span class="badge badge--new">Нет</span>{% endif %}</p>
+                <p><strong>Дата регистрации:</strong> {{ user_obj.date_joined|date:'d.m.Y H:i' }}</p>
+                <p><strong>Последний вход:</strong> {{ user_obj.last_login|date:'d.m.Y H:i'|default:'—' }}</p>
+                {% if profile.avatar %}
+                <p><strong>Аватар:</strong></p>
+                <img src="{{ profile.avatar.url }}" alt="" style="width:80px;height:80px;border-radius:50%;object-fit:cover;">
+                {% endif %}
+            </div>
+
+            <form method="post" action="{% url 'cabinet:user_toggle_staff' user_obj.pk %}" style="margin-bottom:16px;">
+                {% csrf_token %}
+                {% if user_obj.is_staff %}
+                <button type="submit" class="btn btn--outline" style="color:var(--cab-danger);border-color:var(--cab-danger);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Забрать права администратора
+                </button>
+                {% else %}
+                <button type="submit" class="btn btn--primary">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Дать права администратора
+                </button>
+                {% endif %}
+            </form>
+
+            <h3 class="cabinet-form-section-title" style="margin-top:24px;">Редактировать профиль</h3>
+            <form method="post" enctype="multipart/form-data" class="cabinet-form">
+                {% csrf_token %}
+                <input type="hidden" name="save_profile" value="1">
+                {{ form.as_p }}
+                <div class="cabinet-form-actions">
+                    <button type="submit" class="btn btn--primary">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div style="flex: 1; min-width: 300px;">
+            <h3 class="cabinet-form-section-title">Доступ к разделам кабинета</h3>
+            <form method="post" class="cabinet-form">
+                {% csrf_token %}
+                <input type="hidden" name="save_permissions" value="1">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+                    {% for section_key, section_label in CabinetPermission.SECTIONS %}
+                    {% if section_key != 'dashboard' %}
+                    <label style="display:flex;align-items:center;gap:8px;font-size:0.875rem;cursor:pointer;padding:6px 10px;background:var(--cab-bg);border:1px solid var(--cab-border);border-radius:8px;{% if section_key in user_sections %}border-color:var(--cab-primary);background:var(--cab-primary-bg);{% endif %}">
+                        <input type="checkbox" name="sections" value="{{ section_key }}" {% if section_key in user_sections %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--cab-primary);">
+                        {{ section_label }}
+                    </label>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="cabinet-form-actions">
+                    <button type="submit" class="btn btn--primary">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        Сохранить права
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 32px; flex-wrap: wrap; margin-top: 24px;">
+
+        <div style="flex: 1; min-width: 300px;">
+            <h3 class="cabinet-form-section-title">Товары пользователя (Goods)</h3>
+
+            {% if user_goods %}
+            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+                {% for ug in user_goods %}
+                <div style="display:flex;align-items:center;gap:12px;background:var(--cab-bg);border:1px solid var(--cab-border);border-radius:10px;padding:12px 16px;">
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{{ ug.goods.accent_color }};flex-shrink:0;"></span>
+                    <div style="flex:1;min-width:0;">
+                        <a href="{% url 'cabinet:goods_edit' ug.goods.pk %}" style="font-size:0.9375rem;font-weight:600;color:var(--cab-primary);text-decoration:none;">
+                            {{ ug.goods.title }}
+                        </a>
+                        <div style="font-size:0.75rem;color:var(--cab-text-muted);margin-top:2px;">
+                            Куплен: {{ ug.purchased_at|date:'d.m.Y' }}
+                            {% if ug.expires_at %} · Истекает: {{ ug.expires_at|date:'d.m.Y' }}{% endif %}
+                        </div>
+                    </div>
+                    <span class="badge {% if ug.is_active %}badge--active{% else %}badge--new{% endif %}">
+                        {% if ug.is_active %}Активен{% else %}Отключён{% endif %}
+                    </span>
+                    {% if ug.is_active %}
+                    <a href="{% url 'cabinet:user_remove_goods' user_obj.pk ug.goods.pk %}" class="cabinet-btn-icon cabinet-btn-icon--danger" title="Отключить доступ">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="cabinet-empty" style="margin-bottom:16px;">У пользователя нет товаров</div>
+            {% endif %}
+
+            <details style="background:var(--cab-bg);border:1px solid var(--cab-border);border-radius:10px;overflow:hidden;margin-bottom:24px;">
+                <summary style="display:flex;align-items:center;gap:8px;padding:12px 16px;font-size:0.875rem;font-weight:600;color:var(--cab-primary);cursor:pointer;user-select:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Добавить товар
+                </summary>
+                <form method="post" action="{% url 'cabinet:user_add_goods' user_obj.pk %}" class="cabinet-form" style="flex-direction:row;gap:8px;padding:12px 16px;border-top:1px solid var(--cab-border);">
+                    {% csrf_token %}
+                    <select name="goods_id" required style="flex:1;">
+                        <option value="">Выберите товар...</option>
+                        {% for g in goods_list %}
+                        <option value="{{ g.pk }}">{{ g.title }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn--primary" style="white-space:nowrap;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Добавить
+                    </button>
+                </form>
+            </details>
+
+            <h3 class="cabinet-form-section-title">Продукты пользователя (Products)</h3>
+
+            {% if user_products %}
+            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+                {% for up in user_products %}
+                <div style="display:flex;align-items:center;gap:12px;background:var(--cab-bg);border:1px solid var(--cab-border);border-radius:10px;padding:12px 16px;">
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{{ up.product.accent }};flex-shrink:0;"></span>
+                    <div style="flex:1;min-width:0;">
+                        <a href="{% url 'cabinet:product_edit' up.product.pk %}" style="font-size:0.9375rem;font-weight:600;color:var(--cab-primary);text-decoration:none;">
+                            {{ up.product.title }}
+                        </a>
+                        <div style="font-size:0.75rem;color:var(--cab-text-muted);margin-top:2px;">
+                            Куплен: {{ up.purchased_at|date:'d.m.Y' }}
+                            {% if up.expires_at %} · Истекает: {{ up.expires_at|date:'d.m.Y' }}{% endif %}
+                        </div>
+                    </div>
+                    <span class="badge {% if up.is_active %}badge--active{% else %}badge--new{% endif %}">
+                        {% if up.is_active %}Активен{% else %}Отключён{% endif %}
+                    </span>
+                    {% if up.is_active %}
+                    <a href="{% url 'cabinet:user_remove_product' user_obj.pk up.product.pk %}" class="cabinet-btn-icon cabinet-btn-icon--danger" title="Отключить доступ">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="cabinet-empty" style="margin-bottom:16px;">У пользователя нет продуктов</div>
+            {% endif %}
+
+            <details style="background:var(--cab-bg);border:1px solid var(--cab-border);border-radius:10px;overflow:hidden;">
+                <summary style="display:flex;align-items:center;gap:8px;padding:12px 16px;font-size:0.875rem;font-weight:600;color:var(--cab-primary);cursor:pointer;user-select:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Добавить продукт
+                </summary>
+                <form method="post" action="{% url 'cabinet:user_add_product' user_obj.pk %}" class="cabinet-form" style="flex-direction:row;gap:8px;padding:12px 16px;border-top:1px solid var(--cab-border);">
+                    {% csrf_token %}
+                    <select name="product_id" required style="flex:1;">
+                        <option value="">Выберите продукт...</option>
+                        {% for p in products_list %}
+                        <option value="{{ p.pk }}">{{ p.title }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn--primary" style="white-space:nowrap;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Добавить
+                    </button>
+                </form>
+            </details>
+        </div>
+    </div>
+</div>
+{% endblock %}

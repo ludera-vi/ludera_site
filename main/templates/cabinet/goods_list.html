@@ -1,0 +1,77 @@
+{% extends "cabinet/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="cabinet-table-wrapper">
+    <div class="cabinet-table-header">
+        <h3 class="cabinet-table-title">Все товары</h3>
+        <a href="{% url 'cabinet:goods_create' %}" class="btn btn--primary" style="gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Создать товар
+        </a>
+    </div>
+
+    {% if items %}
+    <table class="cabinet-table">
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Бейдж</th>
+                <th>Файлы</th>
+                <th>Порядок</th>
+                <th>Видимость</th>
+                <th>Дата</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>
+                    <div class="cabinet-cell-title">
+                        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{{ item.accent_color }};margin-right:8px;flex-shrink:0;"></span>
+                        <a href="{% url 'cabinet:goods_edit' item.pk %}">{{ item.title }}</a>
+                    </div>
+                </td>
+                <td><span class="badge badge--new">{{ item.badge_text|default:'—' }}</span></td>
+                <td>
+                    {% with fcount=item.files.count %}
+                    {% if fcount %}
+                    <a href="{% url 'cabinet:goods_files' item.pk %}" style="color:var(--cab-primary);font-size:0.8125rem;">{{ fcount }} файл{{ fcount|pluralize:',а,ов' }}</a>
+                    {% else %}
+                    <span style="color:var(--cab-text-muted);font-size:0.8125rem;">0 файлов</span>
+                    {% endif %}
+                    {% endwith %}
+                </td>
+                <td>{{ item.order }}</td>
+                <td>{% if item.is_visible %}<span class="badge badge--active">Да</span>{% else %}<span class="badge badge--new">Нет</span>{% endif %}</td>
+                <td>{{ item.created_at|date:'d.m.Y' }}</td>
+                <td>
+                    <div class="cabinet-table-actions">
+                        <a href="{% url 'cabinet:goods_edit' item.pk %}" class="cabinet-btn-icon" title="Редактировать">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </a>
+                        <a href="{% url 'cabinet:goods_files' item.pk %}" class="cabinet-btn-icon" title="Файлы">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </a>
+                        <form method="post" action="{% url 'cabinet:goods_delete' item.pk %}" style="display:inline;" onsubmit="return confirm('Удалить товар «{{ item.title }}»?')">
+                            {% csrf_token %}
+                            <button type="submit" class="cabinet-btn-icon cabinet-btn-icon--danger" title="Удалить">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="cabinet-empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.3;margin-bottom:12px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        <p>Нет записей</p>
+        <a href="{% url 'cabinet:goods_create' %}" class="btn btn--primary" style="margin-top:16px;">Создать первый товар</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

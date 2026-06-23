@@ -1,0 +1,124 @@
+<section class="features scroll-animate" id="services">
+    <div class="container">
+        <h2 class="features__title features__title--full">{{ settings.services_section_title }}</h2>
+        <div class="features__layout">
+
+            <div class="features__content">
+
+                <div class="features__cards">
+                    {% for service in services %}
+                    <div class="feature-card {% if forloop.first %}feature-card--active{% endif %}" data-index="{{ forloop.counter0 }}">
+                        <div class="feature-card__icon">
+                            <div class="feature-card__circle">
+                                <div class="feature-card__circle-inner"></div>
+                            </div>
+                        </div>
+                        <div class="feature-card__body">
+                            <h3 class="feature-card__title">{{ service.title }}</h3>
+                            <p class="feature-card__desc">{{ service.description }}</p>
+                            <a href="{{ service.get_absolute_url }}" class="feature-card__link">
+                                {{ settings.services_detail_text }}
+                                <span class="feature-card__arrow">
+                                    <svg width="11" height="8" viewBox="0 0 11 8" fill="none">
+                                        <path d="M7.229 0L11 3.77M11 3.77L7.229 7.542M11 3.77H0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-miterlimit="10"/>
+                                    </svg>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="features__nav">
+                    {% for service in services %}
+                    <button class="features__pill {% if forloop.first %}features__pill--active{% endif %}" data-index="{{ forloop.counter0 }}">
+                        <span class="features__pill-number">{{ service.pill_number }}</span>
+                        <span class="features__pill-divider"></span>
+                        <span class="features__pill-label">{{ service.pill_label }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="features__visual">
+                <div class="features__dashboard" id="featuresDashboard">
+                    {% for service in services %}
+                    {% with p=service.panel %}
+                    <div class="dashboard-panel {% if forloop.first %}dashboard-panel--active{% endif %}" data-index="{{ forloop.counter0 }}">
+                        <div class="dashboard-grid">
+                            <div class="d-card d-card--wide">
+                                <div class="d-card__header">
+                                    <span class="d-card__label">{{ p.chart_label }}</span>
+                                    <span class="d-card__badge">{{ p.badge }}</span>
+                                </div>
+                                <div class="d-card__chart">
+                                    {% for bar in p.chart %}
+                                    <div class="d-chart-bar" style="height: {{ bar }}%"></div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="d-card">
+                                <div class="d-card__header">
+                                    <span class="d-card__label">{{ p.metric1_label }}</span>
+                                    <span class="d-card__value">{{ p.metric1_value }}{{ p.metric1_suffix }}</span>
+                                </div>
+                                <div class="d-card__progress">
+                                    <div class="d-card__progress-fill{% if p.metric1_color == 'green' %} d-card__progress-fill--green{% endif %}" style="width: {{ p.metric1_value }}%"></div>
+                                </div>
+                                <span class="d-card__sub">{{ p.metric1_change }}</span>
+                            </div>
+                            <div class="d-card">
+                                <div class="d-card__header">
+                                    <span class="d-card__label">{{ p.metric2_label }}</span>
+                                    <span class="d-card__value">{{ p.metric2_value }}{{ p.metric2_suffix }}</span>
+                                </div>
+                                <div class="d-card__progress">
+                                    <div class="d-card__progress-fill{% if p.metric2_color == 'green' %} d-card__progress-fill--green{% endif %}" style="width: {{ p.metric2_value }}%"></div>
+                                </div>
+                                <span class="d-card__sub">{{ p.metric2_change }}</span>
+                            </div>
+                            <div class="d-card d-card--wide">
+                                <div class="d-card__header">
+                                    <span class="d-card__label">{{ p.timeline_label }}</span>
+                                    <span class="d-card__badge">{{ p.timeline_badge }}</span>
+                                </div>
+                                <div class="d-card__timeline">
+                                    <div class="d-card__track">
+                                        <div class="d-card__track-fill" style="width: {{ p.timeline_progress }}%"></div>
+                                    </div>
+                                    <div class="d-card__milestones">
+                                        {% for i in "x"|rjust:p.timeline_total %}
+                                        <span class="d-milestone{% if forloop.counter <= p.timeline_done %} d-milestone--done{% elif forloop.counter == p.timeline_done|add:1 %} d-milestone--active{% else %} d-milestone--pending{% endif %}"></span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="d-card__footer">
+                                    <span class="d-card__sub">{{ p.footer_text }}</span>
+                                    <div class="d-card__dots">
+                                        {% for dot in p.footer_dots %}
+                                        <span class="d-dot d-dot--{{ dot }}"></span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-card d-card--wide">
+                                <div class="d-card__header">
+                                    <span class="d-card__label">{{ p.lead_label }}</span>
+                                    <span class="d-card__badge">{{ p.lead_channels }} каналов</span>
+                                </div>
+                                <div class="d-card__pills">
+                                    {% for pill in p.lead_pills %}
+                                    <span class="d-pill d-pill--{{ pill }}"></span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endwith %}
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>

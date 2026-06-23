@@ -1,0 +1,39 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="user-section">
+    <div class="user-section__header">
+        <h3 class="user-section__title">Мои товары</h3>
+    </div>
+
+    {% if user_products %}
+    <div class="user-products-grid">
+        {% for up in user_products %}
+        <a href="{% url 'users:product_detail' up.product.slug %}" class="user-product-card">
+            <div class="user-product-card__accent" style="background: {{ up.product.accent|default:'#a7d5b8' }}"></div>
+            <div class="user-product-card__body">
+                <span class="user-product-card__badge" style="color: {{ up.product.accent|default:'#a7d5b8' }}">{{ up.product.badge_text|default:'Продукт' }}</span>
+                <h4 class="user-product-card__title">{{ up.product.title }}</h4>
+                <p class="user-product-card__desc">{{ up.product.description|truncatechars:120 }}</p>
+                <div class="user-product-card__meta">
+                    <span class="user-product-card__date">Куплен: {{ up.purchased_at|date:'d.m.Y' }}</span>
+                    {% if up.expires_at %}
+                    <span class="user-product-card__expires {% if up.expires_at < now %}expired{% endif %}">
+                        Действует до: {{ up.expires_at|date:'d.m.Y' }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="user-empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.3;margin-bottom:12px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        <p>У вас пока нет доступных товаров</p>
+        <a href="/" class="btn btn--primary" style="margin-top:16px;">На главную</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

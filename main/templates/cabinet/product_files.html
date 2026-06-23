@@ -1,0 +1,66 @@
+{% extends "cabinet/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="cabinet-form-card">
+    <a href="{% url 'cabinet:product_list' %}" class="cabinet-btn-ghost" style="margin-bottom:20px;display:inline-flex;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Назад к товарам
+    </a>
+
+    <h3 class="cabinet-form-section-title">Файлы: {{ product.title }}</h3>
+    <p class="cabinet-meta">Загрузите файлы для скачивания пользователями, у которых есть доступ к товару</p>
+
+    <form method="post" enctype="multipart/form-data" class="cabinet-form">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+            {% for f in formset %}
+            <div style="background:var(--cab-bg);border:1px solid var(--cab-border);border-radius:12px;padding:16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">Название</label>
+                        {{ f.title }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">Тип файла</label>
+                        {{ f.file_type }}
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:8px;">
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">Файл</label>
+                        {{ f.file }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">Порядок</label>
+                        {{ f.order }}
+                    </div>
+                </div>
+                {% if f.instance.pk and f.instance.file %}
+                <div style="margin-top:8px;font-size:0.8rem;color:var(--cab-text-muted);">
+                    Текущий файл: {{ f.instance.filename }}
+                </div>
+                {% endif %}
+                <div style="margin-top:8px;">
+                    <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--cab-text-muted);cursor:pointer;">
+                        {{ f.DELETE }} Удалить этот файл
+                    </label>
+                </div>
+                {{ f.id }}
+                {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="cabinet-form-actions" style="margin-top:20px;">
+            <button type="submit" class="btn btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Сохранить файлы
+            </button>
+            <a href="{% url 'cabinet:product_list' %}" class="cabinet-btn-ghost">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

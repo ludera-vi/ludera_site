@@ -1,0 +1,105 @@
+{% extends "cabinet/base.html" %}
+{% load static %}
+{% load cabinet_tags %}
+
+{% block content %}
+<div class="cabinet-toolbar">
+    {% if can_add and create_url %}
+    <a href="{{ create_url }}" class="btn btn--primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Создать
+    </a>
+    {% endif %}
+</div>
+
+<div class="cabinet-table-card">
+    <div class="cabinet-table-scroll">
+        <table class="cabinet-table">
+            <thead>
+                <tr>
+                    {% for f in fields %}
+                    <th>{{ f.1 }}</th>
+                    {% endfor %}
+                    <th class="th-actions">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    {% for f in fields %}
+                    <td>
+                        {% with value=item|field:f.0 %}
+                            {% if f.0 == 'is_visible' or f.0 == 'is_read' or f.0 == 'is_active' or f.0 == 'is_staff' %}
+                                {% if value %}
+                                    <span class="badge badge--done">Да</span>
+                                {% else %}
+                                    <span class="badge badge--new">Нет</span>
+                                {% endif %}
+                            {% elif f.0 == 'status' %}
+                                {{ value }}
+                            {% elif 'timestamp' in f.0 %}
+                                {{ value|date:'d.m.Y H:i' }}
+                            {% elif 'color' in f.0 or f.0 == 'accent' or 'gradient' in f.0 %}
+                                <span class="cabinet-color-swatch" style="background: {{ value }}"></span>
+                                <span class="cabinet-color-value">{{ value }}</span>
+                            {% else %}
+                                {{ value|truncatechars:50 }}
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    {% endfor %}
+                    <td class="td-actions">
+                        {% if edit_url %}
+                        {% if files_url %}
+                        <a href="{{ files_url }}{{ item.pk }}/" class="cabinet-btn-icon" title="Файлы">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        </a>
+                        {% endif %}
+                        <a href="{{ edit_url }}{{ item.pk }}/" class="cabinet-btn-icon" title="Редактировать">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </a>
+                        <a href="{{ edit_url }}{{ item.pk }}/delete/" class="cabinet-btn-icon cabinet-btn-icon--danger" title="Удалить">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </a>
+                        {% elif detail_url %}
+                        <a href="{{ detail_url }}{{ item.pk }}/" class="cabinet-btn-icon" title="Просмотреть">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{{ fields|length|add:1 }}" class="cabinet-empty">Нет записей</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="cabinet-pagination">
+    <span class="cabinet-pagination-info">
+        Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+        ({{ page_obj.paginator.count }} записей)
+    </span>
+    <div class="cabinet-pagination-links">
+        {% if page_obj.has_previous %}
+        <a href="?page=1" class="cabinet-pagination-link">&laquo;</a>
+        <a href="?page={{ page_obj.previous_page_number }}" class="cabinet-pagination-link">&lsaquo;</a>
+        {% endif %}
+        {% for p in page_obj.paginator.page_range|slice:":5" %}
+        <a href="?page={{ p }}" class="cabinet-pagination-link{% if p == page_obj.number %} cabinet-pagination-link--active{% endif %}">{{ p }}</a>
+        {% endfor %}
+        {% if page_obj.paginator.num_pages > 5 %}
+        <span class="cabinet-pagination-ellipsis">…</span>
+        {% endif %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="cabinet-pagination-link">&rsaquo;</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}" class="cabinet-pagination-link">&raquo;</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

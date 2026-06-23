@@ -1,0 +1,135 @@
+{% extends "users/base.html" %}
+{% load static %}
+{% load main_tags %}
+
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/content-display.css' %}">
+<style>
+.user-product-detail { max-width: 900px; }
+.user-product-header { margin-bottom: 28px; }
+.user-product-header__title { font-size: 1.75rem; font-weight: 700; color: var(--uc-text); margin-bottom: 8px; line-height: 1.3; }
+.user-product-header__subtitle { font-size: 1rem; color: var(--uc-text-muted); line-height: 1.5; }
+.user-product-content {
+    background: var(--uc-surface); border: 1px solid var(--uc-border); border-radius: 12px;
+    padding: 32px; margin-bottom: 28px; box-shadow: var(--uc-card-shadow); line-height: 1.8; font-size: 0.9375rem;
+}
+.user-product-content > *:first-child { margin-top: 0; }
+.user-product-content > *:last-child { margin-bottom: 0; }
+.user-product-content h1 { font-size: 1.75rem; font-weight: 700; color: var(--uc-text); margin: 28px 0 14px; line-height: 1.3; }
+.user-product-content h2 { font-size: 1.4rem; font-weight: 600; color: var(--uc-text); margin: 24px 0 12px; line-height: 1.35; padding-bottom: 8px; border-bottom: 1px solid var(--uc-border); }
+.user-product-content h3 { font-size: 1.15rem; font-weight: 600; color: var(--uc-text); margin: 20px 0 10px; line-height: 1.4; }
+.user-product-content h4 { font-size: 1.05rem; font-weight: 600; color: var(--uc-text); margin: 16px 0 8px; }
+.user-product-content h5, .user-product-content h6 { font-size: 0.9375rem; font-weight: 600; color: var(--uc-text-muted); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: 0.03em; }
+.user-product-content p { margin-bottom: 14px; color: var(--uc-text); }
+.user-product-content a { color: var(--uc-primary); text-decoration: underline; text-underline-offset: 2px; }
+.user-product-content a:hover { text-decoration-thickness: 2px; }
+.user-product-content ul, .user-product-content ol { padding-left: 24px; margin-bottom: 14px; }
+.user-product-content li { margin-bottom: 6px; line-height: 1.7; }
+.user-product-content ul.ql-check, .user-product-content ul.ql-check ul { list-style: none; padding-left: 4px; }
+.user-product-content ul.ql-check li { position: relative; padding-left: 28px; margin-bottom: 8px; }
+.user-product-content ul.ql-check li::before { content: '\2610'; position: absolute; left: 0; color: var(--uc-text-muted); font-size: 1.1em; }
+.user-product-content ul.ql-check li.ql-checked::before { content: '\2611'; color: var(--uc-primary); }
+.user-product-content ul.ql-check li.ql-checked { text-decoration: line-through; color: var(--uc-text-muted); }
+.user-product-content blockquote { border-left: 4px solid var(--uc-primary); padding: 14px 22px; margin: 18px 0; background: color-mix(in srgb, var(--uc-primary) 5%, transparent); border-radius: 0 10px 10px 0; color: var(--uc-text); font-style: italic; line-height: 1.7; }
+.user-product-content blockquote p:last-child { margin-bottom: 0; }
+.user-product-content img { border-radius: 10px; max-width: 100%; height: auto; margin: 16px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.user-product-content hr { border: none; border-top: 1px solid var(--uc-border); margin: 28px 0; }
+.user-product-content table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 0.875rem; border-radius: 8px; overflow: hidden; border: 1px solid var(--uc-border); }
+.user-product-content table th, .user-product-content table td { border: 1px solid var(--uc-border); padding: 11px 16px; text-align: left; }
+.user-product-content table th { background: color-mix(in srgb, var(--uc-primary) 8%, transparent); font-weight: 600; color: var(--uc-text); }
+.user-product-content table tr:nth-child(even) { background: color-mix(in srgb, var(--uc-bg) 50%, transparent); }
+.user-product-content table tr:hover { background: color-mix(in srgb, var(--uc-primary) 4%, transparent); }
+.user-product-content .ql-indent-1 { padding-left: 3em; }
+.user-product-content .ql-indent-2 { padding-left: 6em; }
+.user-product-content .ql-indent-3 { padding-left: 9em; }
+.user-product-content .ql-indent-4 { padding-left: 12em; }
+.user-product-content .ql-indent-5 { padding-left: 15em; }
+.user-product-content .ql-indent-6 { padding-left: 18em; }
+.user-product-content .ql-indent-7 { padding-left: 21em; }
+.user-product-content .ql-indent-8 { padding-left: 24em; }
+.user-product-content .ql-align-center { text-align: center; }
+.user-product-content .ql-align-right { text-align: right; }
+.user-product-content .ql-align-justify { text-align: justify; }
+.user-product-content sub { font-size: 0.75em; vertical-align: sub; }
+.user-product-content sup { font-size: 0.75em; vertical-align: super; }
+.user-product-content .ql-size-small { font-size: 0.75em; }
+.user-product-content .ql-size-large { font-size: 1.25em; }
+.user-product-content .ql-size-huge { font-size: 1.5em; }
+@media (max-width: 768px) {
+    .user-product-content { padding: 20px; font-size: 0.875rem; border-radius: 8px; }
+    .user-product-content table { font-size: 0.8rem; }
+    .user-product-content table th, .user-product-content table td { padding: 8px 10px; }
+    .user-product-header__title { font-size: 1.4rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="user-product-detail">
+    <a href="{% url 'users:products' %}" class="user-back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Назад к товарам
+    </a>
+    <div class="user-product-header">
+        <h1 class="user-product-header__title">{{ product.title }}</h1>
+        {% if product.subtitle %}
+        <p class="user-product-header__subtitle">{{ product.subtitle }}</p>
+        {% endif %}
+    </div>
+    {% if product.content %}
+    <div class="user-product-content pre-content">
+        {{ product.content|embed_videos|safe }}
+    </div>
+    {% endif %}
+    {% if files %}
+    <div class="user-product-files">
+        <h3 class="user-section__title">Файлы для скачивания</h3>
+        <div class="user-files-list">
+            {% for f in files %}
+            <a href="{{ f.file.url }}" class="user-file-card" download>
+                <div class="user-file-card__icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+                </div>
+                <div class="user-file-card__info">
+                    <span class="user-file-card__title">{{ f.title }}</span>
+                    {% if f.file_type %}<span class="user-file-card__type">{{ f.file_type }}</span>{% endif %}
+                    <span class="user-file-card__size">{{ f.file.size|filesizeformat }}</span>
+                </div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="user-file-card__download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="user-empty"><p>Файлы для этого товара пока не загружены</p></div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-php.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-java.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-csharp.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-c.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-cpp.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-rust.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-ruby.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-swift.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-kotlin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-docker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-nginx.min.js"></script>
+<script src="{% static 'js/content-display.js' %}"></script>
+{% endblock %}

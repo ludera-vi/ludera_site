@@ -1,0 +1,171 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title|default:'Личный кабинет' }} — Ludera</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cabinet.css' %}">
+    <link rel="stylesheet" href="{% static 'css/user-cabinet.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #f5f9f7;
+            margin: 0;
+            padding: 20px;
+        }
+        .auth-wrap {
+            width: 100%;
+            max-width: 440px;
+        }
+        .cabinet-login__card {
+            background: #ffffff;
+            border: 1px solid #e2ece6;
+            border-radius: 16px;
+            padding: 40px 32px;
+        }
+        .cabinet-login__card .cabinet-login__logo {
+            color: #2d8f5e;
+        }
+        .cabinet-login__card .cabinet-login__title {
+            color: #1a2e26;
+        }
+        .cabinet-login__card .cabinet-login__desc {
+            color: #6b8a7a;
+        }
+        .cabinet-login__card .cabinet-form-label {
+            color: #1a2e26;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .cabinet-login__card input[type="text"],
+        .cabinet-login__card input[type="email"],
+        .cabinet-login__card input[type="password"] {
+            background: #f5f9f7;
+            border: 1px solid #e2ece6;
+            border-radius: 8px;
+            color: #1a2e26;
+            padding: 12px 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9375rem;
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .cabinet-login__card input:focus {
+            border-color: #2d8f5e;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(45, 143, 94, 0.12);
+        }
+        .cabinet-login__card .cabinet-form-errors {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.8125rem;
+            color: #dc2626;
+            margin-top: 4px;
+        }
+        .cabinet-login__card .btn--primary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px;
+            width: 100%;
+            background: #2d8f5e;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .cabinet-login__card .btn--primary:hover {
+            background: #237a4d;
+        }
+        .cabinet-login__card .cabinet-login__back {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.8125rem;
+            color: #6b8a7a;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .cabinet-login__card .cabinet-login__back:hover {
+            color: #2d8f5e;
+        }
+        .user-auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 24px 0;
+            color: #6b8a7a;
+            font-size: 0.8125rem;
+        }
+        .user-auth-divider::before,
+        .user-auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e2ece6;
+        }
+        .user-social-login {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .user-social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            border: 1px solid #e2ece6;
+            background: #ffffff;
+            color: #1a2e26;
+            transition: all 0.2s ease;
+        }
+        .user-social-btn:hover {
+            border-color: #2d8f5e;
+            box-shadow: 0 4px 12px rgba(45, 143, 94, 0.1);
+        }
+        .user-social-btn--yandex:hover {
+            border-color: #fc3f1d;
+            color: #fc3f1d;
+        }
+        .user-social-btn--google:hover {
+            border-color: #4285f4;
+            color: #4285f4;
+        }
+        .cabinet-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="auth-wrap">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

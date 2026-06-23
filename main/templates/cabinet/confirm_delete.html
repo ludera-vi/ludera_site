@@ -1,0 +1,17 @@
+{% extends "cabinet/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="cabinet-form-card cabinet-form-card--narrow">
+    <div class="cabinet-confirm-text">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <h2>Удаление</h2>
+        <p>Вы уверены, что хотите удалить «{{ obj }}»?</p>
+    </div>
+    <form method="post" class="cabinet-form-actions" style="justify-content: center;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--primary" style="background: #ef4444; color: #fff;">Удалить</button>
+        <a href="/cabinet/{{ model_name }}/" class="btn cabinet-btn-ghost">Отмена</a>
+    </form>
+</div>
+{% endblock %}

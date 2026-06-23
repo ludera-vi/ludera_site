@@ -1,0 +1,160 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ settings.meta_description|default:'Ludera — разработка CRM, чат-ботов и сайтов для малого и среднего бизнеса.' }}">
+    <meta property="og:title" content="{% block og_title %}{{ settings.meta_title|default:'Ludera — CRM, чат-боты и веб-разработка для бизнеса' }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ settings.meta_description|default:'Ludera — разработка CRM, чат-ботов и сайтов для бизнеса.' }}{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:site_name" content="Ludera">
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    <title>{% block title %}{{ settings.meta_title|default:'Ludera — CRM, чат-боты и веб-разработка для бизнеса' }}{% endblock title %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'main/css/ecosystem.css' %}">
+    {% block extra_head %}{% endblock extra_head %}
+</head>
+<body>
+    <header class="header">
+        <nav class="container header__nav">
+            <a href="/" class="header__logo">Ludera</a>
+            <div class="header__links">
+                {% for link in nav_links %}
+                <a href="{{ link.url }}" class="header__link">{{ link.title }}</a>
+                {% endfor %}
+                {% if user.is_authenticated %}
+                <a href="{% url 'users:dashboard' %}" class="header__link">{{ settings.header_account_text }}</a>
+                {% else %}
+                <a href="{% url 'users:login' %}" class="header__link">{{ settings.header_login_text }}</a>
+                {% endif %}
+            </div>
+            <a href="#contact" class="btn btn--primary header__cta">{{ settings.header_cta_text }}</a>
+            <button class="header__burger" id="headerBurger" aria-label="Меню">
+                <span></span><span></span><span></span>
+            </button>
+        </nav>
+    </header>
+
+    <div class="mobile-backdrop" id="mobileBackdrop"></div>
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-menu__header">
+            <a href="/" class="mobile-menu__logo">Ludera</a>
+            <button class="mobile-menu__close" id="menuClose" aria-label="Закрыть меню">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <nav class="mobile-menu__nav">
+            <a href="/" class="mobile-menu__link">Главная</a>
+            {% if user.is_authenticated %}
+            <a href="{% url 'users:dashboard' %}" class="mobile-menu__link">{{ settings.header_account_text }}</a>
+            {% else %}
+            <a href="{% url 'users:login' %}" class="mobile-menu__link">{{ settings.header_login_text }}</a>
+            {% endif %}
+            {% for link in nav_links %}
+            <a href="{{ link.url }}" class="mobile-menu__link">{{ link.title }}</a>
+            {% endfor %}
+            <a href="#contact" class="mobile-menu__link">Контакты</a>
+        </nav>
+        <div class="mobile-menu__footer">
+            <a href="mailto:{{ settings.email|default:'hello@ludera.ru' }}" class="mobile-menu__footer-link">{{ settings.email|default:'hello@ludera.ru' }}</a>
+            <a href="#contact" class="btn btn--primary header__cta-mobile">{{ settings.header_cta_text }}</a>
+        </div>
+    </div>
+
+    <main>
+        {% block content %}
+        {% endblock content %}
+    </main>
+
+    <footer class="footer" id="contact">
+        <div class="container">
+            <div class="footer__cta">
+                <div class="footer__cta-bg"></div>
+                <p class="footer__cta-label">{{ settings.footer_cta_label }}</p>
+                <h2 class="footer__cta-title">{{ settings.cta_title|default:'Готовы обсудить ваш проект?' }}</h2>
+                <p class="footer__cta-desc">{{ settings.cta_description|default:'Расскажите о вашей задаче — мы подберём оптимальное решение.' }}</p>
+                <form class="contact-form" id="contactForm" method="post" action="{% url 'main:contact_submit' %}">
+                    {% csrf_token %}
+                    <div class="contact-form__row">
+                        <input type="text" name="name" class="contact-form__input" placeholder="{{ settings.contact_name_placeholder }}" required>
+                        <input type="email" name="email" class="contact-form__input" placeholder="{{ settings.contact_email_placeholder }}" required>
+                    </div>
+                    <textarea name="message" class="contact-form__textarea" placeholder="{{ settings.contact_message_placeholder }}" rows="3"></textarea>
+                    <button type="submit" class="btn btn--primary btn--large contact-form__submit">
+                        {{ settings.contact_submit_text }}
+                    </button>
+                    <div class="contact-form__success" id="contactSuccess" style="display:none;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        <span>{{ settings.contact_success_text }}</span>
+                    </div>
+                </form>
+            </div>
+
+            <div class="footer__content">
+                <div class="footer__info">
+                    <a href="/" class="footer__logo">Ludera</a>
+                    <p class="footer__desc">{{ settings.footer_description|default:'Создаём современные цифровые решения для малого и среднего бизнеса.' }}</p>
+                    <a href="mailto:{{ settings.email|default:'hello@ludera.ru' }}" class="footer__email">{{ settings.email|default:'hello@ludera.ru' }}</a>
+                </div>
+
+                <div class="footer__col">
+                    <h4 class="footer__col-title">{{ settings.footer_company_title }}</h4>
+                    <ul class="footer__links">
+                        {% for link in nav_links %}
+                            <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="footer__col">
+                    <h4 class="footer__col-title">{{ settings.footer_products_title }}</h4>
+                    <ul class="footer__links">
+                        {% for product in footer_products %}
+                            <li><a href="{{ product.get_absolute_url }}">{{ product.title }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer__bottom">
+                <p class="footer__copyright">{{ settings.copyright_text|default:'© 2024 Ludera. Все права защищены.' }}</p>
+                <div class="footer__socials">
+                    {% if settings.social_twitter_url %}
+                    <a href="{{ settings.social_twitter_url }}" class="footer__social-link" aria-label="Twitter" target="_blank" rel="noopener">
+                        <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
+                            <path d="M14.175 0H16.935L10.905 6.777L18 16H12.345L7.995 10.406L3.045 16H0.285L6.75 8.738L0 0H5.82L9.735 5.113L14.175 0ZM13.215 14.376H14.745L4.875 1.541H3.225L13.215 14.376Z" fill="currentColor"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                    {% if settings.social_linkedin_url %}
+                    <a href="{{ settings.social_linkedin_url }}" class="footer__social-link" aria-label="LinkedIn" target="_blank" rel="noopener">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M16 0H2C0.9 0 0 0.9 0 2V16C0 17.1 0.9 18 2 18H16C17.1 18 18 17.1 18 16V2C18 0.9 17.1 0 16 0ZM5.5 15H3V7H5.5V15ZM4.25 5.75C3.35 5.75 2.75 5.15 2.75 4.25C2.75 3.35 3.35 2.75 4.25 2.75C5.15 2.75 5.75 3.35 5.75 4.25C5.75 5.15 5.15 5.75 4.25 5.75ZM15 15H12.5V11.25C12.5 10.25 11.75 9.5 10.75 9.5C9.75 9.5 9 10.25 9 11.25V15H6.5V7H9V8.25C9.5 7.5 10.5 7 11.5 7C13.5 7 15 8.5 15 10.5V15Z" fill="currentColor"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                    {% if settings.social_youtube_url %}
+                    <a href="{{ settings.social_youtube_url }}" class="footer__social-link" aria-label="YouTube" target="_blank" rel="noopener">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M16.6 4.2C16.4 3.5 15.9 2.9 15.2 2.7C13.9 2.3 9 2.3 9 2.3C9 2.3 4.1 2.3 2.8 2.7C2.1 2.9 1.6 3.5 1.4 4.2C1 5.5 1 8.2 1 8.2C1 8.2 1 10.9 1.4 12.2C1.6 12.9 2.1 13.5 2.8 13.7C4.1 14.1 9 14.1 9 14.1C9 14.1 13.9 14.1 15.2 13.7C15.9 13.5 16.4 12.9 16.6 12.2C17 10.9 17 8.2 17 8.2C17 8.2 17 5.5 16.6 4.2ZM7.5 11V5.5L12 8.2L7.5 11Z" fill="currentColor"/>
+                        </svg>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <button class="scroll-top" id="scrollTop" aria-label="Наверх">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+    </button>
+
+    <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'main/js/ecosystem.js' %}"></script>
+</body>
+</html>

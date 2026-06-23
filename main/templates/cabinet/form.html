@@ -1,0 +1,221 @@
+{% extends "cabinet/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+<link rel="stylesheet" href="{% static 'css/cabinet-editor.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="cabinet-form-card">
+    <form method="post" class="cabinet-form">
+        {% csrf_token %}
+
+        {% for field in form %}
+        {% if field.name in panel_fields %}
+        {% else %}
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label" for="{{ field.id_for_label }}">
+                {{ field.label }}
+                {% if field.field.required %}<span class="cabinet-required">*</span>{% endif %}
+                {% if field.name == 'content' %}
+                <span class="cabinet-tip" title="Редактор поддерживает: заголовки, жирный/курсив/подчёркивание, списки, цитаты, код, ссылки, изображения (по URL), видео (YouTube/Vimeo)">ⓘ</span>
+                {% endif %}
+            </label>
+            {{ field }}
+            {% if field.help_text %}
+            <p class="cabinet-form-help">{{ field.help_text }}</p>
+            {% endif %}
+            {% if field.errors %}
+            <div class="cabinet-form-errors">
+                {% for error in field.errors %}
+                <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        {% if model_name == 'sitesetting' and site_groups %}
+        {% for group in site_groups %}
+        <details class="cabinet-panel-section" {% if group.key != 'seo' %}open{% endif %}>
+            <summary class="cabinet-panel-summary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                {{ group.label }}
+            </summary>
+            <div class="cabinet-panel-body">
+                {% for field in form %}
+                {% if field.name in group.fields %}
+                <div class="cabinet-form-group">
+                    <label class="cabinet-form-label" for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                        {% if field.field.required %}<span class="cabinet-required">*</span>{% endif %}
+                    </label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <p class="cabinet-form-help">{{ field.help_text }}</p>
+                    {% endif %}
+                    {% if field.errors %}
+                    <div class="cabinet-form-errors">
+                        {% for error in field.errors %}
+                        <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </details>
+        {% endfor %}
+        {% elif model_name == 'service' %}
+        <details class="cabinet-panel-section" open>
+            <summary class="cabinet-panel-summary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                Панель дашборда на главной
+            </summary>
+            <div class="cabinet-panel-body">
+
+                <h4 class="cabinet-panel-subtitle">График</h4>
+                <div class="cabinet-panel-row">
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.chart_label.label }}</label>
+                        {{ form.chart_label }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.chart_badge.label }}</label>
+                        {{ form.chart_badge }}
+                    </div>
+                </div>
+                <div class="cabinet-form-group">
+                    <label class="cabinet-form-label">{{ form.chart_bars.label }}</label>
+                    {{ form.chart_bars }}
+                    <p class="cabinet-form-help">6 чисел от 0 до 100 через запятую. Пример: 45, 55, 70, 85, 65, 90</p>
+                </div>
+
+                <h4 class="cabinet-panel-subtitle">Метрика 1</h4>
+                <div class="cabinet-panel-row cabinet-panel-row--3">
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.metric1_label.label }}</label>
+                        {{ form.metric1_label }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.metric1_value.label }}</label>
+                        {{ form.metric1_value }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.metric1_suffix.label }}</label>
+                        {{ form.metric1_suffix }}
+                    </div>
+                </div>
+                <div class="cabinet-panel-row">
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.metric1_change.label }}</label>
+                        {{ form.metric1_change }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.metric1_color.label }}</label>
+                        {{ form.metric1_color }}
+                    </div>
+                </div>
+
+                <h4 class="cabinet-panel-subtitle">Метрика 2</h4>
+                <div class="cabinet-panel-row cabinet-panel-row--3">
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.metric2_label.label }}</label>
+                        {{ form.metric2_label }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.metric2_value.label }}</label>
+                        {{ form.metric2_value }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.metric2_suffix.label }}</label>
+                        {{ form.metric2_suffix }}
+                    </div>
+                </div>
+                <div class="cabinet-panel-row">
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.metric2_change.label }}</label>
+                        {{ form.metric2_change }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.metric2_color.label }}</label>
+                        {{ form.metric2_color }}
+                    </div>
+                </div>
+
+                <h4 class="cabinet-panel-subtitle">Таймлайн</h4>
+                <div class="cabinet-panel-row">
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.timeline_label.label }}</label>
+                        {{ form.timeline_label }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.timeline_progress.label }}</label>
+                        {{ form.timeline_progress }}
+                    </div>
+                </div>
+                <div class="cabinet-panel-row cabinet-panel-row--3">
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.timeline_total.label }}</label>
+                        {{ form.timeline_total }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.timeline_done.label }}</label>
+                        {{ form.timeline_done }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.timeline_badge.label }}</label>
+                        {{ form.timeline_badge }}
+                    </div>
+                </div>
+
+                <h4 class="cabinet-panel-subtitle">Источники / Каналы</h4>
+                <div class="cabinet-panel-row">
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.lead_label.label }}</label>
+                        {{ form.lead_label }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.lead_channels.label }}</label>
+                        {{ form.lead_channels }}
+                    </div>
+                </div>
+                <div class="cabinet-form-group">
+                    <label class="cabinet-form-label">{{ form.lead_pills.label }}</label>
+                    {{ form.lead_pills }}
+                    <p class="cabinet-form-help">Цвета: green, teal, amber, red. Пример: green, teal, green, amber, green</p>
+                </div>
+
+                <h4 class="cabinet-panel-subtitle">Футер панели</h4>
+                <div class="cabinet-panel-row">
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.footer_text.label }}</label>
+                        {{ form.footer_text }}
+                    </div>
+                    <div class="cabinet-form-group">
+                        <label class="cabinet-form-label">{{ form.footer_dots.label }}</label>
+                        {{ form.footer_dots }}
+                    </div>
+                </div>
+            </div>
+        </details>
+        {% endif %}
+
+        <div class="cabinet-form-actions">
+            <button type="submit" class="btn btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Сохранить
+            </button>
+            <a href="/cabinet/{{ model_name }}/" class="btn cabinet-btn-ghost">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% include "cabinet/_quill_editor.html" %}
+{% endblock %}

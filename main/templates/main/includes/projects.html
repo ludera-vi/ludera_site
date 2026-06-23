@@ -1,0 +1,36 @@
+<section class="connectivity" id="projects">
+    <div class="connectivity__decor connectivity__decor--tl" aria-hidden="true"></div>
+    <div class="connectivity__decor connectivity__decor--tr" aria-hidden="true"></div>
+    <div class="connectivity__decor connectivity__decor--bl" aria-hidden="true"></div>
+    <div class="connectivity__decor connectivity__decor--br" aria-hidden="true"></div>
+    <div class="connectivity__circle connectivity__circle--1" aria-hidden="true"></div>
+    <div class="connectivity__circle connectivity__circle--2" aria-hidden="true"></div>
+    <div class="connectivity__line" aria-hidden="true"></div>
+    <div class="connectivity__line connectivity__line--2" aria-hidden="true"></div>
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-header__title section-header__title--dark">{{ settings.projects_section_title }}</h2>
+            <p class="section-header__subtitle section-header__subtitle--dark">{{ settings.projects_section_subtitle }}</p>
+        </div>
+        <div class="filter-bar" id="projectFilters"></div>
+        <div class="projects-wrapper">
+            <div class="projects-grid" id="projectsGrid">
+                {% for project in projects %}
+                <a href="{{ project.get_absolute_url }}" class="project-card scroll-animate" data-tags="{{ project.tag1 }} {{ project.tag2 }}" style="display:block; text-decoration:none;">
+                    <div class="project-card__accent" style="background:{{ project.accent_color }}"></div>
+                    <div class="project-card__title">{{ project.title }}</div>
+                    {% if project.status %}
+                    <div class="project-card__status">{{ project.status }}</div>
+                    {% endif %}
+                    <div class="project-card__desc">{{ project.description }}</div>
+                    <div class="project-card__tags">
+                        {% if project.tag1 %}<span class="project-card__tag">{{ project.tag1 }}</span>{% endif %}
+                        {% if project.tag2 %}<span class="project-card__tag">{{ project.tag2 }}</span>{% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            <div class="section-pagination" id="projectPagination"></div>
+        </div>
+    </div>
+</section>

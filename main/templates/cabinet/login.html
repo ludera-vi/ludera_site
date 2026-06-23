@@ -1,0 +1,65 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход — Ludera</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cabinet.css' %}">
+    <link rel="stylesheet" href="{% static 'css/user-cabinet.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .cabinet-login__card .btn--primary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px;
+            width: 100%;
+            background: #2d8f5e;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .cabinet-login__card .btn--primary:hover {
+            background: #237a4d;
+        }
+    </style>
+</head>
+<body class="cabinet-login-body">
+    <div class="cabinet-login">
+        <div class="cabinet-login__card">
+            <div class="cabinet-login__header">
+                <span class="cabinet-login__logo">Ludera</span>
+                <h1 class="cabinet-login__title">Панель управления</h1>
+                <p class="cabinet-login__desc">Войдите в личный кабинет</p>
+            </div>
+            <form method="post" class="cabinet-login__form">
+                {% csrf_token %}
+                <div class="cabinet-form-group">
+                    <label class="cabinet-form-label">Логин</label>
+                    <input type="text" name="username" placeholder="Логин" required autocomplete="username">
+                </div>
+                <div class="cabinet-form-group">
+                    <label class="cabinet-form-label">Пароль</label>
+                    <input type="password" name="password" placeholder="Пароль" required autocomplete="current-password">
+                </div>
+                {% if form.errors %}
+                <div class="cabinet-form-errors">
+                    <p>Неверный логин или пароль</p>
+                </div>
+                {% endif %}
+                <button type="submit" class="btn btn--primary">Войти</button>
+            </form>
+            <a href="/" class="cabinet-login__back">← На сайт</a>
+        </div>
+    </div>
+</body>
+</html>

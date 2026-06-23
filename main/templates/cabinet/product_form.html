@@ -1,0 +1,270 @@
+{% extends "cabinet/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+<link rel="stylesheet" href="{% static 'css/cabinet-editor.css' %}">
+<style>
+.inline-formset { display: flex; flex-direction: column; gap: 8px; }
+.inline-row {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--cab-bg); border: 1px solid var(--cab-border);
+    border-radius: 8px; padding: 10px 14px;
+}
+.inline-row input { flex: 1; background: transparent !important; border: none !important; padding: 4px 0 !important; }
+.inline-row input:focus { box-shadow: none !important; }
+.inline-row .delete-row {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 6px; border: none;
+    background: rgba(239,68,68,0.1); color: var(--cab-danger); cursor: pointer;
+    font-size: 16px; line-height: 1; transition: background 0.2s;
+    flex-shrink: 0;
+}
+.inline-row .delete-row:hover { background: rgba(239,68,68,0.2); }
+.add-row-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 8px; border: 1px dashed var(--cab-border);
+    background: transparent; color: var(--cab-text-muted); cursor: pointer;
+    font-size: 0.8125rem; font-weight: 500; transition: all 0.2s; width: fit-content;
+}
+.add-row-btn:hover { border-color: var(--cab-primary); color: var(--cab-primary); }
+.files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.file-card {
+    background: var(--cab-bg);
+    border: 1px solid var(--cab-border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+.file-card:hover {
+    border-color: var(--cab-primary);
+}
+.file-card__icon {
+    width: 48px; height: 48px;
+    background: var(--cab-primary-light);
+    color: var(--cab-primary);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 10px;
+    font-size: 20px;
+}
+.file-card__title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--cab-text);
+    margin-bottom: 4px;
+    word-break: break-word;
+}
+.file-card__type {
+    font-size: 0.6875rem;
+    color: var(--cab-text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+}
+.inline-formset { display: flex; flex-direction: column; gap: 8px; }
+.inline-row {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--cab-bg); border: 1px solid var(--cab-border);
+    border-radius: 8px; padding: 10px 14px;
+}
+.inline-row input { flex: 1; background: transparent !important; border: none !important; padding: 4px 0 !important; }
+.inline-row input:focus { box-shadow: none !important; }
+.inline-row .delete-row { 
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 6px; border: none;
+    background: rgba(239,68,68,0.1); color: var(--cab-danger); cursor: pointer;
+    font-size: 16px; line-height: 1; transition: background 0.2s;
+    flex-shrink: 0;
+}
+.inline-row .delete-row:hover { background: rgba(239,68,68,0.2); }
+.add-row-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 8px; border: 1px dashed var(--cab-border);
+    background: transparent; color: var(--cab-text-muted); cursor: pointer;
+    font-size: 0.8125rem; font-weight: 500; transition: all 0.2s; width: fit-content;
+}
+.add-row-btn:hover { border-color: var(--cab-primary); color: var(--cab-primary); }
+.files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.file-card {
+    background: var(--cab-bg);
+    border: 1px solid var(--cab-border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+.file-card:hover {
+    border-color: var(--cab-primary);
+}
+.file-card__icon {
+    width: 48px; height: 48px;
+    background: var(--cab-primary-light);
+    color: var(--cab-primary);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 10px;
+    font-size: 20px;
+}
+.file-card__title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--cab-text);
+    margin-bottom: 4px;
+    word-break: break-word;
+}
+.file-card__type {
+    font-size: 0.6875rem;
+    color: var(--cab-text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cabinet-form-card">
+    {% if is_edit %}
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+        <a href="{% url 'cabinet:product_files' form.instance.pk %}" class="btn btn--primary" style="gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Управление файлами
+        </a>
+        {% with files=form.instance.files.all %}
+        {% if files %}
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.8125rem;color:var(--cab-text-muted);padding:0 8px;">
+            {{ files|length }} файл{{ files|length|pluralize:',а,ов' }}
+        </span>
+        {% endif %}
+        {% endwith %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="cabinet-form" id="productForm">
+        {% csrf_token %}
+
+        {% for field in form %}
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label" for="{{ field.id_for_label }}">
+                {{ field.label }}
+                {% if field.name == 'content' %}
+                <span class="cabinet-tip" title="Редактор поддерживает: заголовки, жирный/курсив, списки, цитаты, код, ссылки, изображения (по URL), видео (YouTube/Vimeo)">ⓘ</span>
+                {% endif %}
+                {% if field.field.required %}<span class="cabinet-required">*</span>{% endif %}
+            </label>
+            {{ field }}
+            {% if field.help_text %}<p class="cabinet-form-help">{{ field.help_text }}</p>{% endif %}
+            {% if field.errors %}<div class="cabinet-form-errors">{% for e in field.errors %}<p>{{ e }}</p>{% endfor %}</div>{% endif %}
+        </div>
+        {% endfor %}
+
+        {{ metric_formset.management_form }}
+        <div class="cabinet-form-section">
+            <h3 class="cabinet-form-section-title">Метрики продукта</h3>
+            <p class="cabinet-form-help" style="margin-bottom:12px;">Показатели эффективности от 0 до 100, например: «Надёжность 95», «Скорость 88»</p>
+            <div class="inline-formset" id="metricFormset">
+                {% for mf in metric_formset %}
+                <div class="inline-row metric-row">
+                    {{ mf.id }}
+                    {% for hidden in mf.hidden_fields %}{{ hidden }}{% endfor %}
+                    <label style="font-size:0.75rem;color:var(--cab-text-muted);min-width:80px;">Название</label>
+                    {{ mf.label }}
+                    <label style="font-size:0.75rem;color:var(--cab-text-muted);min-width:30px;">0–100</label>
+                    {{ mf.value }}
+                    {% if metric_formset.can_delete %}
+                    <button type="button" class="delete-row" onclick="this.closest('.metric-row').remove();updateMetricCounter();">✕</button>
+                    {{ mf.DELETE }}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" class="add-row-btn" onclick="addMetricRow()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Добавить метрику
+            </button>
+        </div>
+
+        {{ detail_formset.management_form }}
+        <div class="cabinet-form-section">
+            <h3 class="cabinet-form-section-title">Возможности продукта</h3>
+            <p class="cabinet-form-help" style="margin-bottom:12px;">Ключевые возможности продукта, например: «Интеграция с 1С», «API для разработчиков»</p>
+            <div class="inline-formset" id="detailFormset">
+                {% for df in detail_formset %}
+                <div class="inline-row detail-row">
+                    {{ df.id }}
+                    {% for hidden in df.hidden_fields %}{{ hidden }}{% endfor %}
+                    <label style="font-size:0.75rem;color:var(--cab-text-muted);min-width:80px;">Текст</label>
+                    {{ df.text }}
+                    {% if detail_formset.can_delete %}
+                    <button type="button" class="delete-row" onclick="this.closest('.detail-row').remove();updateDetailCounter();">✕</button>
+                    {{ df.DELETE }}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" class="add-row-btn" onclick="addDetailRow()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Добавить возможность
+            </button>
+        </div>
+
+        <div class="cabinet-form-actions">
+            <button type="submit" class="btn btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Сохранить
+            </button>
+            <a href="{% url 'cabinet:product_list' %}" class="btn cabinet-btn-ghost">Отмена</a>
+        </div>
+    </form>
+</div>
+
+{% include "cabinet/_quill_editor.html" %}
+<script>
+(function() {
+    var metricTotal = document.querySelector('[name="metrics-TOTAL_FORMS"]');
+    var detailTotal = document.querySelector('[name="details-TOTAL_FORMS"]');
+
+    window.updateMetricCounter = function() {
+        var rows = document.querySelectorAll('.metric-row');
+        metricTotal.value = rows.length;
+    };
+    window.updateDetailCounter = function() {
+        var rows = document.querySelectorAll('.detail-row');
+        detailTotal.value = rows.length;
+    };
+
+    window.addMetricRow = function() {
+        var formset = document.getElementById('metricFormset');
+        var total = parseInt(metricTotal.value);
+        var template = formset.querySelector('.metric-row');
+        if (!template) return;
+        var clone = template.cloneNode(true);
+        clone.innerHTML = clone.innerHTML.replace(/metrics-(\d+)-/g, 'metrics-' + total + '-');
+        clone.querySelectorAll('input').forEach(function(i) { if (i.type !== 'hidden') i.value = ''; });
+        formset.appendChild(clone);
+        metricTotal.value = total + 1;
+    };
+
+    window.addDetailRow = function() {
+        var formset = document.getElementById('detailFormset');
+        var total = parseInt(detailTotal.value);
+        var template = formset.querySelector('.detail-row');
+        if (!template) return;
+        var clone = template.cloneNode(true);
+        clone.innerHTML = clone.innerHTML.replace(/details-(\d+)-/g, 'details-' + total + '-');
+        clone.querySelectorAll('input').forEach(function(i) { if (i.type !== 'hidden') i.value = ''; });
+        formset.appendChild(clone);
+        detailTotal.value = total + 1;
+    };
+})();
+</script>
+{% endblock %}

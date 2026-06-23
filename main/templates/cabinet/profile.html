@@ -1,0 +1,41 @@
+{% extends "cabinet/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="cabinet-form-card" style="max-width: 480px;">
+    <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--cab-text); margin-bottom: 20px;">Смена пароля</h2>
+
+    {% if messages %}
+    <div style="margin-bottom: 16px;">
+        {% for message in messages %}
+        <div class="cabinet-form-errors" style="{% if message.tags == 'success' %}background: var(--cab-primary-light); border-color: var(--cab-primary); color: var(--cab-primary);{% endif %}">
+            <p>{{ message }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="cabinet-form">
+        {% csrf_token %}
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Текущий пароль</label>
+            <input type="password" name="old_password" required autocomplete="current-password">
+        </div>
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Новый пароль</label>
+            <input type="password" name="new_password" required minlength="8" autocomplete="new-password">
+            <p class="cabinet-form-help">Минимум 8 символов</p>
+        </div>
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Повторите новый пароль</label>
+            <input type="password" name="new_password2" required minlength="8" autocomplete="new-password">
+        </div>
+        <div class="cabinet-form-actions">
+            <button type="submit" class="btn btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Сохранить
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "main/base.html" %}
+{% load static %}
+
+{% block title %}Заявка отправлена — Ludera{% endblock %}
+
+{% block content %}
+<section style="min-height: 60vh; display: flex; align-items: center; justify-content: center; padding: 120px 0 80px;">
+    <div class="container" style="text-align: center; max-width: 500px;">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="1.5" style="margin-bottom: 24px;">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <h1 style="font-size: 2rem; font-weight: 700; color: var(--color-text); margin-bottom: 16px;">Заявка отправлена!</h1>
+        <p style="font-size: 1.125rem; color: var(--color-text-muted); margin-bottom: 32px;">Спасибо за обращение. Мы свяжемся с вами в ближайшее время.</p>
+        <a href="/" class="btn btn--primary">На главную</a>
+    </div>
+</section>
+{% endblock %}

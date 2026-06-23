@@ -1,0 +1,492 @@
+/* ================================================================
+   admin.css — Стили админ-панели Ludera
+   Соответствует визуальному стилю основного сайта
+   ================================================================ */
+
+:root {
+    --ludera-bg: #032126;
+    --ludera-card: #0a2e33;
+    --ludera-border: #204045;
+    --ludera-text: #d9e1dc;
+    --ludera-muted: #768787;
+    --ludera-accent: #a7d5b8;
+    --ludera-accent-hover: #8cbf9e;
+    --ludera-warn: #ef4444;
+}
+
+/* ─── Базовое переопределение темы ─────────────────────────- */
+body, #container {
+    background: var(--ludera-bg);
+    color: var(--ludera-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+#header {
+    background: var(--ludera-card);
+    border-bottom: 1px solid var(--ludera-border);
+    color: var(--ludera-text);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+#header a:link, #header a:visited {
+    color: var(--ludera-accent);
+}
+
+#branding h1 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+#branding h1 a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-logo {
+    color: var(--ludera-accent);
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+}
+
+.admin-logo-sep {
+    color: var(--ludera-muted);
+    font-weight: 300;
+}
+
+.admin-logo-sub {
+    color: var(--ludera-text);
+    font-weight: 400;
+    font-size: 15px;
+}
+
+/* ─── Браузерная навигация ─────────────────────────────────── */
+.admin-quick-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    flex-wrap: wrap;
+}
+
+.admin-quick-link {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ludera-muted) !important;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.admin-quick-link:hover, .admin-quick-link.active {
+    background: rgba(167, 213, 184, 0.1);
+    color: var(--ludera-accent) !important;
+}
+
+.admin-badge {
+    display: inline-block;
+    background: var(--ludera-warn);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-left: 4px;
+    line-height: 1.5;
+}
+
+/* ─── User tools ─────────────────────────────────────────────- */
+#user-tools {
+    font-size: 13px;
+    color: var(--ludera-muted);
+}
+
+#user-tools a {
+    color: var(--ludera-accent) !important;
+}
+
+/* ─── Главная страница ─────────────────────────────────────── */
+.dashboard {
+    padding: 20px;
+}
+
+.dashboard-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--ludera-text);
+}
+
+/* ─── Сетка статистики ─────────────────────────────────────── */
+.ludera-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.ludera-stat-card {
+    background: var(--ludera-card);
+    border: 1px solid var(--ludera-border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+
+.ludera-stat-card:hover {
+    border-color: var(--ludera-accent);
+}
+
+.ludera-stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--ludera-accent);
+    line-height: 1.2;
+    margin-bottom: 4px;
+}
+
+.ludera-stat-value--warn {
+    color: var(--ludera-warn);
+}
+
+.ludera-stat-label {
+    font-size: 13px;
+    color: var(--ludera-muted);
+    font-weight: 500;
+}
+
+/* ─── Таблицы ────────────────────────────────────────────────- */
+.ludera-table-section {
+    background: var(--ludera-card);
+    border: 1px solid var(--ludera-border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.ludera-table-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: var(--ludera-text);
+}
+
+.ludera-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ludera-table th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ludera-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--ludera-border);
+}
+
+.ludera-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(32, 64, 69, 0.5);
+    font-size: 14px;
+}
+
+.ludera-table tr:last-child td {
+    border-bottom: none;
+}
+
+.ludera-table code {
+    background: rgba(3, 33, 38, 0.6);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+/* ─── Сайдбар ────────────────────────────────────────────────- */
+.ludera-sidebar-info {
+    background: var(--ludera-card);
+    border: 1px solid var(--ludera-border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 20px;
+}
+
+.ludera-sidebar-section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--ludera-text);
+}
+
+.ludera-quick-actions {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.ludera-quick-actions li {
+    margin-bottom: 6px;
+}
+
+.ludera-quick-actions a {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--ludera-accent) !important;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.ludera-quick-actions a:hover {
+    background: rgba(167, 213, 184, 0.08);
+}
+
+/* ─── Модули админки (список приложений) ───────────────────── */
+.module {
+    background: var(--ludera-card) !important;
+    border: 1px solid var(--ludera-border) !important;
+    border-radius: 10px !important;
+    margin-bottom: 20px !important;
+}
+
+.module caption {
+    background: transparent !important;
+    border-bottom: 1px solid var(--ludera-border) !important;
+    padding: 14px 16px !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: var(--ludera-text) !important;
+}
+
+.module a {
+    color: var(--ludera-accent) !important;
+}
+
+.module table {
+    background: transparent !important;
+}
+
+.module th, .module td {
+    border-bottom: 1px solid rgba(32, 64, 69, 0.5) !important;
+    color: var(--ludera-text) !important;
+}
+
+.module tr th:first-child, .module tr td:first-child {
+    padding-left: 16px !important;
+}
+
+/* ─── Формы ─────────────────────────────────────────────────- */
+.form-row {
+    border-bottom: 1px solid rgba(32, 64, 69, 0.5) !important;
+}
+
+.form-row label {
+    color: var(--ludera-text) !important;
+}
+
+input, textarea, select {
+    background: var(--ludera-bg) !important;
+    border: 1px solid var(--ludera-border) !important;
+    color: var(--ludera-text) !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: var(--ludera-accent) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(167, 213, 184, 0.15) !important;
+}
+
+.button, input[type=submit], input[type=button], .submit-row input {
+    background: var(--ludera-accent) !important;
+    color: #032126 !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 18px !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    cursor: pointer !important;
+    transition: background 0.2s !important;
+}
+
+.button:hover, input[type=submit]:hover, input[type=button]:hover {
+    background: var(--ludera-accent-hover) !important;
+}
+
+.button.default, input[type=submit].default {
+    background: var(--ludera-accent) !important;
+    color: #032126 !important;
+}
+
+.delete-confirmation input[type=submit] {
+    background: var(--ludera-warn) !important;
+    color: #fff !important;
+}
+
+/* ─── Changelist ───────────────────────────────────────────── */
+#changelist {
+    background: var(--ludera-card);
+    border: 1px solid var(--ludera-border);
+    border-radius: 10px;
+}
+
+#changelist table {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#changelist thead th {
+    background: rgba(3, 33, 38, 0.5) !important;
+    color: var(--ludera-muted) !important;
+    font-size: 12px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid var(--ludera-border) !important;
+}
+
+#changelist .row1, #changelist .row2 {
+    background: transparent !important;
+}
+
+#changelist .results {
+    border-radius: 10px;
+}
+
+#changelist .paginator {
+    background: transparent !important;
+    border-top: 1px solid var(--ludera-border) !important;
+    color: var(--ludera-muted) !important;
+}
+
+.paginator a {
+    color: var(--ludera-accent) !important;
+}
+
+.paginator .this-page {
+    background: var(--ludera-accent) !important;
+    color: #032126 !important;
+    border-radius: 4px !important;
+}
+
+/* ─── Фильтры ──────────────────────────────────────────────── */
+#changelist-filter {
+    background: var(--ludera-bg) !important;
+    border-left: 1px solid var(--ludera-border) !important;
+}
+
+#changelist-filter h2 {
+    background: transparent !important;
+    color: var(--ludera-text) !important;
+    border-bottom: 1px solid var(--ludera-border) !important;
+}
+
+#changelist-filter h3 {
+    color: var(--ludera-muted) !important;
+    font-size: 12px !important;
+}
+
+#changelist-filter a {
+    color: var(--ludera-text) !important;
+}
+
+#changelist-filter li.selected a {
+    color: var(--ludera-accent) !important;
+}
+
+/* ─── Хлебные крошки ───────────────────────────────────────── */
+.breadcrumbs {
+    background: var(--ludera-card) !important;
+    border-bottom: 1px solid var(--ludera-border) !important;
+    color: var(--ludera-muted) !important;
+    padding: 10px 20px !important;
+    font-size: 13px !important;
+}
+
+.breadcrumbs a {
+    color: var(--ludera-accent) !important;
+}
+
+/* ─── Сообщения ────────────────────────────────────────────── */
+.messagelist li {
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    padding: 10px 16px !important;
+}
+
+.messagelist li.success {
+    background: rgba(167, 213, 184, 0.12) !important;
+    border: 1px solid var(--ludera-accent) !important;
+    color: var(--ludera-accent) !important;
+}
+
+.messagelist li.error {
+    background: rgba(239, 68, 68, 0.12) !important;
+    border: 1px solid var(--ludera-warn) !important;
+    color: #f87171 !important;
+}
+
+/* ─── Футер ─────────────────────────────────────────────────- */
+.admin-footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--ludera-muted);
+    font-size: 12px;
+    border-top: 1px solid var(--ludera-border);
+    margin-top: 30px;
+}
+
+/* ─── Inline group ─────────────────────────────────────────── */
+.inline-group {
+    background: var(--ludera-card) !important;
+    border: 1px solid var(--ludera-border) !important;
+    border-radius: 10px !important;
+    overflow: hidden;
+}
+
+.inline-group h2 {
+    background: transparent !important;
+    color: var(--ludera-text) !important;
+    border-bottom: 1px solid var(--ludera-border) !important;
+    padding: 12px 16px !important;
+}
+
+.inline-related {
+    background: transparent !important;
+}
+
+.inline-related h3 {
+    background: rgba(3, 33, 38, 0.4) !important;
+    color: var(--ludera-text) !important;
+    border-bottom: 1px solid var(--ludera-border) !important;
+}
+
+/* ─── Скроллбар ────────────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--ludera-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--ludera-border);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--ludera-muted);
+}

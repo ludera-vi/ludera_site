@@ -1,0 +1,90 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}Дашборд {{ block.super }}{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block branding %}
+  <h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+      <span class="admin-logo">Ludera</span>
+      <span class="admin-logo-sep">|</span>
+      <span class="admin-logo-sub">Дашборд</span>
+    </a>
+  </h1>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+  <h2 class="dashboard-title">Статистика посещений</h2>
+
+  <div class="ludera-stats-grid">
+    <div class="ludera-stat-card">
+      <div class="ludera-stat-value">{{ today_views }}</div>
+      <div class="ludera-stat-label">Просмотров сегодня</div>
+    </div>
+    <div class="ludera-stat-card">
+      <div class="ludera-stat-value">{{ week_views }}</div>
+      <div class="ludera-stat-label">За неделю</div>
+    </div>
+    <div class="ludera-stat-card">
+      <div class="ludera-stat-value">{{ total_views }}</div>
+      <div class="ludera-stat-label">Всего просмотров</div>
+    </div>
+    <div class="ludera-stat-card">
+      <div class="ludera-stat-value ludera-stat-value--warn">{{ unread_contacts }}</div>
+      <div class="ludera-stat-label">Непрочитанных заявок</div>
+    </div>
+  </div>
+
+  {% if top_pages %}
+  <div class="ludera-table-section">
+    <h3>Топ страниц</h3>
+    <table class="ludera-table">
+      <thead>
+        <tr>
+          <th>Страница</th>
+          <th>Просмотры</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for page in top_pages %}
+        <tr>
+          <td><code>{{ page.url }}</code></td>
+          <td>{{ page.count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if recent_contacts %}
+  <div class="ludera-table-section">
+    <h3>Последние заявки</h3>
+    <table class="ludera-table">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Дата</th>
+          <th>Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for contact in recent_contacts %}
+        <tr>
+          <td>{{ contact.email }}</td>
+          <td>{{ contact.created_at|date:"d.m.Y H:i" }}</td>
+          <td>{% if contact.is_read %}Прочитано{% else %}<strong style="color:#ef4444;">Новое</strong>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

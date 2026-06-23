@@ -1,0 +1,183 @@
+<script>
+(function() {
+    document.querySelectorAll('.rich-editor').forEach(function(textarea) {
+        var editorId = textarea.id + '-editor';
+        var editorDiv = document.createElement('div');
+        editorDiv.id = editorId;
+        editorDiv.className = 'quill-editor';
+        textarea.parentNode.insertBefore(editorDiv, textarea.nextSibling);
+        textarea.style.display = 'none';
+
+        var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        /* ─── Helper: show inline URL/upload widget ─── */
+        function showImageWidget(quill) {
+            var range = quill.getSelection(true);
+            var old = editorDiv.parentNode.querySelector('.img-upload-inline');
+            if (old) old.remove();
+
+            var wrapper = document.createElement('div');
+            wrapper.className = 'img-upload-inline';
+            wrapper.innerHTML =
+                '<div class="img-upload-inline__row">' +
+                '<button type="button" class="img-upload-inline__btn" data-action="upload">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>' +
+                ' Загрузить файл</button>' +
+                '<span class="img-upload-inline__or">или вставьте URL</span>' +
+                '<input type="text" class="img-upload-inline__input" placeholder="https://example.com/photo.jpg">' +
+                '<button type="button" class="img-upload-inline__btn img-upload-inline__btn--ok" data-action="url">Вставить</button>' +
+                '</div>' +
+                '<input type="file" class="img-upload-inline__file" accept="image/*" style="display:none">';
+
+            editorDiv.parentNode.insertBefore(wrapper, editorDiv.nextSibling);
+
+            var fileInput = wrapper.querySelector('.img-upload-inline__file');
+            var urlInput = wrapper.querySelector('.img-upload-inline__input');
+
+            wrapper.querySelector('[data-action="upload"]').addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', function() {
+                var file = this.files[0];
+                if (!file) return;
+                var fd = new FormData();
+                fd.append('file', file);
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/cabinet/upload-image/');
+                xhr.setRequestHeader('X-CSRFToken', csrfToken);
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var data = JSON.parse(xhr.responseText);
+                        quill.insertEmbed(range.index, 'image', data.url);
+                        quill.setSelection(range.index + 1);
+                    }
+                    wrapper.remove();
+                };
+                xhr.onerror = function() { wrapper.remove(); };
+                xhr.send(fd);
+            });
+
+            wrapper.querySelector('[data-action="url"]').addEventListener('click', function() {
+                var url = urlInput.value.trim();
+                if (url) {
+                    quill.insertEmbed(range.index, 'image', url);
+                    quill.setSelection(range.index + 1);
+                }
+                wrapper.remove();
+            });
+
+            urlInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    wrapper.querySelector('[data-action="url"]').click();
+                }
+                if (e.key === 'Escape') wrapper.remove();
+            });
+
+            setTimeout(function() { urlInput.focus(); }, 50);
+        }
+
+        function showVideoWidget(quill) {
+            var range = quill.getSelection(true);
+            var old = editorDiv.parentNode.querySelector('.img-upload-inline');
+            if (old) old.remove();
+
+            var wrapper = document.createElement('div');
+            wrapper.className = 'img-upload-inline';
+            wrapper.innerHTML =
+                '<div class="img-upload-inline__row">' +
+                '<input type="text" class="img-upload-inline__input" placeholder="Вставьте ссылку на видео (YouTube, Vimeo или прямую ссылку)">' +
+                '<button type="button" class="img-upload-inline__btn img-upload-inline__btn--ok" data-action="ok">Вставить</button>' +
+                '</div>';
+            editorDiv.parentNode.insertBefore(wrapper, editorDiv.nextSibling);
+
+            var urlInput = wrapper.querySelector('.img-upload-inline__input');
+
+            wrapper.querySelector('[data-action="ok"]').addEventListener('click', function() {
+                var url = urlInput.value.trim();
+                if (!url) { wrapper.remove(); return; }
+                var embedUrl = url;
+                var ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+                if (ytMatch) {
+                    embedUrl = 'https://www.youtube.com/embed/' + ytMatch[1];
+                } else {
+                    var vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+                    if (vimeoMatch) {
+                        embedUrl = 'https://player.vimeo.com/video/' + vimeoMatch[1];
+                    }
+                }
+                quill.insertText(range.index, '{video:' + embedUrl + '}');
+                quill.setSelection(range.index + embedUrl.length + 9);
+                wrapper.remove();
+            });
+
+            urlInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    wrapper.querySelector('[data-action="ok"]').click();
+                }
+                if (e.key === 'Escape') wrapper.remove();
+            });
+
+            setTimeout(function() { urlInput.focus(); }, 50);
+        }
+
+        /* ─── Create Quill ─── */
+        var quill = new Quill(editorDiv, {
+            theme: 'snow',
+            placeholder: 'Начните писать...',
+            modules: {
+                toolbar: {
+                    container: [
+                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                        [{ 'font': [] }],
+                        [{ 'size': ['small', false, 'large', 'huge'] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'script': 'sub' }, { 'script': 'super' }],
+                        ['blockquote', 'code-block'],
+                        [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'list': 'check' }],
+                        [{ 'indent': '-1' }, { 'indent': '+1' }],
+                        [{ 'align': [] }],
+                        ['link', 'image', 'video'],
+                        ['clean']
+                    ],
+                    handlers: {
+                        'image': function() { showImageWidget(quill); },
+                        'video': function() { showVideoWidget(quill); }
+                    }
+                }
+            }
+        });
+
+        /* ─── Load existing content ─── */
+        quill.root.innerHTML = textarea.value;
+
+        /* ─── Auto-convert {video:...} to iframe preview in editor ─── */
+        (function convertVideoMarkers() {
+            var html = quill.root.innerHTML;
+            var replaced = html.replace(/\{video:([^}]+)\}/g, function(match, url) {
+                return '<div class="video-preview" contenteditable="false" data-video-url="' + url + '">' +
+                    '<iframe src="' + url + '" frameborder="0" allowfullscreen allow="autoplay; fullscreen" loading="lazy"></iframe>' +
+                    '<div class="video-preview__label">' + url.substring(0, 80) + '</div>' +
+                    '</div>';
+            });
+            if (replaced !== html) {
+                quill.root.innerHTML = replaced;
+            }
+        })();
+
+        /* ─── Sync on submit ─── */
+        var form = textarea.closest('form');
+        form.addEventListener('submit', function() {
+            /* Convert video iframes back to {video:...} markers before saving */
+            var content = quill.root.innerHTML;
+            content = content.replace(/<div class="video-preview"[^>]*>.*?<iframe[^>]*src="([^"]*)"[^>]*>.*?<\/div>\s*<\/div>/gs, function(match, src) {
+                return '{video:' + src + '}';
+            });
+            textarea.value = content;
+        });
+    });
+})();
+</script>

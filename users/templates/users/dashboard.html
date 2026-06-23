@@ -1,0 +1,52 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="user-dashboard">
+    <div class="user-welcome">
+        <h2 class="user-welcome__title">Добро пожаловать, {{ user.first_name|default:user.email }}!</h2>
+        <p class="user-welcome__desc">Ваш личный кабинет Ludera</p>
+    </div>
+
+    {% if settings %}
+    <div class="user-info-grid">
+        {% for s in settings %}
+        <div class="user-info-card">
+            <h3 class="user-info-card__title">{{ s.name }}</h3>
+            <div class="user-info-card__value">{{ s.value|linebreaks }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="user-section">
+        <div class="user-section__header">
+            <h3 class="user-section__title">Мои товары</h3>
+            <a href="{% url 'users:goods_list' %}" class="btn btn--primary" style="padding:0.5rem 1.25rem;font-size:0.875rem;">
+                Все товары
+            </a>
+        </div>
+
+        {% if active_goods %}
+        <div class="user-products-grid">
+            {% for ug in active_goods %}
+            <a href="{% url 'users:goods_detail' ug.goods.pk %}" class="user-product-card">
+                <div class="user-product-card__accent" style="background: {{ ug.goods.accent_color|default:'#a7d5b8' }}"></div>
+                <div class="user-product-card__body">
+                    <span class="user-product-card__badge" style="color: {{ ug.goods.accent_color|default:'#a7d5b8' }}">{{ ug.goods.badge_text|default:'Товар' }}</span>
+                    <h4 class="user-product-card__title">{{ ug.goods.title }}</h4>
+                    <p class="user-product-card__desc">{{ ug.goods.description|truncatechars:100 }}</p>
+                    <span class="user-product-card__date">Доступен с {{ ug.purchased_at|date:'d.m.Y' }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="user-empty">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.3;margin-bottom:12px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            <p>У вас пока нет доступных товаров</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

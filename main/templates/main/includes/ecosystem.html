@@ -1,0 +1,147 @@
+{% load static %}
+<section class="ecosystem" id="ecosystem">
+    <div class="container">
+        <div class="ecosystem__header">
+            <span class="ecosystem__badge">Pipeline</span>
+            <h2 class="ecosystem__title">Как мы работаем</h2>
+            <p class="ecosystem__subtitle">От задачи до запуска — два пути, один результат</p>
+        </div>
+
+        <div class="ecosystem__grid">
+            <div class="ecosystem__terminal">
+                <div class="terminal">
+                    <div class="terminal__header">
+                        <div class="terminal__dots">
+                            <span class="terminal__dot terminal__dot--red"></span>
+                            <span class="terminal__dot terminal__dot--yellow"></span>
+                            <span class="terminal__dot terminal__dot--green"></span>
+                        </div>
+                        <span class="terminal__title">ludera-cli — interactive</span>
+                    </div>
+                    <div class="terminal__body" id="terminalBody">
+                        <div class="terminal__line" id="termLine0">
+                            <span class="terminal__prompt"></span>
+                            <span class="terminal__text"></span>
+                        </div>
+                        <div class="terminal__line" id="termLine1">
+                            <span class="terminal__prompt"></span>
+                            <span class="terminal__text"></span>
+                        </div>
+                        <div class="terminal__line" id="termLine2">
+                            <span class="terminal__prompt"></span>
+                            <span class="terminal__text"></span>
+                        </div>
+                        <div class="terminal__line" id="termLine3">
+                            <span class="terminal__prompt"></span>
+                            <span class="terminal__text"></span>
+                        </div>
+                        <div class="terminal__line" id="termLine4">
+                            <span class="terminal__prompt"></span>
+                            <span class="terminal__text"></span>
+                        </div>
+                        <div class="terminal__line" id="termLine5">
+                            <span class="terminal__prompt"></span>
+                            <span class="terminal__text"></span>
+                        </div>
+                        <div class="terminal__line" id="termLine6">
+                            <span class="terminal__prompt"></span>
+                            <span class="terminal__text"></span>
+                        </div>
+                        <div class="terminal__line" id="termLine7">
+                            <span class="terminal__prompt"></span>
+                            <span class="terminal__text"></span>
+                        </div>
+                        <div class="terminal__line" id="termLine8">
+                            <span class="terminal__prompt"></span>
+                            <span class="terminal__text"></span>
+                        </div>
+                        <div class="terminal__line" id="termLine9">
+                            <span class="terminal__prompt"></span>
+                            <span class="terminal__text"></span>
+                        </div>
+                        <div class="terminal__divider-line" id="termDivider"></div>
+                        <div class="terminal__line" id="termLine10">
+                            <span class="terminal__prompt"></span>
+                            <span class="terminal__text"></span>
+                        </div>
+                        <div class="terminal__line" id="termLine11">
+                            <span class="terminal__prompt"></span>
+                            <span class="terminal__text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ecosystem__diagram">
+                <div class="flow">
+                    <div class="flow__header">
+                        <span class="flow__title">Client Journey</span>
+                    </div>
+                    <div class="flow__body">
+                        <svg class="flow__svg" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"></svg>
+                        <div class="flow__card flow__card--client flow__card--narrow">
+                            <div class="flow__card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <div class="flow__card-body">
+                                <span class="flow__card-label">Клиент</span>
+                                <span class="flow__card-badge">B2B / B2C</span>
+                            </div>
+                        </div>
+
+                        <div class="flow__card flow__card--analysis flow__card--narrow">
+                            <div class="flow__card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                            </div>
+                            <div class="flow__card-body">
+                                <span class="flow__card-label">Анализ потребностей</span>
+                            </div>
+                        </div>
+
+                        <div class="flow__split">
+                            <div class="flow__column">
+                                <div class="flow__card flow__card--custom">
+                                    <div class="flow__card-icon">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/></svg>
+                                    </div>
+                                    <span class="flow__card-label">Индивидуальная разработка</span>
+                                    <div class="flow__steps">
+                                        <span class="flow__step">Проектирование</span>
+                                        <span class="flow__step">Дизайн</span>
+                                        <span class="flow__step">Разработка</span>
+                                        <span class="flow__step">Тестирование</span>
+                                        <span class="flow__step">Запуск</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flow__column">
+                                <div class="flow__card flow__card--ready">
+                                    <div class="flow__card-icon">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                    </div>
+                                    <span class="flow__card-label">Готовый продукт</span>
+                                    <div class="flow__steps">
+                                        <span class="flow__step">Выбор решения</span>
+                                        <span class="flow__step">Подключение</span>
+                                        <span class="flow__step">Интеграция</span>
+                                        <span class="flow__step">Адаптация</span>
+                                        <span class="flow__step">Запуск</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flow__card flow__card--support flow__card--narrow">
+                            <div class="flow__card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+                            </div>
+                            <div class="flow__card-body">
+                                <span class="flow__card-label">Поддержка и развитие</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

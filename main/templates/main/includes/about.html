@@ -1,0 +1,75 @@
+<section class="about" id="about">
+    <div class="about__bg" aria-hidden="true">
+        <div class="about__circle about__circle--1"></div>
+        <div class="about__circle about__circle--2"></div>
+    </div>
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-header__title section-header__title--dark">{{ settings.about_section_title }}</h2>
+            <p class="section-header__subtitle section-header__subtitle--dark">{{ settings.about_section_subtitle }}</p>
+        </div>
+
+        <div class="about__grid">
+            {% for principle in principles %}
+            <div class="about__item about__item--{{ forloop.counter }} scroll-animate">
+                <div class="about__item-icon">
+                    {% if forloop.counter == 1 %}
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                        <circle cx="14" cy="14" r="12" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M10 14l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    {% elif forloop.counter == 2 %}
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                        <path d="M14 2C14 2 4 6 4 12v4c0 6 10 10 10 10s10-4 10-10v-4c0-6-10-10-10-10z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M12 15l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    {% elif forloop.counter == 3 %}
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                        <path d="M8 18C10.209 18 12 16.209 12 14C12 11.791 10.209 10 8 10C5.791 10 4 11.791 4 14C4 16.209 5.791 18 8 18Z" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M20 18C22.209 18 24 16.209 24 14C24 11.791 22.209 10 20 10C17.791 10 16 11.791 16 14C16 16.209 17.791 18 20 18Z" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M12 16.5C13.5 14.5 13.5 11.5 12 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    {% elif forloop.counter == 4 %}
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                        <path d="M14 2l2.5 7.5L24 12l-7.5 2.5L14 22l-2.5-7.5L4 12l7.5-2.5L14 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                    </svg>
+                    {% endif %}
+                </div>
+                <h3 class="about__item-title">{{ principle.title }}</h3>
+                <p class="about__item-desc">{{ principle.description }}</p>
+                <div class="about__item-chart">
+                    {% if forloop.counter == 1 %}
+                    <span class="about__item-bar" style="height:35%"></span>
+                    <span class="about__item-bar" style="height:55%"></span>
+                    <span class="about__item-bar" style="height:80%"></span>
+                    <span class="about__item-bar" style="height:45%"></span>
+                    <span class="about__item-bar" style="height:70%"></span>
+                    <span class="about__item-bar" style="height:95%"></span>
+                    {% elif forloop.counter == 2 %}
+                    <span class="about__item-bar" style="height:85%"></span>
+                    <span class="about__item-bar" style="height:65%"></span>
+                    <span class="about__item-bar" style="height:95%"></span>
+                    <span class="about__item-bar" style="height:75%"></span>
+                    <span class="about__item-bar" style="height:90%"></span>
+                    <span class="about__item-bar" style="height:100%"></span>
+                    {% elif forloop.counter == 3 %}
+                    <span class="about__item-bar" style="height:60%"></span>
+                    <span class="about__item-bar" style="height:75%"></span>
+                    <span class="about__item-bar" style="height:50%"></span>
+                    <span class="about__item-bar" style="height:85%"></span>
+                    <span class="about__item-bar" style="height:70%"></span>
+                    <span class="about__item-bar" style="height:90%"></span>
+                    {% elif forloop.counter == 4 %}
+                    <span class="about__item-bar" style="height:45%"></span>
+                    <span class="about__item-bar" style="height:60%"></span>
+                    <span class="about__item-bar" style="height:75%"></span>
+                    <span class="about__item-bar" style="height:55%"></span>
+                    <span class="about__item-bar" style="height:85%"></span>
+                    <span class="about__item-bar" style="height:70%"></span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>

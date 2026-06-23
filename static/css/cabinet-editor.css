@@ -1,0 +1,152 @@
+/* ================================================================
+   cabinet-editor.css — Shared Quill editor styles for cabinet forms
+   Used by: goods_form.html, product_form.html, form.html
+   ================================================================ */
+
+.rich-editor { display: none; }
+
+.quill-editor .ql-editor {
+    min-height: 300px;
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    padding: 20px 24px;
+}
+.quill-editor .ql-editor p { margin-bottom: 10px; }
+.quill-editor .ql-editor h1 { font-size: 1.75rem; font-weight: 700; margin: 16px 0 10px; }
+.quill-editor .ql-editor h2 { font-size: 1.5rem; font-weight: 600; margin: 14px 0 8px; }
+.quill-editor .ql-editor h3 { font-size: 1.25rem; font-weight: 600; margin: 12px 0 6px; }
+.quill-editor .ql-editor h4 { font-size: 1.125rem; font-weight: 600; margin: 10px 0 6px; }
+.quill-editor .ql-editor pre.ql-syntax {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    overflow-x: auto;
+    margin: 12px 0;
+}
+.quill-editor .ql-editor blockquote {
+    border-left: 4px solid var(--cab-primary);
+    padding: 12px 20px;
+    margin: 12px 0;
+    background: rgba(45,143,94,0.05);
+    border-radius: 0 8px 8px 0;
+    color: var(--cab-text-muted);
+    font-style: italic;
+}
+.quill-editor .ql-editor img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 8px 0;
+}
+.quill-editor .ql-editor table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+}
+.quill-editor .ql-editor table td,
+.quill-editor .ql-editor table th {
+    border: 1px solid var(--cab-border);
+    padding: 8px 12px;
+    text-align: left;
+}
+.quill-editor .ql-editor table th {
+    background: rgba(45,143,94,0.06);
+    font-weight: 600;
+}
+.quill-editor .ql-editor a {
+    color: var(--cab-primary);
+}
+.quill-editor .ql-editor hr {
+    border: none;
+    border-top: 2px solid var(--cab-border);
+    margin: 20px 0;
+}
+
+/* — Inline image/video upload widget — */
+.img-upload-inline {
+    margin: 8px 0;
+    padding: 12px 16px;
+    background: var(--cab-bg);
+    border: 1px dashed var(--cab-border);
+    border-radius: 8px;
+}
+.img-upload-inline__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.img-upload-inline__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--cab-border);
+    background: var(--cab-surface);
+    color: var(--cab-text);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.img-upload-inline__btn:hover {
+    border-color: var(--cab-primary);
+    color: var(--cab-primary);
+}
+.img-upload-inline__btn--ok {
+    background: var(--cab-primary);
+    color: #fff;
+    border-color: var(--cab-primary);
+}
+.img-upload-inline__btn--ok:hover {
+    background: var(--cab-primary-hover);
+    color: #fff;
+}
+.img-upload-inline__or {
+    font-size: 0.75rem;
+    color: var(--cab-text-muted);
+}
+.img-upload-inline__input {
+    flex: 1;
+    min-width: 200px;
+    padding: 6px 12px;
+    border: 1px solid var(--cab-border);
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    background: var(--cab-surface);
+    color: var(--cab-text);
+}
+.img-upload-inline__input:focus {
+    outline: none;
+    border-color: var(--cab-primary);
+}
+
+/* — Video preview in editor — */
+.video-preview {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 12px 0;
+    background: #000;
+    pointer-events: none;
+}
+.video-preview iframe {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: none;
+    display: block;
+}
+.video-preview__label {
+    font-size: 0.6875rem;
+    color: var(--cab-text-muted);
+    background: var(--cab-bg);
+    padding: 6px 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-top: 1px solid var(--cab-border);
+}

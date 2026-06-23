@@ -1,0 +1,22 @@
+{% extends "cabinet/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="cabinet-form-card cabinet-form-card--narrow">
+    <div class="cabinet-confirm-text">
+        <h2>{{ obj.email }}</h2>
+        <p class="cabinet-meta">{{ obj.created_at|date:'d.m.Y H:i' }}</p>
+        {% if obj.name %}
+        <p><strong>Имя:</strong> {{ obj.name }}</p>
+        {% endif %}
+    </div>
+    {% if obj.message %}
+    <div class="cabinet-message-box">
+        {{ obj.message|linebreaks }}
+    </div>
+    {% endif %}
+    <div class="cabinet-form-actions">
+        <a href="{% url 'cabinet:contact_list' %}" class="btn cabinet-btn-ghost">Назад к списку</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "users/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="cabinet-form-card">
+    <form method="post" enctype="multipart/form-data" class="cabinet-form">
+        {% csrf_token %}
+
+        <h3 class="cabinet-form-section-title">Личные данные</h3>
+
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Email</label>
+            <input type="email" value="{{ user.email }}" disabled style="background:var(--color-card-bg);opacity:0.6;cursor:not-allowed;">
+        </div>
+
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Имя</label>
+            {{ form.first_name }}
+        </div>
+
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Фамилия</label>
+            {{ form.last_name }}
+        </div>
+
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Телефон</label>
+            {{ form.phone }}
+        </div>
+
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Аватар</label>
+            {% if profile.avatar %}
+            <div style="margin-bottom:8px;">
+                <img src="{{ profile.avatar.url }}" alt="Avatar" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--color-card-border);">
+            </div>
+            {% endif %}
+            {{ form.avatar }}
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--color-card-border);margin:20px 0;">
+
+        <h3 class="cabinet-form-section-title">Смена пароля</h3>
+        <p style="font-size:0.8rem;color:var(--color-text-muted);margin-bottom:12px;">Заполните, только если хотите сменить пароль</p>
+
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Текущий пароль</label>
+            <input type="password" name="old_password" placeholder="Текущий пароль" class="cabinet-form-input">
+        </div>
+
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Новый пароль</label>
+            <input type="password" name="new_password" placeholder="Новый пароль (мин. 8 символов)" class="cabinet-form-input">
+        </div>
+
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Повторите новый пароль</label>
+            <input type="password" name="new_password2" placeholder="Повторите новый пароль" class="cabinet-form-input">
+        </div>
+
+        <div class="cabinet-form-actions">
+            <button type="submit" class="btn btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Сохранить
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

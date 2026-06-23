@@ -1,0 +1,408 @@
+{% extends "cabinet/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+<link rel="stylesheet" href="{% static 'css/cabinet-editor.css' %}">
+<style>
+
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* — Files grid (existing) — */
+.files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.file-card {
+    background: var(--cab-bg);
+    border: 1px solid var(--cab-border);
+    border-radius: 10px;
+    padding: 16px 12px;
+    text-align: center;
+    position: relative;
+    transition: border-color 0.2s;
+}
+.file-card:hover { border-color: var(--cab-primary); }
+.file-card__icon {
+    width: 40px; height: 40px;
+    background: var(--cab-primary-light);
+    color: var(--cab-primary);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 8px;
+    font-size: 16px;
+}
+.file-card__title {
+    font-size: 0.75rem; font-weight: 600;
+    color: var(--cab-text); word-break: break-word;
+}
+.file-card__meta {
+    font-size: 0.625rem; color: var(--cab-text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-top: 4px;
+}
+.file-card__delete {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: 6px;
+    background: rgba(239,68,68,0.1);
+    color: var(--cab-danger);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    font-size: 12px;
+}
+.file-card:hover .file-card__delete { opacity: 1; }
+.file-card__delete:hover { background: rgba(239,68,68,0.2); }
+
+/* — Drop zone — */
+.drop-zone {
+    border: 2px dashed var(--cab-border);
+    border-radius: 12px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+}
+.drop-zone:hover,
+.drop-zone.drag-over {
+    border-color: var(--cab-primary);
+    background: color-mix(in srgb, var(--cab-primary) 6%, transparent);
+}
+.drop-zone__icon {
+    width: 44px; height: 44px;
+    margin: 0 auto 10px;
+    color: var(--cab-text-muted);
+    opacity: 0.5;
+}
+.drop-zone.drag-over .drop-zone__icon,
+.drop-zone:hover .drop-zone__icon {
+    opacity: 0.8;
+    color: var(--cab-primary);
+}
+.drop-zone__text {
+    font-size: 0.875rem;
+    color: var(--cab-text-muted);
+    font-weight: 500;
+}
+.drop-zone__hint {
+    font-size: 0.75rem;
+    color: var(--cab-text-muted);
+    opacity: 0.6;
+    margin-top: 4px;
+}
+.drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* — Upload progress list — */
+.upload-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+}
+.upload-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--cab-bg);
+    border: 1px solid var(--cab-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    animation: fadeSlideUp 0.25s ease;
+}
+.upload-item__icon {
+    width: 28px; height: 28px;
+    flex-shrink: 0;
+    color: var(--cab-text-muted);
+    opacity: 0.5;
+}
+.upload-item__info {
+    flex: 1;
+    min-width: 0;
+}
+.upload-item__name {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--cab-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.upload-item__status {
+    font-size: 0.6875rem;
+    margin-top: 2px;
+}
+.upload-item__status.done { color: var(--cab-primary); }
+.upload-item__status.error { color: var(--cab-danger); }
+.upload-item__status.loading { color: var(--cab-text-muted); }
+.upload-item__remove {
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: 6px;
+    background: rgba(239,68,68,0.1);
+    color: var(--cab-danger);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+.upload-item__remove:hover { background: rgba(239,68,68,0.2); }
+.upload-item .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--cab-border);
+    border-top-color: var(--cab-primary);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cabinet-form-card">
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+        <span style="font-size:1rem;font-weight:700;color:var(--cab-text);">{% if is_edit %}Редактировать товар{% else %}Новый товар{% endif %}</span>
+        {% if is_edit %}
+        <span style="font-size:0.75rem;color:var(--cab-text-muted);">
+            Создан: {{ form.instance.created_at|date:'d.m.Y H:i' }}
+        </span>
+        {% endif %}
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="cabinet-form" id="goodsForm">
+        {% csrf_token %}
+
+        {% for field in form %}
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label" for="{{ field.id_for_label }}">
+                {{ field.label }}
+                {% if field.name == 'content' %}
+                <span class="cabinet-tip" title="Заголовки H1–H4 · жирный · курсив · зачёркнутый · цвет текста/фона · списки (нумер/маркер/чек) · выравнивание · цитаты · блоки кода · подстр/надстр · ссылки · изображения · видео">ⓘ</span>
+                {% endif %}
+                {% if field.field.required %}<span class="cabinet-required">*</span>{% endif %}
+            </label>
+            {{ field }}
+            {% if field.help_text %}<p class="cabinet-form-help">{{ field.help_text }}</p>{% endif %}
+            {% if field.errors %}<div class="cabinet-form-errors">{% for e in field.errors %}<p>{{ e }}</p>{% endfor %}</div>{% endif %}
+        </div>
+        {% endfor %}
+
+        <!-- ─── File section ─── -->
+        <div class="cabinet-form-section">
+            <h3 class="cabinet-form-section-title">Файлы товара</h3>
+            <p class="cabinet-form-help" style="margin-bottom:12px;">Перетащите файлы сюда или нажмите для выбора. После загрузки файлы сразу сохраняются.</p>
+
+            {% if is_edit %}
+            <!-- Existing files -->
+            <div class="files-grid" id="filesGrid">
+                {% for f in form.instance.files.all %}
+                <div class="file-card" data-id="{{ f.pk }}">
+                    <button type="button" class="file-card__delete" onclick="deleteFile({{ f.pk }}, this)" title="Удалить">✕</button>
+                    <div class="file-card__icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    </div>
+                    <div class="file-card__title">{{ f.title }}</div>
+                    {% if f.file_type %}<div class="file-card__meta">{{ f.file_type }}</div>{% endif %}
+                    <div class="file-card__meta">{{ f.filename }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Drop zone -->
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone__icon">
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div class="drop-zone__text">Перетащите файлы сюда</div>
+                <div class="drop-zone__hint">или нажмите для выбора</div>
+                <input type="file" id="fileInput" multiple accept="*/*">
+            </div>
+
+            <!-- Upload queue -->
+            <div class="upload-list" id="uploadList"></div>
+        </div>
+
+        <div class="cabinet-form-actions">
+            <button type="submit" class="btn btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Сохранить
+            </button>
+            <a href="{% url 'cabinet:goods_list' %}" class="btn cabinet-btn-ghost">Отмена</a>
+        </div>
+    </form>
+</div>
+
+{% include "cabinet/_quill_editor.html" %}
+<script>
+(function() {
+    var dropZone = document.getElementById('dropZone');
+    var fileInput = document.getElementById('fileInput');
+    var uploadList = document.getElementById('uploadList');
+    var filesGrid = document.getElementById('filesGrid');
+    var goodsPk = {{ form.instance.pk|default:'null' }};
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function detectFileType(name) {
+        var ext = name.split('.').pop().toUpperCase();
+        if (ext.match(/PDF/i)) return 'PDF';
+        if (ext.match(/ZIP|RAR|7Z|TAR|GZ/i)) return 'Архив';
+        if (ext.match(/MP4|AVI|MOV|MKV|WEBM/i)) return 'Видео';
+        if (ext.match(/JPG|JPEG|PNG|WEBP|SVG|GIF/i)) return 'Изображение';
+        if (ext.match(/DOC|DOCX/i)) return 'Документ';
+        if (ext.match(/XLS|XLSX|CSV/i)) return 'Таблица';
+        return ext;
+    }
+
+    // Drag events
+    ['dragenter', 'dragover'].forEach(function(ev) {
+        dropZone.addEventListener(ev, function(e) {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+    });
+    ['dragleave', 'drop'].forEach(function(ev) {
+        dropZone.addEventListener(ev, function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+        });
+    });
+
+    dropZone.addEventListener('drop', function(e) {
+        uploadFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', function() {
+        uploadFiles(this.files);
+        this.value = '';
+    });
+
+    function uploadFiles(files) {
+        for (var i = 0; i < files.length; i++) {
+            uploadFile(files[i]);
+        }
+    }
+
+    function uploadFile(file) {
+        if (!goodsPk) {
+            showError('Сначала сохраните товар, затем загрузите файлы');
+            return;
+        }
+
+        var item = document.createElement('div');
+        item.className = 'upload-item';
+        item.innerHTML =
+            '<div class="upload-item__icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>' +
+            '<div class="upload-item__info"><div class="upload-item__name">' + file.name + '</div><div class="upload-item__status loading">Загрузка... <span style="font-size:0.625rem;color:var(--cab-text-muted)">' + formatSize(file.size) + '</span></div></div>' +
+            '<div class="spinner"></div>';
+
+        uploadList.appendChild(item);
+
+        var formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', file.name.replace(/\.[^/.]+$/, ''));
+        formData.append('file_type', detectFileType(file.name));
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/cabinet/goods/' + goodsPk + '/upload-file/');
+        xhr.setRequestHeader('X-CSRFToken', csrfToken);
+
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                var data = JSON.parse(xhr.responseText);
+                item.querySelector('.upload-item__status').className = 'upload-item__status done';
+                item.querySelector('.upload-item__status').textContent = 'Загружен';
+                item.querySelector('.spinner').remove();
+
+                // Add card to grid
+                var card = document.createElement('div');
+                card.className = 'file-card';
+                card.dataset.id = data.id;
+                card.innerHTML =
+                    '<button type="button" class="file-card__delete" onclick="deleteFile(' + data.id + ', this)" title="Удалить">✕</button>' +
+                    '<div class="file-card__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>' +
+                    '<div class="file-card__title">' + data.title + '</div>' +
+                    (data.file_type ? '<div class="file-card__meta">' + data.file_type + '</div>' : '') +
+                    '<div class="file-card__meta">' + data.filename + '</div>';
+                filesGrid.appendChild(card);
+            } else {
+                item.querySelector('.upload-item__status').className = 'upload-item__status error';
+                item.querySelector('.upload-item__status').textContent = 'Ошибка загрузки';
+                item.querySelector('.spinner').remove();
+                var rmBtn = document.createElement('button');
+                rmBtn.type = 'button';
+                rmBtn.className = 'upload-item__remove';
+                rmBtn.textContent = '✕';
+                rmBtn.onclick = function() { item.remove(); };
+                item.appendChild(rmBtn);
+            }
+        };
+
+        xhr.onerror = function() {
+            item.querySelector('.upload-item__status').className = 'upload-item__status error';
+            item.querySelector('.upload-item__status').textContent = 'Ошибка сети';
+            item.querySelector('.spinner').remove();
+            var rmBtn = document.createElement('button');
+            rmBtn.type = 'button';
+            rmBtn.className = 'upload-item__remove';
+            rmBtn.textContent = '✕';
+            rmBtn.onclick = function() { item.remove(); };
+            item.appendChild(rmBtn);
+        };
+
+        xhr.send(formData);
+    }
+
+    window.deleteFile = function(fileId, btn) {
+        if (!confirm('Удалить файл?')) return;
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/cabinet/goods/' + goodsPk + '/delete-file/' + fileId + '/');
+        xhr.setRequestHeader('X-CSRFToken', csrfToken);
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                var card = btn.closest('.file-card');
+                if (card) card.remove();
+            }
+        };
+        xhr.send();
+    };
+
+    function showError(msg) {
+        var item = document.createElement('div');
+        item.className = 'upload-item';
+        item.innerHTML =
+            '<div class="upload-item__icon" style="color:var(--cab-danger);opacity:0.7;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>' +
+            '<div class="upload-item__info"><div class="upload-item__status error">' + msg + '</div></div>' +
+            '<button type="button" class="upload-item__remove" onclick="this.parentElement.remove()">✕</button>';
+        uploadList.appendChild(item);
+    }
+})();
+</script>
+{% endblock %}

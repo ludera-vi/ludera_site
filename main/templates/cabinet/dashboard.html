@@ -1,0 +1,202 @@
+{% extends "cabinet/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="cabinet-dashboard">
+    <div class="cabinet-stats-grid">
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ today_sessions }}</div>
+            <div class="cabinet-stat-label">Посещений сегодня</div>
+            <div class="cabinet-stat-trend up">+{{ today_sessions|default:0 }} за день</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ week_sessions }}</div>
+            <div class="cabinet-stat-label">За неделю</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ month_sessions }}</div>
+            <div class="cabinet-stat-label">За месяц</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ total_sessions }}</div>
+            <div class="cabinet-stat-label">Всего посещений</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ avg_session_seconds|default:0 }}</div>
+            <div class="cabinet-stat-label">Ср. время на сайте (сек)</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ total_services }}</div>
+            <div class="cabinet-stat-label">Услуги</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ total_projects }}</div>
+            <div class="cabinet-stat-label">Проекты</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ total_products }}</div>
+            <div class="cabinet-stat-label">Продукты</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ total_blog }}</div>
+            <div class="cabinet-stat-label">Записи блога</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ total_contacts }}</div>
+            <div class="cabinet-stat-label">Заявки</div>
+        </div>
+    </div>
+
+    <div class="cabinet-charts-grid">
+        <div class="cabinet-chart-card">
+            <h3 class="cabinet-chart-title">Посещения за 30 дней</h3>
+            <div class="cabinet-chart-wrap">
+                <canvas id="viewsChart"></canvas>
+            </div>
+        </div>
+
+        <div class="cabinet-chart-card">
+            <h3 class="cabinet-chart-title">Топ конверсионных страниц</h3>
+            <div class="cabinet-table-scroll">
+                <table class="cabinet-table">
+                    <thead>
+                        <tr>
+                            <th>Страница</th>
+                            <th>Сессии</th>
+                            <th>Заявки</th>
+                            <th>Конв.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in conversion_data %}
+                        <tr>
+                            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ item.url }}">{{ item.name }}</td>
+                            <td>{{ item.sessions }}</td>
+                            <td>{{ item.converters }}</td>
+                            <td>
+                                <span class="badge {% if item.rate > 5 %}badge--active{% elif item.rate > 1 %}badge--new{% else %}badge--done{% endif %}">
+                                    {{ item.rate }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="cabinet-empty">Недостаточно данных</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="cabinet-charts-grid">
+        <div class="cabinet-chart-card">
+            <h3 class="cabinet-chart-title">Самые популярные страницы</h3>
+            <div class="cabinet-chart-wrap">
+                <canvas id="pagesChart"></canvas>
+            </div>
+        </div>
+
+        <div class="cabinet-chart-card cabinet-table-section">
+            <h3 class="cabinet-chart-title">Последние заявки</h3>
+            <div class="cabinet-table-scroll">
+                <table class="cabinet-table">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Имя</th>
+                            <th>Дата</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in recent_contacts %}
+                        <tr>
+                            <td><a href="{% url 'cabinet:contact_detail' c.pk %}">{{ c.email }}</a></td>
+                            <td>{{ c.name|default:'—' }}</td>
+                            <td>{{ c.created_at|date:'d.m.Y H:i' }}</td>
+                            <td>{% if c.is_read %}<span class="badge badge--done">Прочитано</span>{% else %}<span class="badge badge--new">Новое</span>{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="cabinet-empty">Нет заявок</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+(function() {
+    const theme = {
+        text: '#6b8a7a',
+        grid: 'rgba(226, 236, 230, 0.8)',
+        accent: '#2d8f5e',
+        card: '#ffffff',
+    };
+
+    Chart.defaults.color = theme.text;
+    Chart.defaults.borderColor = theme.grid;
+
+    new Chart(document.getElementById('viewsChart'), {
+        type: 'line',
+        data: {
+            labels: {{ days_labels|safe }},
+            datasets: [{
+                label: 'Просмотры',
+                data: {{ days_data|safe }},
+                borderColor: theme.accent,
+                backgroundColor: 'rgba(45, 143, 94, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 5,
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
+                y: { beginAtZero: true, ticks: { stepSize: 1 } },
+            }
+        }
+    });
+
+    new Chart(document.getElementById('pagesChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ top_urls|safe }},
+            datasets: [{
+                label: 'Просмотры',
+                data: {{ top_counts|safe }},
+                backgroundColor: 'rgba(45, 143, 94, 0.6)',
+                borderColor: theme.accent,
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { stepSize: 1 } },
+                y: { grid: { display: false } },
+            }
+        }
+    });
+})();
+});
+</script>
+{% endblock %}

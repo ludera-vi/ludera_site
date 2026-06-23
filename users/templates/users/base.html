@@ -1,0 +1,86 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title|default:'Личный кабинет' }} — Ludera</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cabinet.css' %}">
+    <link rel="stylesheet" href="{% static 'css/user-cabinet.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="user-cabinet-body">
+    <div class="user-sidebar-overlay" id="userSidebarOverlay"></div>
+
+    <div class="user-layout">
+        <aside class="user-sidebar" id="userSidebar">
+            <div class="user-sidebar__header">
+                <a href="{% url 'users:dashboard' %}" class="user-sidebar__logo">Ludera</a>
+                <span class="user-sidebar__subtitle">Личный кабинет</span>
+                <span class="user-sidebar__user">{{ user.email|default:user.username }}</span>
+            </div>
+
+            <nav class="user-nav">
+                <div class="user-nav__section">
+                    <span class="user-nav__label">Главное</span>
+                    <a href="{% url 'users:dashboard' %}" class="user-nav__link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                        Дашборд
+                    </a>
+                    <a href="{% url 'users:goods_list' %}" class="user-nav__link {% if request.resolver_match.url_name == 'goods_list' or request.resolver_match.url_name == 'goods_detail' %}active{% endif %}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        Мои товары
+                    </a>
+                </div>
+            </nav>
+
+            <div class="user-sidebar__footer">
+                <a href="{% url 'users:profile' %}" class="user-nav__link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    {{ user.email|default:user.username }}
+                </a>
+                <a href="/" class="user-nav__link" target="_blank">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    На сайт
+                </a>
+                <a href="{% url 'users:logout' %}" class="user-nav__link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    Выйти
+                </a>
+            </div>
+        </aside>
+
+        <main class="user-main">
+            <header class="user-header">
+                <div class="user-header__left">
+                    <button class="user-header__burger" id="userSidebarToggle" aria-label="Открыть меню" type="button">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <h1 class="user-header__title">{{ title }}</h1>
+                </div>
+            </header>
+
+            {% if messages %}
+            <div class="user-messages">
+                {% for message in messages %}
+                <div class="user-message user-message--{{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="user-content">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script src="{% static 'js/user-cabinet.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

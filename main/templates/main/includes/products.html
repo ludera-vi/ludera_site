@@ -1,0 +1,65 @@
+<section class="products" id="products">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-header__title">{{ settings.products_section_title }}</h2>
+            <p class="section-header__subtitle">{{ settings.products_section_subtitle }}</p>
+        </div>
+
+        <div class="products__grid">
+            {% for product in products %}
+            <article class="product-card scroll-animate"
+                     data-accent="{{ product.accent }}" data-accent-rgb="{{ product.accent_rgb }}">
+                <div class="product-card__accent" style="background: {{ product.accent }}"></div>
+                <div class="product-card__noise" aria-hidden="true"></div>
+
+                <div class="product-card__header">
+                    <div class="product-card__badge" style="color: {{ product.accent }}; border-color: {{ product.accent }}">
+                        <span class="product-card__badge-text">{{ product.badge_text }}</span>
+                    </div>
+                    <div class="product-card__glow" aria-hidden="true" style="background: radial-gradient(circle, rgba({{ product.accent_rgb }},0.08), transparent 70%)"></div>
+                </div>
+
+                <div class="product-card__body">
+                    <h3 class="product-card__title">{{ product.title }}</h3>
+                    <p class="product-card__subtitle">{{ product.subtitle }}</p>
+                    <p class="product-card__desc">{{ product.description }}</p>
+
+                    <div class="product-card__metrics">
+                        {% for metric in product.metrics.all %}
+                        <div class="product-card__metric">
+                            <div class="product-card__metric-head">
+                                <span class="product-card__metric-label">{{ metric.label }}</span>
+                                <span class="product-card__metric-value" style="color: {{ product.accent }}">{{ metric.value }}%</span>
+                            </div>
+                            <div class="product-card__metric-track">
+                                <div class="product-card__metric-fill" style="background: {{ product.accent }}; width: 0" data-target="{{ metric.value }}"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <ul class="product-card__details">
+                        {% for detail in product.details.all %}
+                        <li class="product-card__detail-item">
+                            <svg class="product-card__detail-icon" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                <circle cx="7" cy="7" r="3.5" fill="{{ product.accent }}"/>
+                            </svg>
+                            {{ detail.text }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="product-card__footer">
+                    <a href="{{ product.get_absolute_url }}" class="product-card__link">
+                        {{ settings.products_detail_text }}
+                        <svg class="product-card__arrow" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M6 4L10 8L6 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>

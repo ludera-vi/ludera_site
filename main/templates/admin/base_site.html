@@ -1,0 +1,41 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block branding %}
+  <h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+      <span class="admin-logo">Ludera</span>
+      <span class="admin-logo-sep">|</span>
+      <span class="admin-logo-sub">Панель управления</span>
+    </a>
+  </h1>
+{% endblock %}
+
+{% block nav-global %}
+  <div class="admin-quick-nav">
+    <a href="{% url 'admin:index' %}" class="admin-quick-link active">Главная</a>
+    <a href="{% url 'admin:main_contactrequest_changelist' %}" class="admin-quick-link">
+      Заявки
+      {% if unread_contacts %}
+        <span class="admin-badge">{{ unread_contacts }}</span>
+      {% endif %}
+    </a>
+    <a href="{% url 'admin:main_pageview_changelist' %}" class="admin-quick-link">Статистика</a>
+    <a href="/" class="admin-quick-link" target="_blank">На сайт &nearr;</a>
+  </div>
+{% endblock %}
+
+{% block footer %}
+  {{ block.super }}
+  <div class="admin-footer">
+    <p>&copy; Ludera. Built with Django.</p>
+  </div>
+{% endblock %}

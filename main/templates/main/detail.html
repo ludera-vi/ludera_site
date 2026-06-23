@@ -1,0 +1,595 @@
+{% extends "main/base.html" %}
+{% load static %}
+{% load main_tags %}
+
+{% block title %}{{ obj.title }} — Ludera{% endblock %}
+
+{% block og_title %}{{ obj.title }}{% endblock %}
+{% block og_description %}{{ obj.description|truncatechars:200 }}{% endblock %}
+
+{% block extra_head %}
+<meta property="og:title" content="{{ obj.title }}">
+<meta property="og:description" content="{{ obj.description|truncatechars:200 }}">
+{% if obj.image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ obj.image.url }}">{% endif %}
+<link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/content-display.css' %}">
+<style>
+body { background: #E8ECE9 !important; }
+main { background: #E8ECE9; }
+.detail-hero {
+    position: relative;
+    padding: 140px 0 0;
+    overflow: hidden;
+    text-align: center;
+    background: #E8ECE9;
+}
+.detail-hero__bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+.detail-hero__bg-circle {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+}
+.detail-hero__bg-circle--1 {
+    width: 600px; height: 600px;
+    top: -250px; right: -150px;
+    background: radial-gradient(circle, rgba(10,74,62,0.1), transparent);
+}
+.detail-hero__bg-circle--2 {
+    width: 450px; height: 450px;
+    bottom: -200px; left: -150px;
+    background: radial-gradient(circle, rgba(10,74,62,0.06), transparent);
+}
+.detail-hero .container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.detail-hero__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: #5a7a72;
+    margin-bottom: 40px;
+    transition: color 0.2s ease;
+    text-decoration: none;
+    align-self: flex-start;
+}
+.detail-hero__back:hover {
+    color: #0d4a3e;
+}
+.detail-hero__meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+.detail-hero__category {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    border: 1px solid;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(8px);
+    color: #032126;
+}
+.detail-hero__category-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+}
+.detail-hero__date {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: #5a7a72;
+}
+.detail-hero__sep {
+    color: rgba(3,33,38,0.15);
+}
+.detail-hero__reading {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: #5a7a72;
+}
+.detail-hero__title {
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    color: #032126;
+    margin-bottom: 20px;
+    max-width: 800px;
+    text-align: center;
+}
+.detail-hero__desc {
+    font-size: 1.125rem;
+    color: #5a7a72;
+    line-height: 1.7;
+    max-width: 640px;
+    margin: 0 auto 28px;
+    text-align: center;
+}
+.detail-hero__author {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+.detail-hero__avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+}
+.detail-hero__author-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #032126;
+}
+.detail-hero__tags {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+.detail-hero__tag {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 100px;
+    background: rgba(3,33,38,0.04);
+    color: #5a7a72;
+    border: 1px solid rgba(3,33,38,0.1);
+}
+.detail-hero__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #5a7a72;
+    font-family: 'IBM Plex Mono', monospace;
+}
+.detail-hero__status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+}
+.detail-hero__status-dot--active { background: #2d9b5e; }
+.detail-hero__status-dot--pending { background: #b8942e; }
+.detail-hero__status-dot--completed { background: #5a7a72; }
+
+.detail-body {
+    padding: 0 0 80px;
+    background: #E8ECE9;
+}
+.detail-body .container {
+    max-width: 740px;
+}
+.detail-content {
+    font-size: 1.0625rem;
+    line-height: 1.85;
+    color: #032126;
+}
+.detail-content h1,
+.detail-content h2,
+.detail-content h3 {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    margin-top: 48px;
+    margin-bottom: 16px;
+    color: #032126;
+}
+.detail-content h1 { font-size: 2rem; }
+.detail-content h2 { font-size: 1.625rem; }
+.detail-content h3 { font-size: 1.375rem; }
+.detail-content p {
+    margin-bottom: 20px;
+    color: #3d5a54;
+}
+.detail-content img {
+    border-radius: 12px;
+    margin: 40px auto;
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+.detail-content a {
+    color: #0d4a3e;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.2s ease;
+}
+.detail-content a:hover {
+    color: #032126;
+}
+.detail-content ul,
+.detail-content ol {
+    margin: 16px 0 24px;
+    padding-left: 24px;
+}
+.detail-content li {
+    margin-bottom: 8px;
+    color: #3d5a54;
+}
+.detail-content blockquote {
+    border-left: 3px solid #0d4a3e;
+    padding: 20px 28px;
+    margin: 28px 0;
+    background: rgba(255,255,255,0.6);
+    border-radius: 0 8px 8px 0;
+    color: #032126;
+    font-style: italic;
+}
+.detail-content pre {
+    background: #1a1b26;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8125rem;
+    margin: 28px 0;
+    color: #a9b1d6;
+}
+.detail-content pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+    white-space: pre;
+    display: block;
+    overflow-x: auto;
+}
+/* ─── Video player (click-to-play thumbnail) ───────────── */
+.vplayer {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 40px 0;
+    cursor: pointer;
+    background: #000;
+    aspect-ratio: 16/9;
+}
+.vplayer__thumb {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.vplayer__btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 68px;
+    height: 48px;
+    pointer-events: none;
+    transition: transform 0.2s ease;
+}
+.vplayer:hover .vplayer__btn {
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* New-style video container (from embed_videos filter) */
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    margin: 40px 0;
+}
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+/* Old-style standalone iframes (backward compat) */
+.detail-content iframe {
+    border-radius: 12px;
+    margin: 40px 0;
+    max-width: 100%;
+    aspect-ratio: 16/9;
+    width: 100%;
+}
+.detail-divider {
+    height: 1px;
+    background: rgba(3,33,38,0.1);
+    margin: 48px 0;
+}
+
+/* ─── Detail Navigation ─────────────────────────────── */
+.detail-nav {
+    display: flex;
+    gap: 20px;
+    padding-top: 32px;
+}
+.detail-nav--single {
+    justify-content: center;
+}
+.detail-nav--both {
+    justify-content: space-between;
+}
+.detail-nav__link {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 20px 24px;
+    border: 1px solid rgba(3,33,38,0.12);
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    flex: 1;
+    max-width: 360px;
+    background: rgba(255,255,255,0.7);
+}
+.detail-nav__link:hover {
+    border-color: rgba(10,74,62,0.2);
+    background: rgba(255,255,255,0.95);
+    transform: translateY(-2px);
+}
+.detail-nav__link--next {
+    text-align: right;
+}
+.detail-nav__dir {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.625rem;
+    color: #5a7a72;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.detail-nav__title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #032126;
+    transition: color 0.2s ease;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.detail-nav__link:hover .detail-nav__title {
+    color: #0d4a3e;
+}
+.detail-nav__desc {
+    font-size: 0.8125rem;
+    color: #5a7a72;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 2px;
+}
+.detail-nav__type {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.625rem;
+    color: #5a7a72;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.5;
+}
+.detail-nav__empty {
+    flex: 1;
+    max-width: 360px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<section class="detail-hero">
+    <div class="detail-hero__bg" aria-hidden="true">
+        <div class="detail-hero__bg-circle detail-hero__bg-circle--1"></div>
+        <div class="detail-hero__bg-circle detail-hero__bg-circle--2"></div>
+    </div>
+    <div class="container">
+        <a href="javascript:history.back()" class="detail-hero__back">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Назад
+        </a>
+
+        {% if detail_type == 'blog' %}
+        <div class="detail-hero__meta">
+            <div class="detail-hero__category" style="border-color: {{ obj.category_color }}">
+                <span class="detail-hero__category-dot" style="background: {{ obj.category_color }}"></span>
+                <span>{{ obj.category }}</span>
+            </div>
+            <span class="detail-hero__date">{{ obj.date|date:"j F Y" }}</span>
+            <span class="detail-hero__sep">•</span>
+            <span class="detail-hero__reading">{{ obj.reading_time }}</span>
+        </div>
+        {% elif detail_type == 'project' %}
+        <div class="detail-hero__meta">
+            {% if obj.status %}
+            <span class="detail-hero__status">{{ obj.status }}</span>
+            {% endif %}
+        </div>
+        {% elif detail_type == 'service' %}
+        <div class="detail-hero__meta">
+            <div class="detail-hero__category" style="border-color: var(--color-primary)">
+                <span class="detail-hero__category-dot" style="background: var(--color-primary)"></span>
+                <span>{{ obj.pill_label }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <h1 class="detail-hero__title">{{ obj.title }}</h1>
+        <p class="detail-hero__desc">{{ obj.description }}</p>
+
+        {% if detail_type == 'blog' %}
+        <div class="detail-hero__author">
+            <div class="detail-hero__avatar" style="background: {{ obj.category_color }}">
+                {{ obj.author_initials }}
+            </div>
+            <span class="detail-hero__author-name">{{ obj.author }}</span>
+        </div>
+        {% endif %}
+
+        {% if detail_type == 'project' %}
+        <div class="detail-hero__tags">
+            {% if obj.tag1 %}<span class="detail-hero__tag">{{ obj.tag1 }}</span>{% endif %}
+            {% if obj.tag2 %}<span class="detail-hero__tag">{{ obj.tag2 }}</span>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="detail-body">
+    <div class="container">
+        <div class="detail-content pre-content">
+            {{ obj.content|embed_videos|safe }}
+        </div>
+
+        {% if detail_type == 'service' %}
+        {% with p=obj.panel %}
+        <div class="detail-divider"></div>
+        <div style="background: #fff; border: 1px solid rgba(3,33,38,0.1); border-radius: var(--radius-lg); padding: 24px;">
+            <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="d-card d-card--wide">
+                    <div class="d-card__header">
+                        <span class="d-card__label">{{ p.chart_label }}</span>
+                        <span class="d-card__badge">{{ p.badge }}</span>
+                    </div>
+                    <div class="d-card__chart">
+                        {% for bar in p.chart %}
+                        <div class="d-chart-bar" style="height: {{ bar }}%"></div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="d-card">
+                    <div class="d-card__header">
+                        <span class="d-card__label">{{ p.metric1_label }}</span>
+                        <span class="d-card__value">{{ p.metric1_value }}{{ p.metric1_suffix }}</span>
+                    </div>
+                    <div class="d-card__progress">
+                        <div class="d-card__progress-fill{% if p.metric1_color == 'green' %} d-card__progress-fill--green{% endif %}" style="width: {{ p.metric1_value }}%"></div>
+                    </div>
+                    <span class="d-card__sub">{{ p.metric1_change }}</span>
+                </div>
+                <div class="d-card">
+                    <div class="d-card__header">
+                        <span class="d-card__label">{{ p.metric2_label }}</span>
+                        <span class="d-card__value">{{ p.metric2_value }}{{ p.metric2_suffix }}</span>
+                    </div>
+                    <div class="d-card__progress">
+                        <div class="d-card__progress-fill{% if p.metric2_color == 'green' %} d-card__progress-fill--green{% endif %}" style="width: {{ p.metric2_value }}%"></div>
+                    </div>
+                    <span class="d-card__sub">{{ p.metric2_change }}</span>
+                </div>
+                <div class="d-card d-card--wide">
+                    <div class="d-card__header">
+                        <span class="d-card__label">{{ p.timeline_label }}</span>
+                        <span class="d-card__badge">{{ p.timeline_badge }}</span>
+                    </div>
+                    <div class="d-card__timeline">
+                        <div class="d-card__track">
+                            <div class="d-card__track-fill" style="width: {{ p.timeline_progress }}%"></div>
+                        </div>
+                        <div class="d-card__milestones">
+                            {% for i in "x"|rjust:p.timeline_total %}
+                            <span class="d-milestone{% if forloop.counter <= p.timeline_done %} d-milestone--done{% elif forloop.counter == p.timeline_done|add:1 %} d-milestone--active{% else %} d-milestone--pending{% endif %}"></span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="d-card__footer">
+                        <span class="d-card__sub">{{ p.footer_text }}</span>
+                        <div class="d-card__dots">
+                            {% for dot in p.footer_dots %}
+                            <span class="d-dot d-dot--{{ dot }}"></span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="d-card d-card--wide">
+                    <div class="d-card__header">
+                        <span class="d-card__label">{{ p.lead_label }}</span>
+                        <span class="d-card__badge">{{ p.lead_channels }} каналов</span>
+                    </div>
+                    <div class="d-card__pills">
+                        {% for pill in p.lead_pills %}
+                        <span class="d-pill d-pill--{{ pill }}"></span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% endif %}
+
+        {% if prev or next %}
+        <div class="detail-divider"></div>
+        <nav class="detail-nav {% if prev and next %}detail-nav--both{% else %}detail-nav--single{% endif %}">
+            {% if prev %}
+            <a href="{{ prev.get_absolute_url }}" class="detail-nav__link">
+                <span class="detail-nav__dir">← Предыдущее</span>
+                <span class="detail-nav__title">{{ prev.title }}</span>
+                <span class="detail-nav__desc">{{ prev.description|truncatechars:80 }}</span>
+            </a>
+            {% else %}
+            <div class="detail-nav__empty"></div>
+            {% endif %}
+            {% if next %}
+            <a href="{{ next.get_absolute_url }}" class="detail-nav__link detail-nav__link--next">
+                <span class="detail-nav__dir">Следующее →</span>
+                <span class="detail-nav__title">{{ next.title }}</span>
+                <span class="detail-nav__desc">{{ next.description|truncatechars:80 }}</span>
+            </a>
+            {% endif %}
+        </nav>
+        {% endif %}
+    </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-css.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-php.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-java.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-csharp.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-c.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-cpp.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-rust.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-ruby.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-swift.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-kotlin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-docker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-nginx.min.js"></script>
+<script src="{% static 'js/content-display.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,414 @@
+.ecosystem {
+    padding: 100px 0;
+    background: linear-gradient(180deg, #0a2e33 0%, #032126 100%);
+    color: #c8d6d0;
+    overflow: hidden;
+}
+
+.ecosystem__header {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.ecosystem__badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 100px;
+    background: rgba(157, 189, 171, 0.12);
+    border: 1px solid rgba(157, 189, 171, 0.2);
+    color: #9dbdab;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+}
+
+.ecosystem__title {
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #e8f0ec;
+    margin: 0 0 12px;
+}
+
+.ecosystem__subtitle {
+    font-size: 16px;
+    color: #8baa9a;
+    margin: 0;
+    max-width: 480px;
+    margin-inline: auto;
+}
+
+.ecosystem__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: stretch;
+}
+
+@media (max-width: 900px) {
+    .ecosystem__grid {
+        grid-template-columns: 1fr;
+    }
+    .ecosystem__title { font-size: 28px; }
+    .ecosystem { padding: 60px 0; }
+}
+
+/* ─── Terminal ─── */
+.terminal {
+    background: #05262c;
+    border: 1px solid #1a3e44;
+    border-radius: 12px;
+    overflow: hidden;
+    font-family: 'IBM Plex Mono', 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    height: 100%;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #062e34;
+    border-bottom: 1px solid #1a3e44;
+}
+
+.terminal__dots {
+    display: flex;
+    gap: 6px;
+}
+
+.terminal__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.terminal__dot--red { background: #ff5f57; }
+.terminal__dot--yellow { background: #ffbd2e; }
+.terminal__dot--green { background: #28c840; }
+
+.terminal__title {
+    font-size: 11px;
+    color: #5a7f74;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.terminal__body {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.terminal__line {
+    display: flex;
+    gap: 8px;
+    visibility: hidden;
+}
+
+.terminal__line.terminal__line--visible {
+    visibility: visible;
+}
+
+.terminal__line--dim { color: #8baa9a; }
+.terminal__line--success { color: #4ade80; }
+.terminal__line--accent { color: #9dbdab; }
+.terminal__line--msg { color: #c8d6d0; font-style: italic; }
+
+.terminal__prompt {
+    flex-shrink: 0;
+    font-weight: 700;
+    width: 14px;
+    text-align: right;
+}
+
+.terminal__divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #1a3e44, transparent);
+    margin: 6px 0;
+    flex-shrink: 0;
+}
+
+.terminal__divider-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(157, 189, 171, 0.4), transparent);
+    width: 0;
+    margin: 4px 0;
+    flex-shrink: 0;
+    transition: none;
+}
+
+.terminal__divider-line--show {
+    width: 100% !important;
+    animation: dividerGrow 1s ease forwards;
+}
+
+@keyframes dividerGrow {
+    0% { width: 0; opacity: 0; }
+    100% { width: 100%; opacity: 1; }
+}
+
+.terminal__line--msg {
+    color: #c8d6d0;
+}
+
+@media (max-width: 600px) {
+    .terminal { font-size: 11px; min-height: 380px; }
+    .terminal__body { padding: 12px; }
+}
+
+/* ─── Flow Diagram ─── */
+.flow {
+    background: #05262c;
+    border: 1px solid #1a3e44;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 100%;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+}
+
+.flow__header {
+    padding: 10px 16px;
+    background: #062e34;
+    border-bottom: 1px solid #1a3e44;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #5a7f74;
+    font-weight: 500;
+}
+
+.flow__body {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 36px;
+    overflow-y: auto;
+    position: relative;
+}
+
+.flow__svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: visible;
+}
+
+.flow__card,
+.flow__split {
+    position: relative;
+    z-index: 1;
+}
+
+.flow__card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 420px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    border: 1.5px solid;
+    transition: all 0.3s ease;
+}
+
+.flow__card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+}
+
+.flow__card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+}
+
+.flow__card-body {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.flow__card-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e8f0ec;
+}
+
+.flow__card-badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(157, 189, 171, 0.15);
+    color: #9dbdab;
+    white-space: nowrap;
+}
+
+.flow__card--narrow {
+    width: fit-content;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.flow__card--client {
+    background: rgba(157, 189, 171, 0.08);
+    border-color: rgba(157, 189, 171, 0.25);
+}
+.flow__card--client .flow__card-icon {
+    background: rgba(157, 189, 171, 0.15);
+    color: #9dbdab;
+}
+.flow__card--client:hover {
+    background: rgba(157, 189, 171, 0.14);
+    border-color: #9dbdab;
+}
+
+.flow__card--analysis {
+    background: rgba(96, 165, 250, 0.07);
+    border-color: rgba(96, 165, 250, 0.2);
+}
+.flow__card--analysis .flow__card-icon {
+    background: rgba(96, 165, 250, 0.13);
+    color: #60a5fa;
+}
+.flow__card--analysis:hover {
+    background: rgba(96, 165, 250, 0.12);
+    border-color: #60a5fa;
+}
+
+.flow__card--custom {
+    background: rgba(251, 191, 36, 0.05);
+    border-color: rgba(251, 191, 36, 0.16);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+}
+.flow__card--custom .flow__card-icon {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fbbf24;
+}
+
+.flow__card--ready {
+    background: rgba(74, 222, 128, 0.05);
+    border-color: rgba(74, 222, 128, 0.16);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+}
+.flow__card--ready .flow__card-icon {
+    background: rgba(74, 222, 128, 0.12);
+    color: #4ade80;
+}
+
+.flow__card--support {
+    background: rgba(157, 189, 171, 0.07);
+    border-color: rgba(157, 189, 171, 0.2);
+}
+.flow__card--support .flow__card-icon {
+    background: rgba(157, 189, 171, 0.13);
+    color: #9dbdab;
+}
+.flow__card--support:hover {
+    background: rgba(157, 189, 171, 0.12);
+    border-color: #9dbdab;
+}
+
+.flow__split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    max-width: 420px;
+}
+
+.flow__column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+@media (max-width: 500px) {
+    .flow__split {
+        grid-template-columns: 1fr;
+    }
+}
+
+.flow__steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.flow__step {
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-size: 11px;
+    color: #8baa9a;
+    line-height: 1.4;
+    transition: all 0.2s ease;
+}
+
+.flow__step:hover {
+    background: rgba(157, 189, 171, 0.1);
+    border-color: rgba(157, 189, 171, 0.2);
+    color: #c8d6d0;
+}
+
+@media (max-width: 600px) {
+    .flow { min-height: 380px; }
+    .flow__body { padding: 14px; gap: 24px; }
+    .flow__card { padding: 12px 14px; }
+    .flow__card-label { font-size: 13px; }
+}
+
+/* ─── Flow Connectors ─── */
+
+.flow__path {
+    stroke: #5a7f74;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke-dashoffset 0.8s ease;
+}
+
+/* ─── Scroll-reveal ─── */
+@media (prefers-reduced-motion: no-preference) {
+    .ecosystem__grid > * {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+    .ecosystem__grid > *.ecosystem--visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

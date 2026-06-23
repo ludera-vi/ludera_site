@@ -1,0 +1,49 @@
+{% extends "admin/index.html" %}
+{% load static %}
+
+{% block content %}
+<div class="dashboard">
+  <div class="ludera-stats-grid">
+    <div class="ludera-stat-card">
+      <div class="ludera-stat-value">{{ today_views|default:"0" }}</div>
+      <div class="ludera-stat-label">Просмотров сегодня</div>
+    </div>
+    <div class="ludera-stat-card">
+      <div class="ludera-stat-value">{{ week_views|default:"0" }}</div>
+      <div class="ludera-stat-label">За неделю</div>
+    </div>
+    <div class="ludera-stat-card">
+      <div class="ludera-stat-value">{{ total_views|default:"0" }}</div>
+      <div class="ludera-stat-label">Всего просмотров</div>
+    </div>
+    <div class="ludera-stat-card">
+      <div class="ludera-stat-value ludera-stat-value--warn">{{ unread_contacts|default:"0" }}</div>
+      <div class="ludera-stat-label">Новых заявок</div>
+    </div>
+    <div class="ludera-stat-card">
+      <div class="ludera-stat-value">{{ active_projects|default:"0" }}</div>
+      <div class="ludera-stat-label">Активных проектов</div>
+    </div>
+    <div class="ludera-stat-card">
+      <div class="ludera-stat-value">{{ total_blog|default:"0" }}</div>
+      <div class="ludera-stat-label">Записей в блоге</div>
+    </div>
+  </div>
+
+  {{ block.super }}
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<div class="ludera-sidebar-info">
+  <div class="ludera-sidebar-section">
+    <h3>Быстрые действия</h3>
+    <ul class="ludera-quick-actions">
+      <li><a href="{% url 'admin:main_project_add' %}" class="addlink">Добавить проект</a></li>
+      <li><a href="{% url 'admin:main_blogpost_add' %}" class="addlink">Добавить статью</a></li>
+      <li><a href="{% url 'admin:main_product_add' %}" class="addlink">Добавить продукт</a></li>
+      <li><a href="{% url 'admin:main_service_add' %}" class="addlink">Добавить услугу</a></li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
