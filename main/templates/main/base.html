@@ -12,7 +12,7 @@
     <meta property="og:site_name" content="Ludera">
     <link rel="canonical" href="{{ request.build_absolute_uri }}">
     <title>{% block title %}{{ settings.meta_title|default:'Ludera — CRM, чат-боты и веб-разработка для бизнеса' }}{% endblock title %}</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -78,21 +78,7 @@
                 <p class="footer__cta-label">{{ settings.footer_cta_label }}</p>
                 <h2 class="footer__cta-title">{{ settings.cta_title|default:'Готовы обсудить ваш проект?' }}</h2>
                 <p class="footer__cta-desc">{{ settings.cta_description|default:'Расскажите о вашей задаче — мы подберём оптимальное решение.' }}</p>
-                <form class="contact-form" id="contactForm" method="post" action="{% url 'main:contact_submit' %}">
-                    {% csrf_token %}
-                    <div class="contact-form__row">
-                        <input type="text" name="name" class="contact-form__input" placeholder="{{ settings.contact_name_placeholder }}" required>
-                        <input type="email" name="email" class="contact-form__input" placeholder="{{ settings.contact_email_placeholder }}" required>
-                    </div>
-                    <textarea name="message" class="contact-form__textarea" placeholder="{{ settings.contact_message_placeholder }}" rows="3"></textarea>
-                    <button type="submit" class="btn btn--primary btn--large contact-form__submit">
-                        {{ settings.contact_submit_text }}
-                    </button>
-                    <div class="contact-form__success" id="contactSuccess" style="display:none;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                        <span>{{ settings.contact_success_text }}</span>
-                    </div>
-                </form>
+                {% include 'main/includes/contact_form.html' %}
             </div>
 
             <div class="footer__content">
