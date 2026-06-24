@@ -4,3 +4,5 @@ django-allauth>=65.0
 requests>=2.31
 PyJWT>=2.8
 cryptography>=42.0
+python-decouple>=3.8
+psycopg2-binary>=2.9

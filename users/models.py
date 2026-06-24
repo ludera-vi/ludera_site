@@ -44,18 +44,15 @@ class UserProduct(models.Model):
         return f'{self.user.email} — {self.product.title}'
 
 
-class ProductFile(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='files', verbose_name='Товар')
+class BaseFile(models.Model):
     title = models.CharField('Название', max_length=300)
-    file = models.FileField('Файл', upload_to='product_files/')
     file_type = models.CharField('Тип файла', max_length=100, blank=True, help_text='Напр., PDF, Видео, Архив')
     order = models.IntegerField('Порядок', default=0)
     created_at = models.DateTimeField('Добавлен', auto_now_add=True)
 
     class Meta:
+        abstract = True
         ordering = ['order']
-        verbose_name = 'Файл продукта'
-        verbose_name_plural = 'Файлы продуктов'
 
     def __str__(self):
         return self.title
@@ -63,6 +60,15 @@ class ProductFile(models.Model):
     @property
     def filename(self):
         return self.file.name.split('/')[-1] if self.file else ''
+
+
+class ProductFile(BaseFile):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='files', verbose_name='Товар')
+    file = models.FileField('Файл', upload_to='product_files/')
+
+    class Meta(BaseFile.Meta):
+        verbose_name = 'Файл продукта'
+        verbose_name_plural = 'Файлы продуктов'
 
 
 class UserSetting(models.Model):
@@ -102,26 +108,13 @@ class Goods(models.Model):
         return self.title
 
 
-class GoodsFile(models.Model):
+class GoodsFile(BaseFile):
     goods = models.ForeignKey(Goods, on_delete=models.CASCADE, related_name='files', verbose_name='Товар')
-    title = models.CharField('Название', max_length=300)
     file = models.FileField('Файл', upload_to='goods_files/')
-    file_type = models.CharField('Тип файла', max_length=100, blank=True,
-        help_text='Напр., PDF, Видео, Архив, Инструкция')
-    order = models.IntegerField('Порядок', default=0)
-    created_at = models.DateTimeField('Добавлен', auto_now_add=True)
 
-    class Meta:
-        ordering = ['order']
+    class Meta(BaseFile.Meta):
         verbose_name = 'Файл товара'
         verbose_name_plural = 'Файлы товаров'
-
-    def __str__(self):
-        return self.title
-
-    @property
-    def filename(self):
-        return self.file.name.split('/')[-1] if self.file else ''
 
 
 class CabinetPermission(models.Model):

@@ -1,0 +1,14 @@
+{% extends "main/base.html" %}
+{% load static %}
+{% block content %}
+<section style="padding: 120px 0; text-align: center;">
+    <div class="container">
+        <h1 style="font-size: 3rem; margin-bottom: 1rem;">⏳</h1>
+        <h2>Слишком много запросов</h2>
+        <p style="color: var(--color-text-muted); margin: 1rem 0 2rem;">
+            Пожалуйста, подождите немного перед отправкой следующего сообщения.
+        </p>
+        <a href="/" class="btn btn--primary">На главную</a>
+    </div>
+</section>
+{% endblock %}

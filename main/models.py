@@ -41,7 +41,8 @@ class SlugMixin:
         return slug
 
     def save(self, *args, **kwargs):
-        self.slug = self._generate_slug()
+        if not self.slug:
+            self.slug = self._generate_slug()
         super().save(*args, **kwargs)
 
 

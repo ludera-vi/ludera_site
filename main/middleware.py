@@ -1,12 +1,15 @@
 import re
+from datetime import timedelta
 
 from django.utils.deprecation import MiddlewareMixin
 from django.shortcuts import redirect
+from django.utils import timezone
+from django.conf import settings
 from .models import PageView
 
 
 URL_SECTION_MAP = [
-    (r'^/cabinet/$', None),  # dashboard доступен всем staff
+    (r'^/cabinet/$', None),
     (r'^/cabinet/service/', 'services'),
     (r'^/cabinet/product/', 'products'),
     (r'^/cabinet/goods/', 'goods'),
@@ -46,16 +49,25 @@ class CabinetAccessMiddleware(MiddlewareMixin):
 
 class PageViewMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
-        if not request.path.startswith('/admin') and not request.path.startswith('/static'):
-            if response.status_code == 200:
-                ip = request.META.get('REMOTE_ADDR', '')
-                ua = request.META.get('HTTP_USER_AGENT', '')
-                session = request.session.session_key or ''
-                url = request.get_full_path()
-                PageView.objects.create(
-                    url=url,
-                    user_agent=ua,
-                    ip_address=ip or None,
-                    session_key=session,
-                )
+        if settings.DEBUG:
+            return response
+        if request.path.startswith('/admin') or request.path.startswith('/static'):
+            return response
+        if response.status_code != 200:
+            return response
+        session = request.session.session_key or ''
+        if not session:
+            return response
+        url = request.get_full_path()
+        today = timezone.now().date()
+        exists = PageView.objects.filter(
+            session_key=session, url=url, timestamp__date=today,
+        ).exists()
+        if not exists:
+            PageView.objects.create(
+                url=url,
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                ip_address=request.META.get('REMOTE_ADDR', None),
+                session_key=session,
+            )
         return response

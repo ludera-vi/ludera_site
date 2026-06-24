@@ -1,6 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 from django.utils.xmlutils import SimplerXMLGenerator
+from django.views.decorators.http import require_POST
+from django.core.cache import cache
+from django.conf import settings
 
 from .models import (
     SiteSetting, HeroSection, NavLink, Service, Project,
@@ -94,15 +97,25 @@ def product_detail(request, slug):
 
 
 def contact_submit(request):
-    if request.method == 'POST':
-        name = request.POST.get('name', '').strip()
-        email = request.POST.get('email', '').strip()
-        message = request.POST.get('message', '').strip()
-        if email:
-            ContactRequest.objects.create(name=name, email=email, message=message)
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({'status': 'ok'})
-            return render(request, 'main/contact_success.html', _common_context(request))
+    if request.method == 'GET':
+        return redirect('/#contact')
+    ip = request.META.get('REMOTE_ADDR', '')
+    rate_key = f'contact_rate:{ip}'
+    count = cache.get(rate_key, 0)
+    if count > 5:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'error', 'message': 'Слишком много запросов'}, status=429)
+        return render(request, 'main/contact_rate_limit.html', _common_context(request), status=429)
+    cache.set(rate_key, count + 1, 3600)
+
+    name = request.POST.get('name', '').strip()
+    email = request.POST.get('email', '').strip()
+    message = request.POST.get('message', '').strip()
+    if email:
+        ContactRequest.objects.create(name=name, email=email, message=message)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'ok'})
+        return render(request, 'main/contact_success.html', _common_context(request))
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'status': 'error'}, status=400)
     return redirect('/#contact')

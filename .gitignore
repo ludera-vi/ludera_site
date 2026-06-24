@@ -11,7 +11,11 @@ build/
 # Django
 db.sqlite3
 media/
+staticfiles/
 *.mo
+
+# Environment
+.env
 
 # IDE
 .vscode/
