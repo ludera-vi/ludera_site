@@ -1,3 +1,4 @@
+from io import StringIO
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 from django.utils.xmlutils import SimplerXMLGenerator
@@ -124,9 +125,16 @@ def contact_submit(request):
 def sitemap_xml(request):
     base_url = f'{request.scheme}://{request.get_host()}'
 
-    xml = SimplerXMLGenerator('utf-8')
+    stream = StringIO()
+    xml = SimplerXMLGenerator(stream, 'utf-8')
     xml.startDocument()
     xml.startElement('urlset', {'xmlns': 'http://www.sitemaps.org/schemas/sitemap/0.9'})
+
+    xml.startElement('url', {})
+    xml.addQuickElement('loc', base_url + '/')
+    xml.addQuickElement('changefreq', 'weekly')
+    xml.addQuickElement('priority', '1.0')
+    xml.endElement('url')
 
     for service in Service.objects.all():
         xml.startElement('url', {})
@@ -159,8 +167,27 @@ def sitemap_xml(request):
 
     xml.endElement('urlset')
 
-    return HttpResponse(xml.output(), content_type='application/xml')
+    return HttpResponse(stream.getvalue(), content_type='application/xml')
 
 
 def ecosystem_test(request):
     return render(request, 'main/ecosystem_test.html')
+
+
+def robots_txt(request):
+    lines = [
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /cabinet/',
+        'Disallow: /account/',
+        'Disallow: /admin/',
+        'Disallow: /accounts/',
+        '',
+        f'Sitemap: {request.scheme}://{request.get_host()}/sitemap.xml',
+    ]
+    return HttpResponse('\n'.join(lines), content_type='text/plain')
+
+
+def handler404(request, exception):
+    ctx = _common_context(request)
+    return render(request, 'main/404.html', ctx, status=404)

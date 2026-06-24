@@ -1,0 +1,17 @@
+{
+  "name": "Ludera — CRM, чат-боты и веб-разработка для бизнеса",
+  "short_name": "Ludera",
+  "description": "Создаём CRM, чат-ботов, сайты и программы для малого и среднего бизнеса по всей России",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#032126",
+  "theme_color": "#032126",
+  "icons": [
+    {
+      "src": "/static/images/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -16,6 +16,7 @@ urlpatterns = [
     path('ecosystem-test/', views.ecosystem_test, name='ecosystem_test'),
     path('contact/', views.contact_submit, name='contact_submit'),
     path('sitemap.xml', views.sitemap_xml, name='sitemap'),
+    path('robots.txt', views.robots_txt, name='robots'),
     path('blog/<uslug:slug>/', views.blog_detail, name='blog_detail'),
     path('projects/<uslug:slug>/', views.project_detail, name='project_detail'),
     path('services/<uslug:slug>/', views.service_detail, name='service_detail'),

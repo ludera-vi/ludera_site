@@ -105,7 +105,8 @@ class SiteSettingAdmin(admin.ModelAdmin):
         ('Контакты', {'fields': ['email']}),
         ('Футер', {'fields': ['footer_description', 'copyright_text']}),
         ('CTA-блок', {'fields': ['cta_title', 'cta_description', 'cta_button_text']}),
-        ('SEO', {'fields': ['meta_title', 'meta_description']}),
+        ('SEO — основные', {'fields': ['meta_title', 'meta_description', 'meta_keywords', 'og_image']}),
+        ('SEO — верификация', {'fields': ['yandex_verification', 'google_verification']}),
     ]
 
     def has_add_permission(self, request):

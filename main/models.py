@@ -55,6 +55,10 @@ class SiteSetting(models.Model):
     cta_button_text = models.CharField('Текст кнопки CTA', max_length=100, default='Связаться')
     meta_title = models.CharField('Meta title', max_length=300, default='Ludera — CRM, чат-боты и веб-разработка для бизнеса')
     meta_description = models.TextField('Meta description', default='Ludera — разработка CRM, чат-ботов и сайтов для бизнеса.')
+    meta_keywords = models.CharField('Meta keywords', max_length=500, blank=True, default='создание сайтов, разработка CRM, чат-боты, заказать сайт, разработка программ, веб-студия, автоматизация бизнеса')
+    og_image = models.ImageField('Open Graph изображение', upload_to='settings/', blank=True, help_text='Рекомендуемый размер: 1200x630px')
+    yandex_verification = models.CharField('Yandex Webmaster', max_length=100, blank=True, default='', help_text='Код верификации Яндекс.Вебмастер')
+    google_verification = models.CharField('Google Search Console', max_length=100, blank=True, default='', help_text='Код верификации Google Search Console')
 
     # Navigation titles
     nav_services_title = models.CharField('Название пункта «Услуги»', max_length=100, default='Услуги')

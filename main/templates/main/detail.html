@@ -4,10 +4,36 @@
 
 {% block title %}{{ obj.title }} — Ludera{% endblock %}
 
+{% block meta_description %}{{ obj.description|truncatechars:200 }}{% endblock %}
 {% block og_title %}{{ obj.title }}{% endblock %}
 {% block og_description %}{{ obj.description|truncatechars:200 }}{% endblock %}
+{% block twitter_title %}{{ obj.title }}{% endblock %}
+{% block twitter_description %}{{ obj.description|truncatechars:200 }}{% endblock %}
 
 {% block extra_head %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Главная", "item": "{{ request.scheme }}://{{ request.get_host }}/"},
+        {"@type": "ListItem", "position": 2, "name": "{{ obj.title }}", "item": "{{ request.build_absolute_uri }}"}
+    ]
+}
+</script>
+{% if detail_type == 'blog' %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "{{ obj.title }}",
+    "description": "{{ obj.description|truncatechars:200 }}",
+    "author": {"@type": "Person", "name": "{{ obj.author }}"},
+    "datePublished": "{{ obj.date|date:'Y-m-d' }}",
+    "dateModified": "{{ obj.updated_at|date:'Y-m-d' }}"
+}
+</script>
+{% endif %}
 <meta property="og:title" content="{{ obj.title }}">
 <meta property="og:description" content="{{ obj.description|truncatechars:200 }}">
 {% if obj.image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ obj.image.url }}">{% endif %}

@@ -1,0 +1,159 @@
+{% extends "main/base.html" %}
+{% load static %}
+
+{% block title %}Страница не найдена — Ludera{% endblock %}
+
+{% block extra_head %}
+<style>
+.error-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #E8ECE9;
+    padding: 120px 0 80px;
+    position: relative;
+    overflow: hidden;
+}
+.error-page__bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+.error-page__bg-circle {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.1;
+}
+.error-page__bg-circle--1 {
+    width: 600px; height: 600px;
+    top: -250px; right: -150px;
+    background: radial-gradient(circle, rgba(10,74,62,0.12), transparent);
+}
+.error-page__bg-circle--2 {
+    width: 450px; height: 450px;
+    bottom: -200px; left: -150px;
+    background: radial-gradient(circle, rgba(10,74,62,0.06), transparent);
+}
+.error-page .container {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    max-width: 520px;
+}
+.error-page__code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: clamp(6rem, 15vw, 10rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.06em;
+    color: #032126;
+    margin-bottom: 8px;
+    opacity: 0.08;
+    user-select: none;
+}
+.error-page__title {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    color: #032126;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+}
+.error-page__desc {
+    font-size: 1.0625rem;
+    color: #5a7a72;
+    line-height: 1.7;
+    margin-bottom: 36px;
+}
+.error-page__actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.error-page__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+}
+.error-page__btn--primary {
+    background: #032126;
+    color: #E8ECE9;
+}
+.error-page__btn--primary:hover {
+    background: #0a2e33;
+    transform: translateY(-1px);
+}
+.error-page__btn--ghost {
+    background: transparent;
+    color: #032126;
+    border: 1px solid rgba(3,33,38,0.15);
+}
+.error-page__btn--ghost:hover {
+    background: rgba(3,33,38,0.04);
+    border-color: rgba(3,33,38,0.25);
+}
+.error-page__decor {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+.error-page__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #a7d5b8;
+    opacity: 0.3;
+}
+.error-page__dot:nth-child(2) { opacity: 0.5; }
+.error-page__dot:nth-child(3) { opacity: 0.8; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="error-page">
+    <div class="error-page__bg" aria-hidden="true">
+        <div class="error-page__bg-circle error-page__bg-circle--1"></div>
+        <div class="error-page__bg-circle error-page__bg-circle--2"></div>
+    </div>
+    <div class="container">
+        <div class="error-page__decor" aria-hidden="true">
+            <span class="error-page__dot"></span>
+            <span class="error-page__dot"></span>
+            <span class="error-page__dot"></span>
+        </div>
+        <div class="error-page__code">404</div>
+        <h1 class="error-page__title">Страница не найдена</h1>
+        <p class="error-page__desc">
+            Возможно, страница была удалена или ссылка, по которой вы перешли, содержит ошибку.
+        </p>
+        <div class="error-page__actions">
+            <a href="/" class="error-page__btn error-page__btn--primary">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 8h12M8 2l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                На главную
+            </a>
+            <a href="javascript:history.back()" class="error-page__btn error-page__btn--ghost">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Назад
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
