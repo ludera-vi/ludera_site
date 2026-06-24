@@ -15,7 +15,7 @@ staticfiles/
 *.mo
 
 # Environment
-.env
+#.env
 
 # IDE
 .vscode/
