@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новая заявка с Ludera</title>
+</head>
+<body style="margin:0;padding:0;background:#E8ECE9;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+    <table role="presentation" style="width:100%;background:#E8ECE9;padding:40px 20px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" style="max-width:520px;width:100%;background:#fff;border-radius:16px;overflow:hidden;border:1px solid rgba(3,33,38,0.08);">
+                    <tr>
+                        <td style="padding:32px 32px 0;">
+                            <table role="presentation" style="width:100%;">
+                                <tr>
+                                    <td>
+                                        <span style="font-size:20px;font-weight:700;color:#032126;letter-spacing:-0.03em;">Ludera</span>
+                                    </td>
+                                    <td align="right">
+                                        <span style="font-size:12px;color:#768787;font-family:'IBM Plex Mono',monospace;">Заявка с сайта</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:8px 32px 0;">
+                            <div style="height:1px;background:rgba(3,33,38,0.08);"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:24px 32px;">
+                            <h1 style="font-size:20px;font-weight:700;color:#032126;margin:0 0 20px;letter-spacing:-0.02em;">Новая заявка</h1>
+
+                            <table role="presentation" style="width:100%;">
+                                <tr>
+                                    <td style="padding-bottom:12px;">
+                                        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#768787;">Имя</span>
+                                        <p style="font-size:15px;color:#032126;margin:4px 0 0;font-weight:500;">{{ name|default:'—' }}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-bottom:12px;">
+                                        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#768787;">Email</span>
+                                        <p style="font-size:15px;color:#032126;margin:4px 0 0;font-weight:500;">{{ email }}</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-bottom:4px;">
+                                        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#768787;">Сообщение</span>
+                                        <p style="font-size:15px;color:#3d5a54;margin:4px 0 0;line-height:1.6;white-space:pre-wrap;">{{ message|default:'—' }}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:0 32px 24px;">
+                            <div style="height:1px;background:rgba(3,33,38,0.08);margin-bottom:20px;"></div>
+                            <table role="presentation">
+                                <tr>
+                                    <td>
+                                        <a href="mailto:{{ email }}" style="display:inline-block;padding:10px 20px;background:#032126;color:#E8ECE9;font-size:13px;font-weight:600;border-radius:8px;text-decoration:none;">Ответить</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <p style="font-size:12px;color:#768787;margin-top:16px;">Ludera — CRM, чат-боты и веб-разработка для бизнеса</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

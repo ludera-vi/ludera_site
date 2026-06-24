@@ -146,14 +146,18 @@ SOCIALACCOUNT_PROVIDERS = {
 EMAIL_BACKEND_CONFIG = config('EMAIL_BACKEND', default='console')
 if EMAIL_BACKEND_CONFIG == 'smtp':
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = config('EMAIL_HOST')
-    EMAIL_PORT = config('EMAIL_PORT', cast=int)
+    EMAIL_HOST = config('EMAIL_HOST', default='smtp.yandex.ru')
+    EMAIL_PORT = config('EMAIL_PORT', default=465, cast=int)
     EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=True, cast=bool)
-    EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
+    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+    EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+    DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+    if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
+        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+OWNER_EMAIL = config('OWNER_EMAIL', default='hello@ludera.ru')
 
 # ─── Production Security (включается только когда DEBUG=False) ─────
 if not DEBUG:

@@ -5,6 +5,8 @@ from django.utils.xmlutils import SimplerXMLGenerator
 from django.views.decorators.http import require_POST
 from django.core.cache import cache
 from django.conf import settings
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 from .models import (
     SiteSetting, HeroSection, NavLink, Service, Project,
@@ -114,6 +116,25 @@ def contact_submit(request):
     message = request.POST.get('message', '').strip()
     if email:
         ContactRequest.objects.create(name=name, email=email, message=message)
+
+        subject = f'Новая заявка с Ludera — {name}'
+        html_message = render_to_string('main/email/contact_notification.html', {
+            'name': name,
+            'email': email,
+            'message': message,
+        })
+        try:
+            send_mail(
+                subject,
+                f'Имя: {name}\nEmail: {email}\n\n{message}',
+                settings.DEFAULT_FROM_EMAIL,
+                [settings.OWNER_EMAIL],
+                html_message=html_message,
+                fail_silently=False,
+            )
+        except Exception:
+            pass
+
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({'status': 'ok'})
         return render(request, 'main/contact_success.html', _common_context(request))
