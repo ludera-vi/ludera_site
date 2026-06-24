@@ -120,8 +120,8 @@ ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = 'optional'
 ACCOUNT_SESSION_REMEMBER = True
-ACCOUNT_LOGOUT_ON_GET = True
-SOCIALACCOUNT_LOGIN_ON_GET = True
+ACCOUNT_LOGOUT_ON_GET = False
+SOCIALACCOUNT_LOGIN_ON_GET = False
 
 # ─── CSRF ──────────────────────────────────────────────────────────
 CSRF_USE_SESSIONS = True
@@ -169,3 +169,5 @@ if not DEBUG:
     CSRF_COOKIE_HTTPONLY = True
     SESSION_COOKIE_HTTPONLY = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_REFERRER_POLICY = 'same-origin'
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
