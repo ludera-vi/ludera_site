@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#032126"/>
+      <stop offset="50%" stop-color="#0a2e33"/>
+      <stop offset="100%" stop-color="#0d3d44"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a7d5b8"/>
+      <stop offset="100%" stop-color="#7bc4a0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="60" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="900" cy="100" r="300" fill="#a7d5b8" opacity="0.04"/>
+  <circle cx="100" cy="500" r="250" fill="#a7d5b8" opacity="0.03"/>
+  <circle cx="1100" cy="550" r="200" fill="#6b8cbe" opacity="0.04"/>
+
+  <!-- Grid pattern -->
+  <g opacity="0.03" stroke="#a7d5b8" stroke-width="0.5">
+    <line x1="0" y1="0" x2="0" y2="630"/>
+    <line x1="60" y1="0" x2="60" y2="630"/>
+    <line x1="120" y1="0" x2="120" y2="630"/>
+    <line x1="180" y1="0" x2="180" y2="630"/>
+    <line x1="240" y1="0" x2="240" y2="630"/>
+    <line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="360" y1="0" x2="360" y2="630"/>
+    <line x1="420" y1="0" x2="420" y2="630"/>
+    <line x1="480" y1="0" x2="480" y2="630"/>
+    <line x1="540" y1="0" x2="540" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="660" y1="0" x2="660" y2="630"/>
+    <line x1="720" y1="0" x2="720" y2="630"/>
+    <line x1="780" y1="0" x2="780" y2="630"/>
+    <line x1="840" y1="0" x2="840" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+    <line x1="960" y1="0" x2="960" y2="630"/>
+    <line x1="1020" y1="0" x2="1020" y2="630"/>
+    <line x1="1080" y1="0" x2="1080" y2="630"/>
+    <line x1="1140" y1="0" x2="1140" y2="630"/>
+    <line x1="0" y1="0" x2="1200" y2="0"/>
+    <line x1="0" y1="63" x2="1200" y2="63"/>
+    <line x1="0" y1="126" x2="1200" y2="126"/>
+    <line x1="0" y1="189" x2="1200" y2="189"/>
+    <line x1="0" y1="252" x2="1200" y2="252"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="378" x2="1200" y2="378"/>
+    <line x1="0" y1="441" x2="1200" y2="441"/>
+    <line x1="0" y1="504" x2="1200" y2="504"/>
+    <line x1="0" y1="567" x2="1200" y2="567"/>
+  </g>
+
+  <!-- Logo icon (square with rounded corners) -->
+  <rect x="80" y="80" width="80" height="80" rx="18" fill="url(#accent)" opacity="0.9"/>
+  <text x="120" y="138" font-family="Inter,-apple-system,BlinkMacSystemFont,sans-serif" font-size="44" font-weight="700" fill="#032126" text-anchor="middle">L</text>
+
+  <!-- Company name next to logo -->
+  <text x="180" y="134" font-family="Inter,-apple-system,BlinkMacSystemFont,sans-serif" font-size="32" font-weight="700" fill="#a7d5b8">Ludera</text>
+
+  <!-- Tagline -->
+  <text x="80" y="220" font-family="Inter,-apple-system,BlinkMacSystemFont,sans-serif" font-size="16" font-weight="500" fill="#5a9e8f" letter-spacing="3" text-transform="uppercase">CRM | ЧАТ-БОТЫ | САЙТЫ</text>
+
+  <!-- Main title -->
+  <text x="80" y="300" font-family="Inter,-apple-system,BlinkMacSystemFont,sans-serif" font-size="48" font-weight="700" fill="#ffffff" letter-spacing="-1">
+    <tspan x="80" dy="0">Создаём CRM, чат-ботов</tspan>
+    <tspan x="80" dy="64">и сайты для бизнеса</tspan>
+  </text>
+
+  <!-- Description -->
+  <text x="80" y="460" font-family="Inter,-apple-system,BlinkMacSystemFont,sans-serif" font-size="20" fill="#7ba89e" letter-spacing="0.2">
+    <tspan x="80" dy="0">Автоматизация продаж, общение с клиентами</tspan>
+    <tspan x="80" dy="32">и современные сайты — от идеи до запуска</tspan>
+  </text>
+
+  <!-- Bottom accent line -->
+  <rect x="80" y="570" width="120" height="3" rx="1.5" fill="url(#accent)"/>
+
+  <!-- URL -->
+  <text x="240" y="578" font-family="IBM Plex Mono,monospace" font-size="16" font-weight="500" fill="#5a7a72">ludera.ru</text>
+
+  <!-- Decorative dots -->
+  <circle cx="1060" cy="120" r="4" fill="#a7d5b8" opacity="0.5"/>
+  <circle cx="1080" cy="120" r="4" fill="#5a9e8f" opacity="0.4"/>
+  <circle cx="1100" cy="120" r="4" fill="#7ba89e" opacity="0.3"/>
+  <circle cx="1060" cy="510" r="4" fill="#a7d5b8" opacity="0.3"/>
+  <circle cx="1080" cy="510" r="4" fill="#5a9e8f" opacity="0.4"/>
+  <circle cx="1100" cy="510" r="4" fill="#7ba89e" opacity="0.5"/>
+</svg>

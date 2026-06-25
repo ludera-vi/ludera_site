@@ -8,8 +8,12 @@
     {# ─── SEO Meta ─────────────────────────────────────────────── #}
     <title>{% block title %}{{ settings.meta_title|default:'Ludera — CRM, чат-боты и веб-разработка для бизнеса' }}{% endblock title %}</title>
     <meta name="description" content="{% block meta_description %}{{ settings.meta_description|default:'Ludera — разработка CRM, чат-ботов и сайтов для малого и среднего бизнеса.' }}{% endblock %}">
-    <meta name="keywords" content="{{ settings.meta_keywords|default:'создание сайтов, разработка CRM, чат-боты, заказать сайт, разработка программ, веб-студия, автоматизация бизнеса' }}">
-    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    <meta name="keywords" content="{% block meta_keywords %}{{ settings.meta_keywords|default:'создание сайтов, разработка CRM, чат-боты, заказать сайт, разработка программ, веб-студия, автоматизация бизнеса' }}{% endblock %}">
+    <link rel="canonical" href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="author" content="Ludera">
+    <link rel="alternate" hreflang="ru" href="{{ request.build_absolute_uri }}">
+    <link rel="alternate" hreflang="x-default" href="{{ request.build_absolute_uri }}">
 
     {# ─── Верификация Яндекс и Google ─────────────────────────── #}
     {% if settings.yandex_verification %}<meta name="yandex-verification" content="{{ settings.yandex_verification }}">{% endif %}
@@ -22,16 +26,30 @@
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
     <meta property="og:site_name" content="Ludera">
     <meta property="og:locale" content="ru_RU">
-    {% if settings.og_image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ settings.og_image.url }}">
+    {% block og_image %}
+    {% if settings.og_image %}
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ settings.og_image.url }}">
+    {% else %}
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/og-preview.svg' %}">
+    {% endif %}
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Ludera — {{ settings.meta_title|default:'CRM, чат-боты и веб-разработка' }}">{% endif %}
+    <meta property="og:image:alt" content="Ludera — {{ settings.meta_title|default:'CRM, чат-боты и веб-разработка' }}">
+    {% endblock og_image %}
 
     {# ─── Twitter Cards ───────────────────────────────────────── #}
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{% block twitter_title %}{{ settings.meta_title|default:'Ludera — CRM, чат-боты и веб-разработка для бизнеса' }}{% endblock %}">
     <meta name="twitter:description" content="{% block twitter_description %}{{ settings.meta_description|default:'Ludera — разработка CRM, чат-ботов и сайтов для бизнеса.' }}{% endblock %}">
-    {% if settings.og_image %}<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ settings.og_image.url }}">{% endif %}
+    {% if settings.og_image %}<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ settings.og_image.url }}">{% else %}<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/og-preview.svg' %}">{% endif %}
+
+    {# ─── VK Cards (для корректного превью в ВКонтакте) ───────── #}
+    <meta property="vk:title" content="{% block vk_title %}{{ settings.meta_title|default:'Ludera — CRM, чат-боты и веб-разработка для бизнеса' }}{% endblock %}">
+    <meta property="vk:description" content="{% block vk_description %}{{ settings.meta_description|default:'Ludera — разработка CRM, чат-ботов и сайтов для бизнеса.' }}{% endblock %}">
+    {% if settings.og_image %}<meta property="vk:image" content="{{ request.scheme }}://{{ request.get_host }}{{ settings.og_image.url }}">{% else %}<meta property="vk:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/og-preview.svg' %}">{% endif %}
+
+    {# ─── Telegram / Odnoklassniki ────────────────────────────── #}
+    <meta property="og:image:type" content="image/svg+xml">
 
     {# ─── Favicon / Apple / Web Manifest ──────────────────────── #}
     <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
@@ -56,16 +74,50 @@
         "description": "Создаём CRM, чат-ботов, сайты и программы для малого и среднего бизнеса по всей России.",
         "email": "{{ settings.email|default:'hello@ludera.ru' }}",
         "foundingDate": "2024",
-        "areaServed": "RU",
+        "areaServed": {
+            "@type": "Country",
+            "name": "Россия"
+        },
+        "knowsLanguage": ["ru", "en"],
         "contactPoint": {
             "@type": "ContactPoint",
             "email": "{{ settings.email|default:'hello@ludera.ru' }}",
-            "contactType": "sales",
+            "contactType": "customer service",
             "availableLanguage": ["Russian"]
         },
         "sameAs": [
             {% for link in social_links %}"{{ link.url }}"{% if not forloop.last %},{% endif %}{% endfor %}
-        ]
+        ],
+        "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "Услуги Ludera",
+            "itemListElement": [
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "Чат-боты на базе ИИ",
+                        "description": "Автоматизация общения с клиентами с помощью умных чат-ботов"
+                    }
+                },
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "Создание и сопровождение сайтов",
+                        "description": "Разработка современных сайтов и веб-приложений"
+                    }
+                },
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "Внедрение CRM-систем",
+                        "description": "Персональные CRM-системы под бизнес"
+                    }
+                }
+            ]
+        }
     }
     </script>
 
@@ -76,7 +128,12 @@
         "name": "Ludera",
         "url": "{{ request.scheme }}://{{ request.get_host }}/",
         "description": "{{ settings.meta_description|default:'Ludera — разработка CRM, чат-ботов и сайтов для бизнеса.' }}",
-        "inLanguage": "ru-RU"
+        "inLanguage": "ru-RU",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "{{ request.scheme }}://{{ request.get_host }}/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
     }
     </script>
 

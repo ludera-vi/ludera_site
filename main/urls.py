@@ -13,6 +13,7 @@ app_name = 'main'
 # urlpatterns — список всех URL-шаблонов приложения
 urlpatterns = [
     path('', views.index, name='index'),
+    path('favicon.ico', views.favicon_ico, name='favicon'),
     path('ecosystem-test/', views.ecosystem_test, name='ecosystem_test'),
     path('contact/', views.contact_submit, name='contact_submit'),
     path('sitemap.xml', views.sitemap_xml, name='sitemap'),

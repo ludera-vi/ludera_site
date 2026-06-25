@@ -2,8 +2,17 @@
 {% load static %}
 
 {% block title %}
-    Ludera — CRM, чат-боты и веб-разработка для бизнеса
+    {{ settings.meta_title|default:'Ludera — CRM, чат-боты и веб-разработка для бизнеса' }}
 {% endblock title %}
+
+{% block meta_description %}{{ settings.meta_description|default:'Ludera — разработка CRM, чат-ботов и сайтов для бизнеса.' }}{% endblock %}
+
+{% block og_title %}{{ settings.meta_title|default:'Ludera — CRM, чат-боты и веб-разработка для бизнеса' }}{% endblock %}
+{% block og_description %}{{ settings.meta_description|default:'Ludera — разработка CRM, чат-ботов и сайтов для бизнеса.' }}{% endblock %}
+{% block twitter_title %}{{ settings.meta_title|default:'Ludera — CRM, чат-боты и веб-разработка для бизнеса' }}{% endblock %}
+{% block twitter_description %}{{ settings.meta_description|default:'Ludera — разработка CRM, чат-ботов и сайтов для бизнеса.' }}{% endblock %}
+{% block vk_title %}{{ settings.meta_title|default:'Ludera — CRM, чат-боты и веб-разработка для бизнеса' }}{% endblock %}
+{% block vk_description %}{{ settings.meta_description|default:'Ludera — разработка CRM, чат-ботов и сайтов для бизнеса.' }}{% endblock %}
 
 {% block content %}
     {% include "main/includes/hero.html" %}

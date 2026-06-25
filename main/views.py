@@ -1,6 +1,6 @@
 from io import StringIO
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 from django.utils.xmlutils import SimplerXMLGenerator
 from django.views.decorators.http import require_POST
 from django.core.cache import cache
@@ -206,8 +206,17 @@ def robots_txt(request):
         'Disallow: /account/',
         'Disallow: /admin/',
         'Disallow: /accounts/',
+        'Disallow: /ecosystem-test/',
         '',
-        f'Sitemap: {request.scheme}://{request.get_host()}/sitemap.xml',
+        '# Яндекс.Вебмастер',
+        'User-agent: Yandex',
+        'Allow: /',
+        'Disallow: /cabinet/',
+        'Disallow: /account/',
+        'Disallow: /admin/',
+        'Disallow: /accounts/',
+        '',
+        'Sitemap: {}://{}/sitemap.xml'.format(request.scheme, request.get_host),
     ]
     return HttpResponse('\n'.join(lines), content_type='text/plain')
 
@@ -215,3 +224,7 @@ def robots_txt(request):
 def handler404(request, exception):
     ctx = _common_context(request)
     return render(request, 'main/404.html', ctx, status=404)
+
+
+def favicon_ico(request):
+    return HttpResponseRedirect('/static/images/favicon.svg')
