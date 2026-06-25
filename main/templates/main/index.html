@@ -13,4 +13,11 @@
     {% include "main/includes/about.html" %}
     {% include "main/includes/blog.html" %}
     {% include "main/includes/ecosystem.html" %}
+            <div class="footer__cta">
+                <div class="footer__cta-bg"></div>
+                <p class="footer__cta-label">{{ settings.footer_cta_label }}</p>
+                <h1 class="footer__cta-title">{{ settings.cta_title|default:'Готовы обсудить ваш проект?' }}</h2>
+                <p class="footer__cta-desc">{{ settings.cta_description|default:'Расскажите о вашей задаче — мы подберём оптимальное решение.' }}</p>
+                {% include 'main/includes/contact_form.html' %}
+            </div>
 {% endblock content %}

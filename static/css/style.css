@@ -2032,9 +2032,10 @@ img {
     text-align: center;
     padding: var(--spacing-xl);
     border: 1px solid var(--color-card-border);
-    border-radius: var(--radius-lg);
+    
     margin-bottom: var(--spacing-xl);
     overflow: hidden;
+    margin-bottom: 0px;
 }
 
 .footer__cta-bg {
@@ -2112,6 +2113,7 @@ img {
 .contact-form__textarea {
     min-height: 80px;
     resize: none;
+    margin-bottom: 23px;
 }
 
 .contact-form__input::placeholder,
