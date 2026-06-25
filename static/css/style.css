@@ -2231,6 +2231,19 @@ img {
     letter-spacing: 0.05em;
 }
 
+.footer__copyright-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.footer__ip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    opacity: 0.7;
+}
+
 .footer__socials {
     display: flex;
     gap: var(--spacing-md);
@@ -2246,6 +2259,12 @@ img {
     background: rgba(255, 255, 255, 0.05);
     color: var(--color-text-muted);
     transition: all var(--transition-base);
+}
+
+.footer__social-link svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
 }
 
 .footer__social-link:hover {

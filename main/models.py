@@ -52,7 +52,6 @@ class SiteSetting(models.Model):
     copyright_text = models.CharField('Копирайт', max_length=300, default='© 2024 Ludera. Все права защищены.')
     cta_title = models.CharField('Заголовок CTA', max_length=300, default='Готовы обсудить ваш проект?')
     cta_description = models.TextField('Описание CTA', default='Расскажите о вашей задаче — мы подберём оптимальное решение.')
-    cta_button_text = models.CharField('Текст кнопки CTA', max_length=100, default='Связаться')
     meta_title = models.CharField('Meta title', max_length=300, default='Ludera — CRM, чат-боты и веб-разработка для бизнеса')
     meta_description = models.TextField('Meta description', default='Ludera — разработка CRM, чат-ботов и сайтов для бизнеса.')
     meta_keywords = models.CharField('Meta keywords', max_length=500, blank=True, default='создание сайтов, разработка CRM, чат-боты, заказать сайт, разработка программ, веб-студия, автоматизация бизнеса')
@@ -105,10 +104,31 @@ class SiteSetting(models.Model):
     contact_submit_text = models.CharField('Текст кнопки отправки', max_length=100, default='Отправить заявку')
     contact_success_text = models.CharField('Текст об успешной отправке', max_length=300, default='Заявка отправлена! Мы свяжемся с вами в ближайшее время.')
 
-    # Social links
-    social_twitter_url = models.URLField('Ссылка Twitter/X', blank=True, default='')
-    social_linkedin_url = models.URLField('Ссылка LinkedIn', blank=True, default='')
-    social_youtube_url = models.URLField('Ссылка YouTube', blank=True, default='')
+    # Ecosystem section
+    ecosystem_badge = models.CharField('Бейдж ecosystem', max_length=50, default='Pipeline')
+    ecosystem_title = models.CharField('Заголовок ecosystem', max_length=300, default='Как мы работаем')
+    ecosystem_subtitle = models.CharField('Подзаголовок ecosystem', max_length=500, default='От задачи до запуска — два пути, один результат')
+    ecosystem_terminal_title = models.CharField('Заголовок терминала', max_length=100, default='ludera-cli — interactive')
+    ecosystem_flow_title = models.CharField('Заголовок диаграммы', max_length=100, default='Client Journey')
+    ecosystem_client_label = models.CharField('Метка «Клиент»', max_length=100, default='Клиент')
+    ecosystem_client_badge = models.CharField('Бейдж клиента', max_length=50, default='B2B / B2C')
+    ecosystem_analysis_label = models.CharField('Метка «Анализ»', max_length=100, default='Анализ потребностей')
+    ecosystem_custom_label = models.CharField('Метка «Инд. разработка»', max_length=100, default='Индивидуальная разработка')
+    ecosystem_ready_label = models.CharField('Метка «Готовый продукт»', max_length=100, default='Готовый продукт')
+    ecosystem_support_label = models.CharField('Метка «Поддержка»', max_length=100, default='Поддержка и развитие')
+
+    # Hero section
+    hero_tagline = models.CharField('Теглайн Hero', max_length=200, default='Ваш цифровой партнёр')
+    hero_title = models.CharField('Заголовок Hero', max_length=500, default='Создаём CRM, чат-ботов и сайты, которые работают на вас')
+    hero_description = models.TextField('Описание Hero', default='Помогаем малому и среднему бизнесу автоматизировать продажи.')
+    hero_cta_text = models.CharField('Текст кнопки Hero', max_length=100, default='Обсудить проект')
+    hero_cta_link = models.CharField('Ссылка кнопки Hero', max_length=200, default='#contact')
+
+    # Footer ИП
+    footer_ip_name = models.CharField('Наименование ИП', max_length=300, blank=True, default='')
+    footer_ip_inn = models.CharField('ИНН', max_length=20, blank=True, default='')
+    footer_ip_ogrnip = models.CharField('ОГРНИП', max_length=20, blank=True, default='')
+    footer_ip_address = models.CharField('Адрес ИП', max_length=500, blank=True, default='')
 
     updated_at = models.DateTimeField('Обновлено', auto_now=True)
 
@@ -123,6 +143,34 @@ class SiteSetting(models.Model):
         if not self.pk and SiteSetting.objects.exists():
             raise ValidationError('Может существовать только один экземпляр SiteSetting')
         super().save(*args, **kwargs)
+
+    def get_social_links(self):
+        return self.social_links.filter(is_visible=True).order_by('order')
+
+    @property
+    def ecosystem_custom_steps_list(self):
+        return ['Проектирование', 'Дизайн', 'Разработка', 'Тестирование', 'Запуск']
+
+    @property
+    def ecosystem_ready_steps_list(self):
+        return ['Выбор решения', 'Подключение', 'Интеграция', 'Адаптация', 'Запуск']
+
+
+class SocialLink(models.Model):
+    site_setting = models.ForeignKey(SiteSetting, on_delete=models.CASCADE, related_name='social_links', verbose_name='Настройки сайта', null=True, blank=True)
+    name = models.CharField('Название', max_length=100, help_text='Напр. Telegram, VK, Instagram')
+    icon = models.TextField('Иконка (SVG)', help_text='Вставьте SVG-код иконки')
+    url = models.URLField('Ссылка')
+    order = models.IntegerField('Порядок', default=0)
+    is_visible = models.BooleanField('Показывать', default=True)
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = 'Ссылка соцсети'
+        verbose_name_plural = 'Социальные сети'
+
+    def __str__(self):
+        return self.name
 
 
 class HeroSection(models.Model):

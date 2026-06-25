@@ -11,7 +11,7 @@ from django.template.loader import render_to_string
 from .models import (
     SiteSetting, HeroSection, NavLink, Service, Project,
     Product, Principle, BlogPost, PageView,
-    ContactRequest,
+    ContactRequest, SocialLink,
 )
 
 
@@ -24,6 +24,7 @@ def index(request):
     principles = Principle.objects.all()
     blog_posts = BlogPost.objects.filter(is_visible=True)
     settings = SiteSetting.objects.first()
+    social_links = SocialLink.objects.filter(is_visible=True).order_by('order')
 
     context = {
         'hero': hero,
@@ -35,6 +36,7 @@ def index(request):
         'footer_products': products,
         'blog_posts': blog_posts,
         'settings': settings,
+        'social_links': social_links,
     }
 
     return render(request, 'main/index.html', context)
@@ -45,6 +47,7 @@ def _common_context(request):
         'nav_links': NavLink.objects.filter(is_visible=True),
         'footer_products': Product.objects.filter(is_visible=True),
         'settings': SiteSetting.objects.first(),
+        'social_links': SocialLink.objects.filter(is_visible=True).order_by('order'),
     }
 
 

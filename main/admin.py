@@ -10,7 +10,7 @@ from datetime import timedelta
 from .models import (
     SiteSetting, HeroSection, NavLink, Service, Project,
     Product, ProductMetric, ProductDetail, Principle,
-    BlogPost, PageView, ContactRequest,
+    BlogPost, PageView, ContactRequest, SocialLink,
 )
 
 
@@ -102,15 +102,32 @@ admin.site.dashboard_view = dashboard_view
 class SiteSettingAdmin(admin.ModelAdmin):
     list_display = ['email', 'meta_title']
     fieldsets = [
+        ('Hero', {'fields': ['hero_tagline', 'hero_title', 'hero_description', 'hero_cta_text', 'hero_cta_link']}),
         ('Контакты', {'fields': ['email']}),
         ('Футер', {'fields': ['footer_description', 'copyright_text']}),
-        ('CTA-блок', {'fields': ['cta_title', 'cta_description', 'cta_button_text']}),
+        ('Футер — ИП', {'fields': ['footer_ip_name', 'footer_ip_inn', 'footer_ip_ogrnip', 'footer_ip_address']}),
+        ('CTA-блок', {'fields': ['cta_title', 'cta_description']}),
         ('SEO — основные', {'fields': ['meta_title', 'meta_description', 'meta_keywords', 'og_image']}),
         ('SEO — верификация', {'fields': ['yandex_verification', 'google_verification']}),
+        ('Ecosystem', {'fields': [
+            'ecosystem_badge', 'ecosystem_title', 'ecosystem_subtitle',
+            'ecosystem_terminal_title', 'ecosystem_flow_title',
+            'ecosystem_client_label', 'ecosystem_client_badge',
+            'ecosystem_analysis_label',
+            'ecosystem_custom_label',
+            'ecosystem_ready_label',
+            'ecosystem_support_label',
+        ]}),
     ]
 
     def has_add_permission(self, request):
         return SiteSetting.objects.count() == 0
+
+
+@admin.register(SocialLink)
+class SocialLinkAdmin(admin.ModelAdmin):
+    list_display = ['name', 'url', 'order', 'is_visible']
+    list_editable = ['order', 'is_visible']
 
 
 @admin.register(HeroSection)

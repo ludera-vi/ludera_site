@@ -68,6 +68,12 @@ urlpatterns = [
     # Hero Section
     path('herosection/', cabinet_views.herosection_edit, name='herosection_edit'),
 
+    # Social Links
+    path('sociallink/', cabinet_views.sociallink_list, name='sociallink_list'),
+    path('sociallink/create/', cabinet_views.sociallink_form, name='sociallink_create'),
+    path('sociallink/<int:pk>/', cabinet_views.sociallink_form, name='sociallink_edit'),
+    path('sociallink/<int:pk>/delete/', cabinet_views.sociallink_delete, name='sociallink_delete'),
+
     # Profile
     path('profile/', cabinet_views.profile, name='profile'),
 

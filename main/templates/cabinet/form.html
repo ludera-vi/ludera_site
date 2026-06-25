@@ -14,6 +14,8 @@
 
         {% for field in form %}
         {% if field.name in panel_fields %}
+        {% elif model_name == 'sitesetting' and site_groups %}
+        {# sitesetting fields are rendered inside groups below #}
         {% else %}
         <div class="cabinet-form-group">
             <label class="cabinet-form-label" for="{{ field.id_for_label }}">

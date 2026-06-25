@@ -15,8 +15,9 @@ staticfiles/
 *.mo
 
 # Environment
-#.env
+.env
 
+settings.py
 # IDE
 .vscode/
 .idea/

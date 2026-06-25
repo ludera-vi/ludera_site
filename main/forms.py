@@ -5,7 +5,7 @@ from django.utils.safestring import mark_safe
 from .models import (
     Service, Project, Product, ProductMetric, ProductDetail,
     BlogPost, SiteSetting, HeroSection, NavLink, Principle,
-    ContactRequest,
+    ContactRequest, SocialLink,
 )
 from users.models import Goods, GoodsFile
 
@@ -293,19 +293,27 @@ class BlogPostForm(forms.ModelForm):
 
 
 SITESETTING_FIELDS = {
-    'seo': ['meta_title', 'meta_description'],
+    'hero': ['hero_tagline', 'hero_title', 'hero_description', 'hero_cta_text', 'hero_cta_link'],
     'header': ['header_cta_text', 'header_login_text', 'header_account_text'],
     'services': ['services_section_title', 'services_detail_text'],
     'projects': ['projects_section_title', 'projects_section_subtitle'],
     'products': ['products_section_title', 'products_section_subtitle', 'products_detail_text'],
     'about': ['about_section_title', 'about_section_subtitle'],
     'blog': ['blog_section_title', 'blog_section_subtitle', 'blog_read_text', 'blog_filter_all', 'blog_empty_text'],
-    'footer': ['footer_cta_label', 'footer_company_title', 'footer_products_title',
-               'footer_description', 'copyright_text', 'email'],
-    'cta': ['cta_title', 'cta_description', 'cta_button_text'],
+    'ecosystem': ['ecosystem_badge', 'ecosystem_title', 'ecosystem_subtitle',
+                   'ecosystem_terminal_title', 'ecosystem_flow_title',
+                   'ecosystem_client_label', 'ecosystem_client_badge',
+                   'ecosystem_analysis_label',
+                   'ecosystem_custom_label',
+                   'ecosystem_ready_label',
+                   'ecosystem_support_label'],
+    'cta': ['cta_title', 'cta_description'],
     'contact_form': ['contact_name_placeholder', 'contact_email_placeholder',
                      'contact_message_placeholder', 'contact_submit_text', 'contact_success_text'],
-    'social': ['social_twitter_url', 'social_linkedin_url', 'social_youtube_url'],
+    'footer': ['footer_cta_label', 'footer_company_title', 'footer_products_title',
+               'footer_description', 'copyright_text', 'email'],
+    'footer_ip': ['footer_ip_name', 'footer_ip_inn', 'footer_ip_ogrnip', 'footer_ip_address'],
+    'seo': ['meta_title', 'meta_description', 'meta_keywords', 'og_image', 'yandex_verification', 'google_verification'],
 }
 
 
@@ -318,9 +326,12 @@ class SiteSettingForm(forms.ModelForm):
         widgets = {
             'footer_description': forms.Textarea(attrs={'rows': 3}),
             'meta_description': forms.Textarea(attrs={'rows': 3}),
+            'meta_keywords': forms.Textarea(attrs={'rows': 2}),
             'cta_description': forms.Textarea(attrs={'rows': 3}),
+            'hero_description': forms.Textarea(attrs={'rows': 3}),
             'contact_success_text': forms.Textarea(attrs={'rows': 2}),
             'contact_message_placeholder': forms.Textarea(attrs={'rows': 2}),
+            'footer_ip_address': forms.Textarea(attrs={'rows': 2}),
         }
 
 
@@ -373,3 +384,12 @@ class GoodsFileForm(forms.ModelForm):
     class Meta:
         model = GoodsFile
         fields = ['title', 'file', 'file_type', 'order']
+
+
+class SocialLinkForm(forms.ModelForm):
+    class Meta:
+        model = SocialLink
+        fields = ['name', 'icon', 'url', 'order', 'is_visible']
+        widgets = {
+            'icon': forms.Textarea(attrs={'rows': 4, 'placeholder': '<svg width="18" height="18" viewBox="..." fill="none">...</svg>'}),
+        }

@@ -14,13 +14,13 @@ from datetime import timedelta
 from .models import (
     SiteSetting, HeroSection, NavLink, Service, Project,
     Product, ProductMetric, ProductDetail, Principle,
-    BlogPost, PageView, ContactRequest,
+    BlogPost, PageView, ContactRequest, SocialLink,
 )
 from .forms import (
     ServiceForm, ProjectForm, ProductForm, BlogPostForm,
     SiteSettingForm, HeroSectionForm, NavLinkForm,
     PrincipleForm, ContactRequestForm,
-    LoginForm, GoodsForm, GoodsFileForm,
+    LoginForm, GoodsForm, GoodsFileForm, SocialLinkForm,
 )
 from users.models import UserProfile, UserProduct, ProductFile, UserSetting, Goods, GoodsFile, UserGoods, CabinetPermission
 from users.forms import UserProfileForm, UserCreateForm
@@ -785,17 +785,19 @@ def principle_delete(request, pk):
 
 
 SITESETTING_LABELS = {
-    'seo': 'SEO/Мета-теги',
+    'hero': 'Hero-блок (шапка главной)',
     'header': 'Шапка сайта',
     'services': 'Секция услуг',
     'projects': 'Секция проектов',
     'products': 'Секция продуктов',
     'about': 'Секция «О нас»',
     'blog': 'Секция блога',
-    'footer': 'Футер',
+    'ecosystem': 'Секция «Как мы работаем»',
     'cta': 'CTA-блок (форма заявки)',
     'contact_form': 'Форма связи',
-    'social': 'Социальные сети',
+    'footer': 'Футер',
+    'footer_ip': 'Футер — Данные ИП',
+    'seo': 'SEO / Мета-теги',
 }
 
 
@@ -807,7 +809,7 @@ def sitesetting_edit(request):
         form = SiteSettingForm(request.POST, instance=instance)
         if form.is_valid():
             form.save()
-            return redirect('cabinet:dashboard')
+            return redirect('cabinet:sitesetting_edit')
     else:
         form = SiteSettingForm(instance=instance)
     site_groups = [
@@ -886,3 +888,22 @@ def upload_image(request):
             dest.write(chunk)
     url = f'{settings.MEDIA_URL}{rel_path}'
     return JsonResponse({'ok': True, 'url': url})
+
+
+# ─── Social Links CRUD ─────────────────────────────────────
+
+@login_required(login_url='/cabinet/login/')
+def sociallink_list(request):
+    return _list_view(request, SocialLink, 'sociallink', 'Социальные сети',
+                      ['name', 'url', 'order', 'is_visible'])
+
+
+@login_required(login_url='/cabinet/login/')
+def sociallink_form(request, pk=None):
+    return _form_view(request, SocialLink, SocialLinkForm, 'sociallink',
+                      'Редактировать ссылку' if pk else 'Новая ссылка', pk)
+
+
+@login_required(login_url='/cabinet/login/')
+def sociallink_delete(request, pk):
+    return _delete_view(request, SocialLink, 'sociallink', pk)

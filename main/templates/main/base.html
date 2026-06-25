@@ -64,9 +64,7 @@
             "availableLanguage": ["Russian"]
         },
         "sameAs": [
-            {% if settings.social_twitter_url %}"{{ settings.social_twitter_url }}"{% if settings.social_linkedin_url or settings.social_youtube_url %},{% endif %}{% endif %}
-            {% if settings.social_linkedin_url %}"{{ settings.social_linkedin_url }}"{% if settings.social_youtube_url %},{% endif %}{% endif %}
-            {% if settings.social_youtube_url %}"{{ settings.social_youtube_url }}"{% endif %}
+            {% for link in social_links %}"{{ link.url }}"{% if not forloop.last %},{% endif %}{% endfor %}
         ]
     }
     </script>
@@ -173,29 +171,21 @@
             </div>
 
             <div class="footer__bottom">
-                <p class="footer__copyright">{{ settings.copyright_text|default:'© 2024 Ludera. Все права защищены.' }}</p>
+                <div class="footer__copyright-wrap">
+                    <p class="footer__copyright">{{ settings.copyright_text|default:'© 2024 Ludera. Все права защищены.' }}</p>
+                    {% if settings.footer_ip_name %}
+                    <p class="footer__ip">{{ settings.footer_ip_name }}{% if settings.footer_ip_inn %}, ИНН: {{ settings.footer_ip_inn }}{% endif %}{% if settings.footer_ip_ogrnip %}, ОГРНИП: {{ settings.footer_ip_ogrnip }}{% endif %}</p>
+                    {% endif %}
+                    {% if settings.footer_ip_address %}
+                    <p class="footer__ip">{{ settings.footer_ip_address }}</p>
+                    {% endif %}
+                </div>
                 <div class="footer__socials">
-                    {% if settings.social_twitter_url %}
-                    <a href="{{ settings.social_twitter_url }}" class="footer__social-link" aria-label="Twitter" target="_blank" rel="noopener">
-                        <svg width="18" height="16" viewBox="0 0 18 16" fill="none">
-                            <path d="M14.175 0H16.935L10.905 6.777L18 16H12.345L7.995 10.406L3.045 16H0.285L6.75 8.738L0 0H5.82L9.735 5.113L14.175 0ZM13.215 14.376H14.745L4.875 1.541H3.225L13.215 14.376Z" fill="currentColor"/>
-                        </svg>
+                    {% for link in social_links %}
+                    <a href="{{ link.url }}" class="footer__social-link" aria-label="{{ link.name }}" target="_blank" rel="noopener">
+                        {{ link.icon|safe }}
                     </a>
-                    {% endif %}
-                    {% if settings.social_linkedin_url %}
-                    <a href="{{ settings.social_linkedin_url }}" class="footer__social-link" aria-label="LinkedIn" target="_blank" rel="noopener">
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                            <path d="M16 0H2C0.9 0 0 0.9 0 2V16C0 17.1 0.9 18 2 18H16C17.1 18 18 17.1 18 16V2C18 0.9 17.1 0 16 0ZM5.5 15H3V7H5.5V15ZM4.25 5.75C3.35 5.75 2.75 5.15 2.75 4.25C2.75 3.35 3.35 2.75 4.25 2.75C5.15 2.75 5.75 3.35 5.75 4.25C5.75 5.15 5.15 5.75 4.25 5.75ZM15 15H12.5V11.25C12.5 10.25 11.75 9.5 10.75 9.5C9.75 9.5 9 10.25 9 11.25V15H6.5V7H9V8.25C9.5 7.5 10.5 7 11.5 7C13.5 7 15 8.5 15 10.5V15Z" fill="currentColor"/>
-                        </svg>
-                    </a>
-                    {% endif %}
-                    {% if settings.social_youtube_url %}
-                    <a href="{{ settings.social_youtube_url }}" class="footer__social-link" aria-label="YouTube" target="_blank" rel="noopener">
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                            <path d="M16.6 4.2C16.4 3.5 15.9 2.9 15.2 2.7C13.9 2.3 9 2.3 9 2.3C9 2.3 4.1 2.3 2.8 2.7C2.1 2.9 1.6 3.5 1.4 4.2C1 5.5 1 8.2 1 8.2C1 8.2 1 10.9 1.4 12.2C1.6 12.9 2.1 13.5 2.8 13.7C4.1 14.1 9 14.1 9 14.1C9 14.1 13.9 14.1 15.2 13.7C15.9 13.5 16.4 12.9 16.6 12.2C17 10.9 17 8.2 17 8.2C17 8.2 17 5.5 16.6 4.2ZM7.5 11V5.5L12 8.2L7.5 11Z" fill="currentColor"/>
-                        </svg>
-                    </a>
-                    {% endif %}
+                    {% endfor %}
                 </div>
             </div>
         </div>
