@@ -6,6 +6,16 @@ from django.utils.html import mark_safe
 register = template.Library()
 
 
+@register.filter
+def truncate_chars(value, max_length):
+    if not value:
+        return ''
+    text = str(value)
+    if len(text) <= max_length:
+        return text
+    return text[:max_length] + '…'
+
+
 @register.filter(is_safe=True)
 def embed_videos(value):
     if not value:

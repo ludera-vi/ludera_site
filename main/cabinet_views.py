@@ -259,7 +259,7 @@ def _form_view(request, model, form_class, model_name, title, pk=None, extra_ctx
     if pk:
         instance = get_object_or_404(model, pk=pk)
     if request.method == 'POST':
-        form = form_class(request.POST, instance=instance)
+        form = form_class(request.POST, request.FILES, instance=instance)
         if form.is_valid():
             form.save()
             return redirect(save_redirect or reverse(f'cabinet:{model_name}_list'))

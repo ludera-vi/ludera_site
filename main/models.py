@@ -124,6 +124,16 @@ class SiteSetting(models.Model):
     hero_cta_text = models.CharField('Текст кнопки Hero', max_length=100, default='Обсудить проект')
     hero_cta_link = models.CharField('Ссылка кнопки Hero', max_length=200, default='#contact')
 
+    # Hero dashboard cards
+    hero_card1_label = models.CharField('Карточка 1 — метка', max_length=50, default='Спринт')
+    hero_card1_value = models.CharField('Карточка 1 — значение', max_length=50, default='47')
+    hero_card2_label = models.CharField('Карточка 2 — метка', max_length=50, default='Команда')
+    hero_card2_value = models.CharField('Карточка 2 — значение', max_length=50, default='99%')
+    hero_card3_label = models.CharField('Карточка 3 — метка', max_length=50, default='Проекты')
+    hero_card3_value = models.CharField('Карточка 3 — значение', max_length=50, default='41')
+    hero_card4_label = models.CharField('Карточка 4 — метка', max_length=50, default='В срок')
+    hero_card4_value = models.CharField('Карточка 4 — значение', max_length=50, default='41/41')
+
     # Footer ИП
     footer_ip_name = models.CharField('Наименование ИП', max_length=300, blank=True, default='')
     footer_ip_inn = models.CharField('ИНН', max_length=20, blank=True, default='')

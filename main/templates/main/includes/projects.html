@@ -1,3 +1,4 @@
+{% load main_tags %}
 <section class="connectivity" id="projects">
     <div class="connectivity__decor connectivity__decor--tl" aria-hidden="true"></div>
     <div class="connectivity__decor connectivity__decor--tr" aria-hidden="true"></div>
@@ -12,7 +13,9 @@
             <h2 class="section-header__title section-header__title--dark">{{ settings.projects_section_title }}</h2>
             <p class="section-header__subtitle section-header__subtitle--dark">{{ settings.projects_section_subtitle }}</p>
         </div>
-        <div class="filter-bar" id="projectFilters"></div>
+        <div class="filter-bar" id="projectFilters">
+            <button class="filter-btn active" data-filter="all">Все</button>
+        </div>
         <div class="projects-wrapper">
             <div class="projects-grid" id="projectsGrid">
                 {% for project in projects %}
@@ -22,11 +25,17 @@
                     {% if project.status %}
                     <div class="project-card__status">{{ project.status }}</div>
                     {% endif %}
-                    <div class="project-card__desc">{{ project.description }}</div>
+                    <div class="project-card__desc">{{ project.description|truncate_chars:246 }}</div>
                     <div class="project-card__tags">
                         {% if project.tag1 %}<span class="project-card__tag">{{ project.tag1 }}</span>{% endif %}
                         {% if project.tag2 %}<span class="project-card__tag">{{ project.tag2 }}</span>{% endif %}
                     </div>
+                    <span class="project-card__link">
+                        Подробнее
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M5 3.5L9 7L5 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
                 </a>
                 {% endfor %}
             </div>

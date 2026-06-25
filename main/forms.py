@@ -293,7 +293,11 @@ class BlogPostForm(forms.ModelForm):
 
 
 SITESETTING_FIELDS = {
-    'hero': ['hero_tagline', 'hero_title', 'hero_description', 'hero_cta_text', 'hero_cta_link'],
+    'hero': ['hero_tagline', 'hero_title', 'hero_description', 'hero_cta_text', 'hero_cta_link',
+             'hero_card1_label', 'hero_card1_value',
+             'hero_card2_label', 'hero_card2_value',
+             'hero_card3_label', 'hero_card3_value',
+             'hero_card4_label', 'hero_card4_value'],
     'header': ['header_cta_text', 'header_login_text', 'header_account_text'],
     'services': ['services_section_title', 'services_detail_text'],
     'projects': ['projects_section_title', 'projects_section_subtitle'],

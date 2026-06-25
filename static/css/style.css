@@ -2419,6 +2419,8 @@ img {
     box-shadow: 0 1px 3px rgba(3,33,38,0.06), 0 1px 2px rgba(3,33,38,0.04);
     border: 1px solid rgba(3,33,38,0.06);
     cursor: default;
+    display: flex;
+    flex-direction: column;
 }
 
 .project-card.visible {
@@ -2470,7 +2472,9 @@ img {
 .project-card__tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: 12px;
 }
 
 .project-card__tag {
@@ -2486,6 +2490,33 @@ img {
 
 .project-card.visible:hover .project-card__tag {
     background: rgba(3,33,38,0.06);
+}
+
+.project-card__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-primary);
+    margin-top: 12px;
+    transition: all var(--transition-base);
+}
+
+.project-card.visible:hover .project-card__link {
+    gap: 10px;
+    color: var(--color-primary-hover);
+}
+
+.project-card.visible:hover .project-card__link svg {
+    transform: translateX(3px);
+}
+
+.project-card__link svg {
+    transition: transform var(--transition-base);
 }
 
 @keyframes pulse-dot {

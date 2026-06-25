@@ -102,7 +102,11 @@ admin.site.dashboard_view = dashboard_view
 class SiteSettingAdmin(admin.ModelAdmin):
     list_display = ['email', 'meta_title']
     fieldsets = [
-        ('Hero', {'fields': ['hero_tagline', 'hero_title', 'hero_description', 'hero_cta_text', 'hero_cta_link']}),
+        ('Hero', {'fields': ['hero_tagline', 'hero_title', 'hero_description', 'hero_cta_text', 'hero_cta_link',
+                              'hero_card1_label', 'hero_card1_value',
+                              'hero_card2_label', 'hero_card2_value',
+                              'hero_card3_label', 'hero_card3_value',
+                              'hero_card4_label', 'hero_card4_value']}),
         ('Контакты', {'fields': ['email']}),
         ('Футер', {'fields': ['footer_description', 'copyright_text']}),
         ('Футер — ИП', {'fields': ['footer_ip_name', 'footer_ip_inn', 'footer_ip_ogrnip', 'footer_ip_address']}),

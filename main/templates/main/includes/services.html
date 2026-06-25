@@ -1,3 +1,4 @@
+{% load main_tags %}
 <section class="features scroll-animate" id="services">
     <div class="container">
         <h2 class="features__title features__title--full">{{ settings.services_section_title }}</h2>
@@ -15,7 +16,7 @@
                         </div>
                         <div class="feature-card__body">
                             <h3 class="feature-card__title">{{ service.title }}</h3>
-                            <p class="feature-card__desc">{{ service.description }}</p>
+                            <p class="feature-card__desc">{{ service.description|truncate_chars:117 }}</p>
                             <a href="{{ service.get_absolute_url }}" class="feature-card__link">
                                 {{ settings.services_detail_text }}
                                 <span class="feature-card__arrow">

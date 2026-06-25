@@ -9,7 +9,7 @@
 
 {% block content %}
 <div class="cabinet-form-card">
-    <form method="post" class="cabinet-form">
+    <form method="post" class="cabinet-form" enctype="multipart/form-data">
         {% csrf_token %}
 
         {% for field in form %}

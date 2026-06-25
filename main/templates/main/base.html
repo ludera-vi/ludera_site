@@ -112,7 +112,6 @@
             </button>
         </div>
         <nav class="mobile-menu__nav">
-            <a href="/" class="mobile-menu__link">Главная</a>
             {% if user.is_authenticated %}
             <a href="{% url 'users:dashboard' %}" class="mobile-menu__link">{{ settings.header_account_text }}</a>
             {% else %}
@@ -121,7 +120,7 @@
             {% for link in nav_links %}
             <a href="{{ link.url }}" class="mobile-menu__link">{{ link.title }}</a>
             {% endfor %}
-            <a href="#contact" class="mobile-menu__link">Контакты</a>
+            <a href="#contact" class="mobile-menu__link">{{ settings.header_cta_text }}</a>
         </nav>
         <div class="mobile-menu__footer">
             <a href="mailto:{{ settings.email|default:'hello@ludera.ru' }}" class="mobile-menu__footer-link">{{ settings.email|default:'hello@ludera.ru' }}</a>
