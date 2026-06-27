@@ -1,0 +1,319 @@
+{% extends 'main/base.html' %}
+{% load static %}
+{% load main_tags %}
+
+{% block title %}Политика конфиденциальности — Ludera{% endblock title %}
+{% block meta_description %}Политика конфиденциальности и обработки персональных данных Ludera.{% endblock %}
+
+{% block extra_head %}
+<style>
+.privacy {
+    padding: 120px 0 80px;
+    background: #E8ECE9;
+    position: relative;
+    overflow: hidden;
+}
+.privacy__bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+.privacy__bg-circle {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.08;
+}
+.privacy__bg-circle--1 {
+    width: 600px; height: 600px;
+    top: -250px; right: -150px;
+    background: radial-gradient(circle, #0a4a3e, transparent);
+}
+.privacy__bg-circle--2 {
+    width: 450px; height: 450px;
+    bottom: -200px; left: -150px;
+    background: radial-gradient(circle, #0a4a3e, transparent);
+}
+.privacy .container { position: relative; z-index: 1; }
+
+.privacy__header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 48px;
+}
+.privacy__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px 6px 14px;
+    border-radius: 100px;
+    border: 1px solid rgba(3,33,38,0.1);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(8px);
+    color: #032126;
+    margin-bottom: 20px;
+}
+.privacy__badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #a7d5b8;
+}
+.privacy__title {
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    color: #032126;
+    margin-bottom: 8px;
+}
+
+.privacy__card {
+    max-width: 740px;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(3,33,38,0.08);
+    border-radius: 20px;
+    padding: 48px 56px;
+}
+
+.privacy__section {
+    margin-bottom: 40px;
+}
+.privacy__section:last-child { margin-bottom: 0; }
+
+.privacy__section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.privacy__section-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #a7d5b8;
+    background: rgba(3,33,38,0.04);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(3,33,38,0.06);
+    flex-shrink: 0;
+}
+.privacy__section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #032126;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+}
+
+.privacy__text {
+    font-size: 0.9375rem;
+    line-height: 1.75;
+    color: #3d5a54;
+    margin-bottom: 12px;
+}
+.privacy__text:last-child { margin-bottom: 0; }
+.privacy__text strong { color: #032126; font-weight: 600; }
+.privacy__text a {
+    color: #0d4a3e;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.privacy__text a:hover { color: #032126; }
+
+.privacy__list {
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+.privacy__list:first-child { margin-top: 0; }
+.privacy__list-item {
+    position: relative;
+    padding: 6px 0 6px 20px;
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    color: #3d5a54;
+}
+.privacy__list-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 14px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #a7d5b8;
+    opacity: 0.5;
+}
+.privacy__list-item strong { color: #032126; font-weight: 600; }
+
+.privacy__divider {
+    height: 1px;
+    background: rgba(3,33,38,0.08);
+    margin: 40px 0;
+}
+
+.privacy__contact-card {
+    background: rgba(3,33,38,0.03);
+    border: 1px solid rgba(3,33,38,0.08);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-top: 12px;
+}
+.privacy__contact-card .privacy__text { margin-bottom: 4px; }
+.privacy__contact-card .privacy__text:last-child { margin-bottom: 0; }
+
+@media (max-width: 768px) {
+    .privacy { padding: 100px 0 60px; }
+    .privacy__card { padding: 32px 24px; border-radius: 16px; }
+    .privacy__section-header { flex-wrap: wrap; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="privacy">
+    <div class="privacy__bg" aria-hidden="true">
+        <div class="privacy__bg-circle privacy__bg-circle--1"></div>
+        <div class="privacy__bg-circle privacy__bg-circle--2"></div>
+    </div>
+    <div class="container">
+        <div class="privacy__header">
+            <div class="privacy__badge">
+                <span class="privacy__badge-dot"></span>
+                Документ
+            </div>
+            <h1 class="privacy__title">Политика конфиденциальности</h1>
+        </div>
+
+        <div class="privacy__card">
+
+            <div class="privacy__section">
+                <div class="privacy__section-header">
+                    <span class="privacy__section-number">01</span>
+                    <h2 class="privacy__section-title">Общие положения</h2>
+                </div>
+                {{ settings.privacy_section_1|privacy_format }}
+            </div>
+
+            <div class="privacy__divider"></div>
+
+            <div class="privacy__section">
+                <div class="privacy__section-header">
+                    <span class="privacy__section-number">02</span>
+                    <h2 class="privacy__section-title">Состав персональных данных</h2>
+                </div>
+                {{ settings.privacy_section_2|privacy_format }}
+            </div>
+
+            <div class="privacy__divider"></div>
+
+            <div class="privacy__section">
+                <div class="privacy__section-header">
+                    <span class="privacy__section-number">03</span>
+                    <h2 class="privacy__section-title">Цели обработки персональных данных</h2>
+                </div>
+                {{ settings.privacy_section_3|privacy_format }}
+            </div>
+
+            <div class="privacy__divider"></div>
+
+            <div class="privacy__section">
+                <div class="privacy__section-header">
+                    <span class="privacy__section-number">04</span>
+                    <h2 class="privacy__section-title">Правовые основания обработки</h2>
+                </div>
+                {{ settings.privacy_section_4|privacy_format }}
+            </div>
+
+            <div class="privacy__divider"></div>
+
+            <div class="privacy__section">
+                <div class="privacy__section-header">
+                    <span class="privacy__section-number">05</span>
+                    <h2 class="privacy__section-title">Порядок сбора, хранения и обработки</h2>
+                </div>
+                {{ settings.privacy_section_5|privacy_format }}
+            </div>
+
+            <div class="privacy__divider"></div>
+
+            <div class="privacy__section">
+                <div class="privacy__section-header">
+                    <span class="privacy__section-number">06</span>
+                    <h2 class="privacy__section-title">Сроки обработки и хранения</h2>
+                </div>
+                {{ settings.privacy_section_6|privacy_format }}
+            </div>
+
+            <div class="privacy__divider"></div>
+
+            <div class="privacy__section">
+                <div class="privacy__section-header">
+                    <span class="privacy__section-number">07</span>
+                    <h2 class="privacy__section-title">Передача персональных данных третьим лицам</h2>
+                </div>
+                {{ settings.privacy_section_7|privacy_format }}
+            </div>
+
+            <div class="privacy__divider"></div>
+
+            <div class="privacy__section">
+                <div class="privacy__section-header">
+                    <span class="privacy__section-number">08</span>
+                    <h2 class="privacy__section-title">Использование файлов cookie</h2>
+                </div>
+                {{ settings.privacy_section_8|privacy_format }}
+            </div>
+
+            <div class="privacy__divider"></div>
+
+            <div class="privacy__section">
+                <div class="privacy__section-header">
+                    <span class="privacy__section-number">09</span>
+                    <h2 class="privacy__section-title">Права Пользователя</h2>
+                </div>
+                {{ settings.privacy_section_9|privacy_format }}
+            </div>
+
+            <div class="privacy__divider"></div>
+
+            <div class="privacy__section">
+                <div class="privacy__section-header">
+                    <span class="privacy__section-number">10</span>
+                    <h2 class="privacy__section-title">Информация об Операторе</h2>
+                </div>
+                <div class="privacy__contact-card">
+                    {% if settings.footer_ip_name or settings.footer_ip_inn or settings.footer_ip_ogrnip %}
+                    <p class="privacy__text"><strong>{{ settings.footer_ip_name }}{% if settings.footer_ip_inn %}, ИНН {{ settings.footer_ip_inn }}{% endif %}{% if settings.footer_ip_ogrnip %}, ОГРНИП {{ settings.footer_ip_ogrnip }}{% endif %}</strong></p>
+                    {% endif %}
+                    <p class="privacy__text">E-mail: <a href="mailto:{{ settings.email|default:'hello@ludera.ru' }}">{{ settings.email|default:'hello@ludera.ru' }}</a></p>
+                    <p class="privacy__text">Сайт: <a href="https://ludera.ru">ludera.ru</a></p>
+                </div>
+            </div>
+
+            <div class="privacy__divider"></div>
+
+            <div class="privacy__section">
+                <div class="privacy__section-header">
+                    <span class="privacy__section-number">11</span>
+                    <h2 class="privacy__section-title">Заключительные положения</h2>
+                </div>
+                {{ settings.privacy_section_11|privacy_format }}
+            </div>
+
+        </div>
+    </div>
+</section>
+{% endblock content %}

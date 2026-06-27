@@ -1,0 +1,36 @@
+{% for client in clients %}
+<tr data-client-id="{{ client.pk }}" data-client-name="{{ client.name }}" data-client-phone="{{ client.phone }}" data-has-call="{% if client.calls.exists %}true{% else %}false{% endif %}" data-has-manager="{% if client.assigned_manager %}true{% else %}false{% endif %}" data-is-responsible="{% if user.is_superuser or client.assigned_manager == user %}true{% else %}false{% endif %}">
+    <td class="cell-id">{{ client.pk }}</td>
+    <td>{{ client.industry|default:'' }}</td>
+    <td>{{ client.city|default:'' }}</td>
+    <td>{{ client.company_name|default:'' }}</td>
+    <td>{{ client.name|default:'' }}</td>
+    <td class="cell-phone"><a href="tel:{{ client.phone }}">{{ client.phone }}</a></td>
+    <td>
+        {% with call=client.calls.last %}
+        {% if call %}
+        <span class="badge {% if call.status == 'negotiation' %}badge--negotiation{% elif call.status == 'tz_creation' %}badge--tz-creation{% elif call.status == 'tz_approval' %}badge--tz-approval{% elif call.status == 'contract_signing' %}badge--contract{% elif call.status == 'in_progress' %}badge--in-progress{% elif call.status == 'completed' %}badge--completed{% elif call.status == 'refusal' %}badge--refusal{% else %}badge--no-status{% endif %}">{{ call.get_status_display }}</span>
+        {% else %}
+        <span class="badge badge--new">Новый</span>
+        {% endif %}
+        {% endwith %}
+    </td>
+    <td class="cell-manager" title="{% if client.assigned_manager %}{% if client.assigned_manager.first_name or client.assigned_manager.last_name %}{{ client.assigned_manager.first_name }} {{ client.assigned_manager.last_name }}{% else %}{{ client.assigned_manager.email }}{% endif %}{% endif %}">
+        {% if client.assigned_manager %}
+            {% if client.assigned_manager.last_name and client.assigned_manager.first_name %}
+                {{ client.assigned_manager.first_name }} {{ client.assigned_manager.last_name|slice:":1" }}.
+            {% elif client.assigned_manager.first_name %}
+                {{ client.assigned_manager.first_name }}
+            {% elif client.assigned_manager.last_name %}
+                {{ client.assigned_manager.last_name }}
+            {% else %}
+                {{ client.assigned_manager.email }}
+            {% endif %}
+        {% endif %}
+    </td>
+    <td>{{ client.comment|default:'' }}</td>
+</tr>
+{% empty %}
+<tr><td colspan="9" class="empty-state">Нет клиентов</td></tr>
+{% endfor %}
+

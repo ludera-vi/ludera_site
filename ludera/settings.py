@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'main',
     'users',
+    'sales',
 ]
 
 SITE_ID = 1
@@ -60,6 +61,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'users.context_processors.social_providers_configured',
+                'main.context_processors.extends_layout',
+                'main.context_processors.sidebar_counts',
             ],
         },
     },

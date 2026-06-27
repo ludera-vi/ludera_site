@@ -9,6 +9,7 @@ handler404 = main_views.handler404
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('cabinet/', include('main.cabinet_urls')),
+    path('cabinet/manager-panel/', include('sales.urls')),
     path('account/', include('users.urls')),
     path('accounts/', include('allauth.urls')),
     path('', include('main.urls')),

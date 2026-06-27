@@ -64,11 +64,17 @@ class UserLoginForm(forms.Form):
 
 
 class UserCreateForm(forms.Form):
+    ROLE_CHOICES = [
+        ('client', 'Клиент'),
+        ('manager', 'Менеджер по продажам'),
+        ('admin', 'Администратор'),
+    ]
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'placeholder': 'Email'}))
-    password = forms.CharField(widget=forms.PasswordInput(attrs={'placeholder': 'Пароль'}))
     first_name = forms.CharField(required=False, max_length=30, widget=forms.TextInput(attrs={'placeholder': 'Имя'}))
     last_name = forms.CharField(required=False, max_length=30, widget=forms.TextInput(attrs={'placeholder': 'Фамилия'}))
-    is_staff = forms.BooleanField(required=False, label='Права администратора')
+    role = forms.ChoiceField(choices=ROLE_CHOICES, widget=forms.RadioSelect, initial='client')
+    password1 = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={'placeholder': 'Пароль'}))
+    password2 = forms.CharField(label='Пароль (ещё раз)', widget=forms.PasswordInput(attrs={'placeholder': 'Повторите пароль'}))
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -76,17 +82,32 @@ class UserCreateForm(forms.Form):
             raise forms.ValidationError('Пользователь с таким email уже существует')
         return email
 
+    def clean_password2(self):
+        p1 = self.cleaned_data.get('password1')
+        p2 = self.cleaned_data.get('password2')
+        if p1 and p2 and p1 != p2:
+            raise forms.ValidationError('Пароли не совпадают')
+        if p1 and len(p1) < 6:
+            raise forms.ValidationError('Пароль должен быть не менее 6 символов')
+        return p2
+
     def save(self, commit=True):
         user = User.objects.create_user(
             username=self.cleaned_data['email'],
             email=self.cleaned_data['email'],
-            password=self.cleaned_data['password'],
+            password=self.cleaned_data['password1'],
         )
         user.first_name = self.cleaned_data.get('first_name', '')
         user.last_name = self.cleaned_data.get('last_name', '')
-        user.is_staff = self.cleaned_data.get('is_staff', False)
+        role = self.cleaned_data.get('role', 'client')
+        if role == 'admin':
+            user.is_staff = True
+        else:
+            user.is_staff = False
         user.save()
-        UserProfile.objects.get_or_create(user=user)
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.role = role
+        profile.save()
         return user
 
 

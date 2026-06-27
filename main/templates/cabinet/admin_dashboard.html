@@ -1,0 +1,326 @@
+{% extends "cabinet/base.html" %}
+{% block content %}
+<style>
+.adm { max-width: 1200px; }
+
+.adm-section { margin-bottom: 28px; }
+.adm-section__header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; flex-wrap: wrap; gap: 8px;
+}
+.adm-section__title { font-size: 1rem; font-weight: 600; color: var(--cab-text); }
+.adm-section__subtitle { font-size: 0.8125rem; color: var(--cab-text-muted); }
+
+/* ─── Donut charts row ─── */
+.adm-donuts {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px;
+}
+@media (max-width: 800px) { .adm-donuts { grid-template-columns: 1fr; } }
+.adm-donut-card {
+    background: var(--cab-surface); border: 1px solid var(--cab-border);
+    border-radius: 12px; padding: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+.adm-donut-card__title { font-size: 0.875rem; font-weight: 600; color: var(--cab-text); margin-bottom: 20px; }
+
+.adm-donut-row { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+.adm-donut-wrap {
+    position: relative; width: 140px; height: 140px; flex-shrink: 0;
+}
+.adm-donut {
+    width: 100%; height: 100%; border-radius: 50%;
+    position: relative;
+}
+.adm-donut::after {
+    content: ''; position: absolute; inset: 28px; border-radius: 50%;
+    background: var(--cab-surface);
+}
+.adm-donut__inner {
+    position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; z-index: 1; flex-direction: column;
+}
+.adm-donut__value { font-size: 1.5rem; font-weight: 700; line-height: 1; color: var(--cab-text); }
+.adm-donut__label { font-size: 0.6875rem; color: var(--cab-text-muted); margin-top: 2px; }
+
+.adm-legend { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 140px; }
+.adm-legend__item {
+    display: flex; align-items: center; gap: 8px; font-size: 0.8125rem;
+    padding: 4px 0;
+}
+.adm-legend__dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.adm-legend__label { color: var(--cab-text); flex: 1; }
+.adm-legend__count { font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 0.8125rem; color: var(--cab-text); min-width: 28px; text-align: right; }
+.adm-legend__pct { font-size: 0.75rem; color: var(--cab-text-muted); min-width: 40px; text-align: right; }
+
+/* ─── Manager table ─── */
+.adm-table-wrap { background: var(--cab-surface); border: 1px solid var(--cab-border); border-radius: 12px; overflow: hidden; }
+.adm-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.adm-table th {
+    padding: 12px 14px; text-align: left; font-weight: 600; font-size: 0.6875rem;
+    color: var(--cab-text-muted); text-transform: uppercase; letter-spacing: 0.05em;
+    background: var(--cab-bg); border-bottom: 1px solid var(--cab-border); white-space: nowrap;
+    position: sticky; top: 0; user-select: none;
+}
+.adm-table td { padding: 12px 14px; border-bottom: 1px solid var(--cab-border); vertical-align: middle; }
+.adm-table tr:last-child td { border-bottom: none; }
+.adm-table tr:hover td { background: rgba(0,0,0,0.01); }
+.adm-table .num { text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 0.8125rem; white-space: nowrap; }
+.adm-table .num strong { font-weight: 700; }
+
+.adm-manager-name { display: flex; align-items: center; gap: 10px; }
+.adm-avatar {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--cab-primary-light);
+    color: var(--cab-primary); display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+}
+
+.adm-expand { display: none; background: var(--cab-bg); }
+.adm-expand--open { display: table-row; }
+.adm-expand td { padding: 16px 24px 20px; }
+.adm-expand-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 700px) { .adm-expand-inner { grid-template-columns: 1fr; } }
+.adm-expand-toggle { cursor: pointer; color: var(--cab-text-muted); transition: color .15s; }
+.adm-expand-toggle:hover { color: var(--cab-primary); }
+
+.adm-mini-statuses { display: flex; flex-wrap: wrap; gap: 6px; }
+.adm-mini-status {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 500;
+    background: var(--cab-surface); border: 1px solid var(--cab-border);
+}
+.adm-mini-status__dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+.cnv { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; font-size: 0.8125rem; }
+.cnv--high { color: #059669; }
+.cnv--mid { color: #d97706; }
+.cnv--low { color: #dc2626; }
+
+.adm-feed { display: flex; flex-direction: column; gap: 6px; }
+.adm-feed-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 8px; font-size: 0.8125rem;
+    background: var(--cab-bg); border: 1px solid var(--cab-border);
+}
+.adm-feed-item__time { font-size: 0.6875rem; color: var(--cab-text-muted); font-family: 'IBM Plex Mono', monospace; white-space: nowrap; flex-shrink: 0; }
+.adm-feed-item__text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cab-text); }
+
+.last-active { font-size: 0.75rem; color: var(--cab-text-muted); font-family: 'IBM Plex Mono', monospace; white-space: nowrap; }
+.last-active--recent { color: #059669; }
+</style>
+
+<div class="adm">
+
+    {# ─── Two Donut Charts Side by Side ─── #}
+    <div class="adm-donuts">
+        {# Donut 1: Status distribution #}
+        <div class="adm-donut-card">
+            <div class="adm-donut-card__title">Распределение по статусам</div>
+            <div class="adm-donut-row">
+                <div class="adm-donut-wrap">
+                    <div class="adm-donut" style="background:{{ status_conic }};">
+                        <div class="adm-donut__inner">
+                            <span class="adm-donut__value">{{ status_total }}</span>
+                            <span class="adm-donut__label">всего</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="adm-legend">
+                    {% for s in status_segments %}
+                    <div class="adm-legend__item">
+                        <span class="adm-legend__dot" style="background:{{ s.color }};"></span>
+                        <span class="adm-legend__label">{{ s.label }}</span>
+                        <span class="adm-legend__count">{{ s.count }}</span>
+                        <span class="adm-legend__pct">{{ s.pct }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {# Donut 2: General stats #}
+        <div class="adm-donut-card">
+            <div class="adm-donut-card__title">Общая статистика</div>
+            <div class="adm-donut-row">
+                <div class="adm-donut-wrap">
+                    <div class="adm-donut" style="background:{{ stats_conic }};">
+                        <div class="adm-donut__inner">
+                            <span class="adm-donut__value">{{ stats_total_display }}</span>
+                            <span class="adm-donut__label">клиентов</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="adm-legend">
+                    {% for s in stats_segments %}
+                    <div class="adm-legend__item">
+                        <span class="adm-legend__dot" style="background:{{ s.color }};"></span>
+                        <span class="adm-legend__label">{{ s.label }}</span>
+                        <span class="adm-legend__count">{{ s.count }}</span>
+                        <span class="adm-legend__pct">{{ s.pct }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ─── Per-Manager Table ─── #}
+    <div class="adm-section">
+        <div class="adm-section__header">
+            <div class="adm-section__title">Аналитика по менеджерам</div>
+            <div class="adm-section__subtitle">{{ manager_rows|length }} менеджеров</div>
+        </div>
+
+        {% if manager_rows %}
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                    <tr>
+                        <th>Менеджер</th>
+                        <th class="num" title="Обзвонов сегодня">Сегодня</th>
+                        <th class="num" title="Обзвонов за неделю">Неделя</th>
+                        <th class="num" title="Обзвонов за месяц">Месяц</th>
+                        <th class="num" title="Всего обзвонов">Всего</th>
+                        <th class="num" title="Конверсия (не отказ / всего)">Конв.</th>
+                        <th class="num" title="Активных клиентов">Active</th>
+                        <th title="Последняя активность">Активность</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in manager_rows %}
+                    <tr>
+                        <td>
+                            <div class="adm-manager-name">
+                                <div class="adm-avatar">{{ row.manager.first_name|first|default:row.manager.email|first|upper }}</div>
+                                <div>
+                                    <div style="font-weight:600;">{{ row.name }}</div>
+                                    <div style="font-size:0.75rem;color:var(--cab-text-muted);">{{ row.manager.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="num"><strong>{{ row.calls_today }}</strong></td>
+                        <td class="num">{{ row.calls_week }}</td>
+                        <td class="num">{{ row.calls_month }}</td>
+                        <td class="num">{{ row.total_calls }}</td>
+                        <td class="num">
+                            <span class="cnv {% if row.conversion >= 70 %}cnv--high{% elif row.conversion >= 40 %}cnv--mid{% else %}cnv--low{% endif %}">
+                                {{ row.conversion }}%
+                            </span>
+                        </td>
+                        <td class="num">{{ row.active_clients }}</td>
+                        <td>
+                            {% if row.last_activity %}
+                            <span class="last-active {% if row.last_activity.date == today %}last-active--recent{% endif %}">
+                                {{ row.last_activity|date:'d.m H:i' }}
+                            </span>
+                            {% elif row.last_login %}
+                            <span class="last-active">вход {{ row.last_login|date:'d.m H:i' }}</span>
+                            {% else %}
+                            <span class="last-active" style="color:var(--cab-text-muted);">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="adm-expand-toggle" onclick="toggleRow({{ forloop.counter }})">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </span>
+                        </td>
+                    </tr>
+                    <tr class="adm-expand" id="expandRow{{ forloop.counter }}">
+                        <td colspan="9">
+                            <div class="adm-expand-inner">
+                                <div>
+                                    <div style="font-size:0.8125rem;font-weight:600;margin-bottom:10px;">Статусы обзвонов</div>
+                                    <div class="adm-mini-statuses">
+                                        {% for s in row.status_breakdown %}
+                                        <span class="adm-mini-status">
+                                            <span class="adm-mini-status__dot" style="background:
+                                                {% if s.status == 'negotiation' %}#c2410c{% elif s.status == 'tz_creation' %}#3b82f6{% elif s.status == 'tz_approval' %}#8b5cf6{% elif s.status == 'contract_signing' %}#f59e0b{% elif s.status == 'in_progress' %}#22c55e{% elif s.status == 'completed' %}#16a34a{% elif s.status == 'refusal' %}#ef4444{% else %}#6b7280{% endif %};"></span>
+                                            {{ s.label }} <span style="font-weight:600;margin-left:4px;">{{ s.count }}</span>
+                                        </span>
+                                        {% empty %}
+                                        <span style="font-size:0.8125rem;color:var(--cab-text-muted);">Нет обзвонов</span>
+                                        {% endfor %}
+                                    </div>
+                                    <div style="font-size:0.8125rem;font-weight:600;margin:14px 0 8px;">Импорт клиентов</div>
+                                    <div style="display:flex;gap:16px;font-size:0.8125rem;">
+                                        <span>Сегодня: <strong>{{ row.imp_today }}</strong></span>
+                                        <span>Неделя: <strong>{{ row.imp_week }}</strong></span>
+                                        <span>Месяц: <strong>{{ row.imp_month }}</strong></span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size:0.8125rem;font-weight:600;margin-bottom:10px;">Клиенты</div>
+                                    <div style="display:flex;flex-direction:column;gap:6px;font-size:0.8125rem;">
+                                        <span>Всего назначено: <strong>{{ row.assigned_total }}</strong></span>
+                                        <span>Активных (в работе): <strong>{{ row.active_clients }}</strong></span>
+                                        <span style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                                            Конверсия:
+                                            <div style="flex:1;max-width:160px;height:8px;background:var(--cab-border);border-radius:4px;overflow:hidden;">
+                                                <div style="height:100%;width:{{ row.conversion }}%;background:{% if row.conversion >= 70 %}#059669{% elif row.conversion >= 40 %}#d97706{% else %}#dc2626{% endif %};border-radius:4px;"></div>
+                                            </div>
+                                            <strong>{{ row.conversion }}%</strong>
+                                        </span>
+                                    </div>
+                                    <div style="font-size:0.8125rem;font-weight:600;margin:14px 0 8px;">Вход / активность</div>
+                                    <div style="display:flex;flex-direction:column;gap:4px;font-size:0.8125rem;">
+                                        <span>Последний вход: <strong>{{ row.last_login|date:'d.m.Y H:i'|default:'—' }}</strong></span>
+                                        <span>Последнее действие: <strong>{{ row.last_activity|date:'d.m.Y H:i'|default:'—' }}</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="adm-donut-card" style="text-align:center;padding:40px;color:var(--cab-text-muted);font-size:0.875rem;">
+            Нет менеджеров
+        </div>
+        {% endif %}
+    </div>
+
+    {# ─── Activity Feed ─── #}
+    <div class="adm-section">
+        <div class="adm-section__header">
+            <div class="adm-section__title">Активность за сегодня</div>
+            <div class="adm-section__subtitle">{{ activities_today|length }} действий</div>
+        </div>
+        <div class="adm-feed">
+            {% for act in activities_today %}
+            <div class="adm-feed-item">
+                <span class="adm-feed-item__time">{{ act.created_at|date:'H:i' }}</span>
+                <span class="adm-feed-item__text">
+                    <strong>{{ act.user.first_name|default:act.user.email }}</strong>
+                    {{ act.title }}
+                    {% if act.client.name or act.client.phone %}
+                    <span style="color:var(--cab-text-muted);">· {{ act.client.name|default:act.client.phone }}</span>
+                    {% endif %}
+                    {% if act.old_value or act.new_value %}
+                    <span style="color:var(--cab-text-muted);font-size:0.75rem;">
+                        {% if act.old_value %}"{{ act.old_value }}"{% endif %}
+                        {% if act.old_value and act.new_value %} → {% endif %}
+                        {% if act.new_value %}"{{ act.new_value }}"{% endif %}
+                    </span>
+                    {% endif %}
+                </span>
+            </div>
+            {% empty %}
+            <div style="text-align:center;padding:40px;color:var(--cab-text-muted);font-size:0.875rem;">Нет активностей за сегодня</div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<script>
+function toggleRow(n) {
+    var row = document.getElementById('expandRow' + n);
+    if (row) {
+        var open = row.classList.contains('adm-expand--open');
+        document.querySelectorAll('.adm-expand--open').forEach(function(r) { r.classList.remove('adm-expand--open'); });
+        if (!open) row.classList.add('adm-expand--open');
+    }
+}
+</script>
+{% endblock %}

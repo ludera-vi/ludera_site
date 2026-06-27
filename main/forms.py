@@ -317,6 +317,9 @@ SITESETTING_FIELDS = {
     'footer': ['footer_cta_label', 'footer_company_title', 'footer_products_title',
                'footer_description', 'copyright_text', 'email'],
     'footer_ip': ['footer_ip_name', 'footer_ip_inn', 'footer_ip_ogrnip', 'footer_ip_address'],
+    'privacy': ['privacy_section_1', 'privacy_section_2', 'privacy_section_3', 'privacy_section_4',
+                'privacy_section_5', 'privacy_section_6', 'privacy_section_7', 'privacy_section_8',
+                'privacy_section_9', 'privacy_section_11'],
     'seo': ['meta_title', 'meta_description', 'meta_keywords', 'og_image', 'yandex_verification', 'google_verification'],
 }
 
@@ -336,6 +339,16 @@ class SiteSettingForm(forms.ModelForm):
             'contact_success_text': forms.Textarea(attrs={'rows': 2}),
             'contact_message_placeholder': forms.Textarea(attrs={'rows': 2}),
             'footer_ip_address': forms.Textarea(attrs={'rows': 2}),
+            'privacy_section_1': forms.Textarea(attrs={'rows': 6}),
+            'privacy_section_2': forms.Textarea(attrs={'rows': 10}),
+            'privacy_section_3': forms.Textarea(attrs={'rows': 10}),
+            'privacy_section_4': forms.Textarea(attrs={'rows': 10}),
+            'privacy_section_5': forms.Textarea(attrs={'rows': 14}),
+            'privacy_section_6': forms.Textarea(attrs={'rows': 4}),
+            'privacy_section_7': forms.Textarea(attrs={'rows': 4}),
+            'privacy_section_8': forms.Textarea(attrs={'rows': 10}),
+            'privacy_section_9': forms.Textarea(attrs={'rows': 10}),
+            'privacy_section_11': forms.Textarea(attrs={'rows': 6}),
         }
 
 

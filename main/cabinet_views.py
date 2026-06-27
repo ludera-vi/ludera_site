@@ -24,6 +24,7 @@ from .forms import (
 )
 from users.models import UserProfile, UserProduct, ProductFile, UserSetting, Goods, GoodsFile, UserGoods, CabinetPermission
 from users.forms import UserProfileForm, UserCreateForm
+from sales.models import Client, Call, ClientActivity, CALL_STATUSES
 
 
 @login_required(login_url='/cabinet/login/')
@@ -169,23 +170,29 @@ def dashboard(request):
 
 
 def cabinet_login(request):
+    access_error = None
     if request.user.is_authenticated:
-        if request.user.is_staff:
+        role = getattr(getattr(request.user, 'profile', None), 'role', 'admin')
+        if role == 'manager':
+            return redirect('/cabinet/manager-panel/')
+        if request.user.is_superuser or role == 'admin':
             return redirect('cabinet:dashboard')
-        messages.error(request, 'У вас нет доступа к панели управления')
-        return redirect('/account/login/')
+        access_error = 'У вас нет доступа к панели управления.'
     form = LoginForm()
     if request.method == 'POST':
         from django.contrib.auth import login, authenticate
         form = LoginForm(request, request.POST)
         if form.is_valid():
             user = form.get_user()
-            if not user.is_staff:
-                messages.error(request, 'У вас нет доступа к панели управления')
-                return redirect('/account/login/')
-            login(request, user)
-            return redirect('cabinet:dashboard')
-    return render(request, 'cabinet/login.html', {'form': form})
+            role = getattr(getattr(user, 'profile', None), 'role', 'admin')
+            if role == 'client' and not user.is_superuser:
+                access_error = 'У вас нет доступа к панели управления. Пожалуйста, используйте <a href="/account/login/" style="color:var(--cab-primary);text-decoration:none;font-weight:600;">аккаунт пользователя</a> или перейдите на <a href="/" style="color:var(--cab-primary);text-decoration:none;font-weight:600;">главную страницу</a>.'
+            else:
+                login(request, user)
+                if role == 'manager':
+                    return redirect('/cabinet/manager-panel/')
+                return redirect('cabinet:dashboard')
+    return render(request, 'cabinet/login.html', {'form': form, 'access_error': access_error})
 
 
 @login_required(login_url='/cabinet/login/')
@@ -492,14 +499,15 @@ def goods_delete_file(request, pk, file_pk):
 
 @login_required(login_url='/cabinet/login/')
 def user_list(request):
-    items = User.objects.all().order_by('-date_joined')
+    items = User.objects.select_related('profile').order_by('-date_joined')
     return render(request, 'cabinet/list.html', {
         'title': 'Пользователи',
         'items': items,
         'fields': [
             ('email', 'Email'), ('username', 'Логин'),
             ('first_name', 'Имя'), ('last_name', 'Фамилия'),
-            ('is_staff', 'Админ'), ('is_active', 'Активен'), ('date_joined', 'Дата регистрации'),
+            ('profile.role', 'Роль'), ('is_staff', 'Админ'),
+            ('is_active', 'Активен'), ('date_joined', 'Дата регистрации'),
         ],
         'model_name': 'user',
         'can_add': True,
@@ -517,6 +525,20 @@ def user_detail(request, pk):
     user_sections = set(user.cabinet_permissions.values_list('section', flat=True))
 
     if request.method == 'POST':
+        if 'save_role' in request.POST:
+            new_role = request.POST.get('role', 'client')
+            if new_role in dict(UserProfile.ROLES):
+                profile.role = new_role
+                profile.save()
+                if new_role == 'admin':
+                    user.is_staff = True
+                else:
+                    user.is_staff = False
+                if new_role == 'client':
+                    user.cabinet_permissions.all().delete()
+                user.save()
+                messages.success(request, f'Роль изменена на "{profile.get_role_display()}"')
+            return redirect('cabinet:user_detail', pk=pk)
         if 'save_profile' in request.POST:
             form = UserProfileForm(request.POST, request.FILES, instance=profile)
             if form.is_valid():
@@ -528,6 +550,18 @@ def user_detail(request, pk):
             for section in selected:
                 CabinetPermission.objects.create(user=user, section=section)
             messages.success(request, 'Права доступа обновлены')
+            return redirect('cabinet:user_detail', pk=pk)
+        elif 'set_password' in request.POST:
+            new_password = request.POST.get('new_password', '')
+            new_password2 = request.POST.get('new_password2', '')
+            if new_password != new_password2:
+                messages.error(request, 'Пароли не совпадают')
+            elif len(new_password) < 8:
+                messages.error(request, 'Пароль должен быть не менее 8 символов')
+            else:
+                user.set_password(new_password)
+                user.save()
+                messages.success(request, 'Пароль успешно изменён')
             return redirect('cabinet:user_detail', pk=pk)
     else:
         form = UserProfileForm(instance=profile)
@@ -543,6 +577,7 @@ def user_detail(request, pk):
         'products_list': Product.objects.all(),
         'user_sections': user_sections,
         'CabinetPermission': CabinetPermission,
+        'role_choices': UserProfile.ROLES,
     })
 
 
@@ -797,6 +832,7 @@ SITESETTING_LABELS = {
     'contact_form': 'Форма связи',
     'footer': 'Футер',
     'footer_ip': 'Футер — Данные ИП',
+    'privacy': 'Политика конфиденциальности',
     'seo': 'SEO / Мета-теги',
 }
 
@@ -907,3 +943,144 @@ def sociallink_form(request, pk=None):
 @login_required(login_url='/cabinet/login/')
 def sociallink_delete(request, pk):
     return _delete_view(request, SocialLink, 'sociallink', pk)
+
+
+# ─── Admin CRM Dashboard ─────────────────────────────────────
+
+@login_required(login_url='/cabinet/login/')
+def manager_dashboard(request):
+    today = timezone.now().date()
+    week_ago = today - timedelta(days=7)
+    month_ago = today - timedelta(days=30)
+    status_labels = dict(CALL_STATUSES)
+
+    # ── General stats ──
+    total_clients = Client.objects.count()
+    called = Client.objects.filter(calls__isnull=False, is_archived=False).distinct().count()
+    uncalled = Client.objects.filter(~Q(calls__isnull=False), is_archived=False).count()
+    in_progress = Call.objects.exclude(status__in=['refusal', 'completed']).count()
+    archived = Client.objects.filter(is_archived=True).count()
+
+    status_counts = list(Call.objects.values('status').annotate(count=Count('id')).order_by('status'))
+    total_calls = sum(s['count'] for s in status_counts) or 1
+
+    # ── Managers ──
+    managers = User.objects.filter(profile__role='manager').order_by('last_name', 'first_name')
+
+    manager_rows = []
+    for m in managers:
+        calls = Call.objects.filter(manager=m)
+        calls_today = calls.filter(created_at__date=today).count()
+        calls_week = calls.filter(created_at__gte=week_ago).count()
+        calls_month = calls.filter(created_at__gte=month_ago).count()
+        total = calls.count()
+
+        # Conversion: refusal = 0, any other = 1
+        non_refusal = calls.exclude(status='refusal').count()
+        conversion = round(non_refusal / total * 100, 1) if total else 0
+
+        # Clients imported
+        imported = Client.objects.filter(imported_by=m)
+        imp_today = imported.filter(created_at__date=today).count()
+        imp_week = imported.filter(created_at__gte=week_ago).count()
+        imp_month = imported.filter(created_at__gte=month_ago).count()
+
+        # Active clients (assigned, not archived, has a call not in refusal/completed)
+        assigned = Client.objects.filter(assigned_manager=m)
+        active = assigned.filter(calls__isnull=False, is_archived=False).exclude(calls__status__in=['refusal', 'completed']).distinct().count()
+        assigned_total = assigned.count()
+
+        # Status breakdown for this manager
+        status_breakdown = list(
+            calls.values('status').annotate(count=Count('id')).order_by('status')
+        )
+        total_mgr_calls = sum(s['count'] for s in status_breakdown) or 1
+        for s in status_breakdown:
+            s['label'] = status_labels.get(s['status'], s['status'])
+            s['pct'] = round(s['count'] / total_mgr_calls * 100, 1)
+
+        # Last activity
+        last_act = ClientActivity.objects.filter(user=m).order_by('-created_at').first()
+
+        manager_rows.append({
+            'manager': m,
+            'name': m.first_name or m.email.split('@')[0] if m.email else m.username,
+            'calls_today': calls_today,
+            'calls_week': calls_week,
+            'calls_month': calls_month,
+            'total_calls': total,
+            'conversion': conversion,
+            'imp_today': imp_today,
+            'imp_week': imp_week,
+            'imp_month': imp_month,
+            'active_clients': active,
+            'assigned_total': assigned_total,
+            'status_breakdown': status_breakdown,
+            'last_login': m.last_login,
+            'last_activity': last_act.created_at if last_act else None,
+        })
+
+    # ── Donut chart data ──
+    status_colors = {
+        'negotiation': '#c2410c', 'tz_creation': '#3b82f6', 'tz_approval': '#8b5cf6',
+        'contract_signing': '#f59e0b', 'in_progress': '#22c55e', 'completed': '#16a34a',
+        'refusal': '#ef4444',
+    }
+    def build_segments(counts, labels, total):
+        segs = []
+        for item in counts:
+            pct = item['count'] / total if total else 0
+            deg = pct * 360
+            segs.append({
+                'label': labels.get(item['status'], item['status']),
+                'count': item['count'],
+                'color': status_colors.get(item['status'], '#6b7280'),
+                'degrees': deg,
+                'pct': round(pct * 100, 1),
+            })
+        return sorted(segs, key=lambda s: -s['degrees'])
+
+    status_segments = build_segments(status_counts, status_labels, total_calls)
+
+    stats_items = [
+        {'label': 'Прозвоненные', 'count': called, 'color': '#22c55e'},
+        {'label': 'Непрозвоненные', 'count': uncalled, 'color': '#f59e0b'},
+        {'label': 'В работе', 'count': in_progress, 'color': '#3b82f6'},
+        {'label': 'В архиве', 'count': archived, 'color': '#6b7280'},
+    ]
+    total_stats = sum(s['count'] for s in stats_items) or 1
+    stats_total_display = total_clients
+    stats_segments = sorted(stats_items, key=lambda s: -s['count'])
+
+    for seg in stats_segments:
+        seg['pct'] = round(seg['count'] / total_stats * 100, 1)
+        seg['degrees'] = seg['pct'] / 100 * 360
+
+    def conic_gradient(segs):
+        cumul = 0
+        stops = []
+        for s in segs:
+            end = cumul + s['degrees']
+            stops.append(f"{s['color']} {cumul}deg {end}deg")
+            cumul = end
+        return f"conic-gradient({', '.join(stops)})"
+
+    status_conic = conic_gradient(status_segments)
+    stats_conic = conic_gradient(stats_segments)
+
+    # Today's activity feed
+    activities_today = ClientActivity.objects.filter(created_at__date=today).select_related('user', 'client').order_by('-created_at')[:20]
+
+    return render(request, 'cabinet/admin_dashboard.html', {
+        'title': 'Дашборд продаж',
+        'total_clients': total_clients,
+        'status_segments': status_segments,
+        'status_conic': status_conic,
+        'status_total': total_calls,
+        'stats_segments': stats_segments,
+        'stats_conic': stats_conic,
+        'stats_total': total_stats,
+        'stats_total_display': stats_total_display,
+        'manager_rows': manager_rows,
+        'activities_today': activities_today,
+    })

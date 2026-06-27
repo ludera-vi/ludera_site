@@ -1,0 +1,568 @@
+{% extends base_template %}
+{% block content %}
+<style>
+.cabinet-content {
+    padding: 10px 20px 20px 20px !important;
+    max-width: none !important;
+}
+.cabinet-table-wrap { margin: 0; }
+.cabinet-table-card {
+    border-radius: 10px;
+    border: 1px solid var(--cab-border);
+    background: var(--cab-surface);
+    overflow: hidden;
+}
+.cabinet-table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--cab-border);
+    background: var(--cab-surface);
+}
+.cabinet-table-toolbar .btn {
+    font-size: 0.75rem; padding: 5px 10px; border-radius: 6px;
+    border: 1px solid var(--cab-border); background: var(--cab-surface);
+    color: var(--cab-text); cursor: pointer; display: inline-flex;
+    align-items: center; gap: 4px; text-decoration: none;
+    transition: all .15s; font-family: 'Inter', sans-serif; font-weight: 500;
+}
+.cabinet-table-toolbar .btn:hover { background: var(--cab-hover-bg); border-color: var(--cab-primary); color: var(--cab-primary); }
+.cabinet-table-toolbar .btn svg { width: 12px; height: 12px; }
+
+.search-box { position: relative; flex: 1; max-width: 360px; }
+.search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; stroke: var(--cab-text-muted); pointer-events: none; }
+.search-box input {
+    width: 100%; padding: 6px 12px 6px 30px; border: 1px solid var(--cab-border); border-radius: 6px;
+    font-size: 0.8125rem; font-family: 'Inter', sans-serif; background: var(--cab-bg); color: var(--cab-text); outline: none;
+    transition: border-color .15s, box-shadow .15s;
+}
+.search-box input:focus { border-color: var(--cab-primary); box-shadow: 0 0 0 2px rgba(45,143,94,0.1); }
+
+.table-scroll {
+    overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 120px);
+}
+.table-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.table-scroll::-webkit-scrollbar-track { background: transparent; }
+.table-scroll::-webkit-scrollbar-thumb { background: var(--cab-border); border-radius: 3px; }
+.table-scroll::-webkit-scrollbar-thumb:hover { background: var(--cab-text-muted); }
+
+table.client-table {
+    width: 100%; border-collapse: collapse; font-size: 0.8125rem; table-layout: fixed;
+}
+table.client-table thead { position: sticky; top: 0; z-index: 2; }
+table.client-table thead th {
+    background: #f0f5f2; text-align: left; font-size: 0.6875rem; font-weight: 600;
+    color: var(--cab-text-muted); text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 8px 8px; border-bottom: 2px solid var(--cab-border); white-space: nowrap;
+    position: relative; user-select: none; overflow: hidden; text-overflow: ellipsis;
+}
+table.client-table tbody td {
+    padding: 6px 8px; border-bottom: 1px solid var(--cab-table-border);
+    color: var(--cab-text); vertical-align: middle; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; max-width: 0;
+}
+table.client-table tbody tr:hover { background: var(--cab-active-bg); }
+table.client-table tbody tr.selected { background: rgba(45,143,94,0.12); }
+table.client-table tbody { user-select: none; -webkit-user-select: none; cursor: default; }
+
+th.col-id       { width: 42px; }
+th.col-industry { width: 11%; }
+th.col-city     { width: 9%; }
+th.col-company  { width: 14%; }
+th.col-name     { width: 10%; }
+th.col-phone    { width: 11%; }
+th.col-status   { width: 13%; }
+th.col-manager  { width: 14%; }
+th.col-comment  { width: 18%; }
+
+.col-resizer {
+    position: absolute; top: 2px; bottom: 2px; right: -1px; width: 4px;
+    cursor: col-resize; z-index: 3;
+}
+.col-resizer:hover, .col-resizer:active { background: var(--cab-primary); }
+table.client-table thead th:last-child .col-resizer { display: none; }
+
+.badge {
+    display: inline-flex; align-items: center; font-size: 0.6875rem; font-weight: 600;
+    padding: 2px 8px; border-radius: 10px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap;
+}
+.badge--active  { background: var(--cab-primary-light); color: var(--cab-primary); }
+.badge--pending { background: rgba(201,168,76,0.15); color: #a0882e; }
+.badge--done    { background: rgba(107,138,122,0.12); color: var(--cab-text-muted); }
+.badge--new     { background: #f3f4f6; color: #6b7280; }
+.badge--negotiation { background: #fff7ed; color: #c2410c; }
+.badge--refusal { background: #fef2f2; color: #dc2626; }
+.badge--tz-creation { background: #eff6ff; color: #2563eb; }
+.badge--tz-approval { background: #f5f3ff; color: #7c3aed; }
+.badge--contract { background: #fffbeb; color: #d97706; }
+.badge--in-progress { background: #ecfdf5; color: #059669; }
+.badge--completed { background: #f0fdf4; color: #15803d; }
+.badge--no-status { background: #f9fafb; color: #6b7280; }
+
+.cell-id { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--cab-text-muted); }
+.cell-phone a { color: var(--cab-text); text-decoration: none; }
+.cell-phone a:hover { color: var(--cab-primary); text-decoration: underline; }
+.cell-manager { font-size: 0.8125rem; }
+
+.status-select {
+    font-size: 0.75rem; padding: 3px 6px; border-radius: 6px;
+    border: 1px solid var(--cab-border); background: var(--cab-bg); color: var(--cab-text);
+    font-family: 'Inter', sans-serif; cursor: pointer; outline: none; max-width: 100%;
+    transition: border-color .15s, color .15s;
+}
+.status-select:focus { border-color: var(--cab-primary); }
+.status-select[data-status="negotiation"] { border-color: #fdba74; color: #c2410c; background: #fff7ed; }
+.status-select[data-status="refusal"] { border-color: #fca5a5; color: #dc2626; background: #fef2f2; }
+.status-select[data-status="tz_creation"] { border-color: #93c5fd; color: #2563eb; background: #eff6ff; }
+.status-select[data-status="tz_approval"] { border-color: #c4b5fd; color: #7c3aed; background: #f5f3ff; }
+.status-select[data-status="contract_signing"] { border-color: #fcd34d; color: #d97706; background: #fffbeb; }
+.status-select[data-status="in_progress"] { border-color: #6ee7b7; color: #059669; background: #ecfdf5; }
+.status-select[data-status="completed"] { border-color: #86efac; color: #15803d; background: #f0fdf4; }
+
+.context-menu {
+    position: fixed; z-index: 1000; background: var(--cab-surface); border: 1px solid var(--cab-border);
+    border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); padding: 4px; min-width: 200px; display: none;
+}
+.context-menu--visible { display: block; }
+.context-menu__item {
+    display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px;
+    border: none; background: none; text-align: left; font-size: 0.8125rem;
+    color: var(--cab-text); border-radius: 6px; cursor: pointer;
+    font-family: 'Inter', sans-serif; transition: background .1s;
+}
+.context-menu__item:hover { background: var(--cab-hover-bg); }
+.context-menu__item--danger { color: var(--cab-danger); }
+.context-menu__item--danger:hover { background: rgba(239,68,68,0.08); }
+.context-menu__item--archive { color: #8d6e3f; }
+.context-menu__item--archive:hover { background: rgba(141,110,63,0.08); }
+.context-menu__item svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+.modal-overlay--visible { display: flex; }
+.modal-box { background: var(--cab-surface); border-radius: 12px; padding: 24px; width: 520px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-title { font-size: 1.125rem; font-weight: 600; }
+.modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999; padding: 0 4px; line-height: 1; }
+.modal-close:hover { color: #333; }
+.modal-form-group { margin-bottom: 14px; }
+.modal-form-group label { display: block; font-size: 0.8125rem; font-weight: 500; color: #555; margin-bottom: 4px; }
+.modal-form-group input, .modal-form-group textarea, .modal-form-group select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--cab-border); border-radius: 6px;
+    font-size: 0.875rem; font-family: 'Inter', sans-serif; box-sizing: border-box;
+    background: var(--cab-bg); color: var(--cab-text);
+}
+.modal-form-group textarea { resize: vertical; min-height: 60px; }
+.modal-form-row { display: flex; gap: 12px; }
+.modal-form-row .modal-form-group { flex: 1; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--cab-border); }
+.modal-actions .btn { padding: 7px 18px; font-size: 0.875rem; border-radius: 6px; border: 1px solid var(--cab-border); background: var(--cab-surface); color: var(--cab-text); cursor: pointer; font-family: 'Inter', sans-serif; transition: all .15s; }
+.modal-actions .btn:hover { border-color: var(--cab-primary); color: var(--cab-primary); }
+.modal-actions .btn--primary { background: var(--cab-primary); color: #fff; border-color: var(--cab-primary); }
+.modal-actions .btn--primary:hover { background: var(--cab-primary-hover); }
+
+.status-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.status-option {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 8px; border: 2px solid var(--cab-border);
+    background: var(--cab-bg); cursor: pointer; font-size: 0.8125rem;
+    font-weight: 500; color: var(--cab-text); transition: all .15s; user-select: none;
+}
+.status-option:hover { border-color: var(--cab-primary); }
+.status-option input[type="radio"] { display: none; }
+.status-option--active { border-color: var(--cab-primary); background: var(--cab-primary-light); color: var(--cab-primary); }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.table-footer { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-top: 1px solid var(--cab-border); font-size: 0.75rem; color: var(--cab-text-muted); background: var(--cab-surface); }
+.pagination { display: flex; align-items: center; gap: 2px; }
+.pagination a, .pagination span { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 5px; font-size: 0.75rem; text-decoration: none; color: var(--cab-text); background: transparent; border: 1px solid transparent; transition: all .12s; }
+.pagination a:hover { background: rgba(45,143,94,0.06); border-color: var(--cab-border); }
+.pagination .active { background: var(--cab-primary); color: #fff; border-color: var(--cab-primary); }
+.pagination .show-all { margin-left: 10px; font-size: 0.75rem; color: var(--cab-primary); text-decoration: none; border: none; background: none; min-width: auto; height: auto; padding: 0; }
+.pagination .show-all:hover { text-decoration: underline; }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--cab-text-muted); font-size: 0.875rem; }
+.btn--active { background: var(--cab-primary); color: #fff; border-color: var(--cab-primary); }
+.btn--active:hover { background: var(--cab-primary-hover); color: #fff; }
+</style>
+
+<div class="cabinet-table-wrap">
+    <div class="cabinet-table-card">
+        <div class="cabinet-table-toolbar">
+            {% if active_section == 'clients' %}
+            <a href="{{ url_clients }}create/" class="btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Создать
+            </a>
+            <a href="{{ url_clients }}import/" class="btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Импорт
+            </a>
+            <button type="button" class="btn" id="btnExport">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Экспорт
+            </button>
+            <button type="button" class="btn {% if no_manager %}btn--active{% endif %}" id="btnNoManager" data-active="{{ no_manager|yesno:'true,false' }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                Новые
+            </button>
+            {% endif %}
+            <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="filterSearch" placeholder="Поиск по имени, телефону, статусу..." value="{{ search }}" autocomplete="off">
+            </div>
+        </div>
+
+        <div class="table-scroll" id="tableScroll">
+            <div id="tableContainer">
+            <table class="client-table" id="clientTable">
+                <thead>
+                    <tr>
+                        <th class="col-id">#</th>
+                        <th class="col-industry">Сфера <span class="col-resizer"></span></th>
+                        <th class="col-city">Город <span class="col-resizer"></span></th>
+                        <th class="col-company">Наименование <span class="col-resizer"></span></th>
+                        <th class="col-name">Имя <span class="col-resizer"></span></th>
+                        <th class="col-phone">Телефон <span class="col-resizer"></span></th>
+                        <th class="col-status">Статус <span class="col-resizer"></span></th>
+                        <th class="col-manager">Ответственный <span class="col-resizer"></span></th>
+                        <th class="col-comment">Комментарий</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    {% include "sales/client_list_rows.html" %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+
+        <div id="tableFooter">
+        {% include "sales/client_list_footer.html" %}
+        </div>
+    </div>
+</div>
+
+<div class="context-menu" id="contextMenu">
+    <form method="post" action="" id="ctxForm" style="display:none;">{% csrf_token %}</form>
+    <button type="button" class="context-menu__item" id="ctxCreateCall">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        Создать обзвон
+    </button>
+    <button type="button" class="context-menu__item" id="ctxView">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Просмотреть
+    </button>
+    <button type="button" class="context-menu__item" id="ctxEdit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Редактировать
+    </button>
+    <button type="button" class="context-menu__item context-menu__item--archive" id="ctxArchive">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+        В архив
+    </button>
+    <button type="button" class="context-menu__item context-menu__item--danger" id="ctxDelete">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Удалить
+    </button>
+</div>
+
+<div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span class="modal-title" id="editModalTitle">Редактирование клиента</span>
+            <button type="button" class="modal-close" id="modalClose">&times;</button>
+        </div>
+        <form method="post" id="editForm" action="">
+            {% csrf_token %}
+            <div class="modal-form-row">
+                <div class="modal-form-group"><label>Имя</label><input type="text" name="name" id="edit_name"></div>
+                <div class="modal-form-group"><label>Телефон</label><input type="text" name="phone" id="edit_phone"></div>
+            </div>
+            <div class="modal-form-row">
+                <div class="modal-form-group"><label>Наименование</label><input type="text" name="company_name" id="edit_company_name"></div>
+                <div class="modal-form-group"><label>Город</label><input type="text" name="city" id="edit_city"></div>
+                <div class="modal-form-group"><label>Сфера</label><input type="text" name="industry" id="edit_industry"></div>
+            </div>
+            <div class="modal-form-group">
+                <label>Правовой статус</label>
+                <select name="legal_status" id="edit_legal_status">
+                    <option value="">—</option>
+                    {% for key, label in form_legal_statuses %}
+                    <option value="{{ key }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-form-group"><label>Комментарий</label><textarea name="comment" id="edit_comment" rows="8"></textarea></div>
+            <div id="callStatusSection" style="display:none;">
+                <div class="modal-form-group">
+                    <label>Статус</label>
+                    <div class="status-grid">
+                        <label class="status-option status-option--active">
+                            <input type="radio" name="status" value="negotiation" checked>
+                            <span class="status-dot" style="background:#c2410c;"></span>Согласование
+                        </label>
+                        <label class="status-option">
+                            <input type="radio" name="status" value="tz_creation">
+                            <span class="status-dot" style="background:#2563eb;"></span>Создание ТЗ
+                        </label>
+                        <label class="status-option">
+                            <input type="radio" name="status" value="tz_approval">
+                            <span class="status-dot" style="background:#7c3aed;"></span>Согласование ТЗ
+                        </label>
+                        <label class="status-option">
+                            <input type="radio" name="status" value="contract_signing">
+                            <span class="status-dot" style="background:#d97706;"></span>Подписание договора
+                        </label>
+                        <label class="status-option">
+                            <input type="radio" name="status" value="in_progress">
+                            <span class="status-dot" style="background:#059669;"></span>В работе
+                        </label>
+                        <label class="status-option">
+                            <input type="radio" name="status" value="completed">
+                            <span class="status-dot" style="background:#15803d;"></span>Выполнено
+                        </label>
+                        <label class="status-option">
+                            <input type="radio" name="status" value="refusal">
+                            <span class="status-dot" style="background:#dc2626;"></span>Отказ
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn" id="modalCancel">Отмена</button>
+                <button type="submit" class="btn btn--primary" id="modalSave">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="exportModal">
+    <div class="modal-box" style="max-width:420px;text-align:center;">
+        <div style="font-size:1.125rem;font-weight:600;margin-bottom:8px;">Экспорт данных</div>
+        <div style="font-size:0.875rem;color:var(--cab-text-muted);margin-bottom:20px;" id="exportModalText"></div>
+        <div class="modal-actions" style="justify-content:center;border:none;padding-top:0;">
+            <button type="button" class="btn" id="exportNoBtn">Нет</button>
+            <button type="button" class="btn btn--primary" id="exportYesBtn">Да, выгрузить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var baseUrl = '{{ url_clients }}';
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                    document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+    function bindTableEvents() {
+        document.querySelectorAll('.client-table tbody tr[data-client-id]').forEach(function(row) {
+            if (row._bound) return;
+            row._bound = true;
+            row.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') return;
+                document.querySelectorAll('.client-table tbody tr.selected').forEach(function(r) { r.classList.remove('selected'); });
+                row.classList.add('selected');
+                selectedId = row.dataset.clientId;
+            });
+            row.addEventListener('dblclick', function(e) {
+                // временно отключено
+            });
+        });
+    }
+
+    var searchEl = document.getElementById('filterSearch');
+    var searchTimer = null;
+    if (searchEl) {
+        searchEl.addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            var q = this.value;
+            searchTimer = setTimeout(function() { doSearch(q); }, 50);
+        });
+        searchEl.focus();
+        var len = searchEl.value.length;
+        searchEl.setSelectionRange(len, len);
+    }
+
+    function doSearch(q) {
+        var params = new URLSearchParams();
+        if (q.trim()) params.set('q', q.trim());
+        if (noManagerActive) params.set('no_manager', '1');
+        var url = window.location.pathname + '?' + params.toString();
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.rows !== undefined) {
+                    document.getElementById('tableBody').innerHTML = data.rows;
+                    document.getElementById('tableFooter').innerHTML = data.footer;
+                    bindTableEvents();
+                    history.replaceState(null, '', url);
+                }
+            });
+    }
+
+    var noManagerActive = {{ no_manager|yesno:'true,false' }};
+    var btnNoManager = document.getElementById('btnNoManager');
+    if (btnNoManager) {
+        btnNoManager.addEventListener('click', function() {
+            noManagerActive = !noManagerActive;
+            this.classList.toggle('btn--active', noManagerActive);
+            doSearch(searchEl ? searchEl.value : '');
+        });
+    }
+
+    var table = document.getElementById('clientTable');
+    if (table) {
+        var resizers = table.querySelectorAll('.col-resizer');
+        var currentTh = null, startX = 0, startW = 0;
+        resizers.forEach(function(r) {
+            r.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                currentTh = r.parentElement;
+                startX = e.clientX;
+                startW = currentTh.offsetWidth;
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+        });
+        function onMove(e) { if (!currentTh) return; var w = startW + (e.clientX - startX); if (w > 40) currentTh.style.width = w + 'px'; }
+        function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); currentTh = null; }
+    }
+
+    var menu = document.getElementById('contextMenu');
+    var ctxForm = document.getElementById('ctxForm');
+    var ctxView = document.getElementById('ctxView');
+    var ctxCreateCall = document.getElementById('ctxCreateCall');
+    var ctxEdit = document.getElementById('ctxEdit');
+    var ctxArchive = document.getElementById('ctxArchive');
+    var ctxDelete = document.getElementById('ctxDelete');
+    var selectedId = null;
+
+    document.addEventListener('contextmenu', function(e) {
+        var row = e.target.closest('.client-table tbody tr[data-client-id]');
+        if (!row) return;
+        e.preventDefault();
+        var isResp = row.dataset.isResponsible === 'true';
+        var hasManager = row.dataset.hasManager === 'true';
+        var hasCall = row.dataset.hasCall === 'true';
+        var section = '{{ active_section|default:"clients" }}';
+        selectedId = row.dataset.clientId;
+        document.querySelectorAll('.client-table tbody tr.selected').forEach(function(r) { r.classList.remove('selected'); });
+        row.classList.add('selected');
+        if (isResp || !hasManager) {
+            ctxCreateCall.style.display = (section === 'called' || hasCall) ? 'none' : '';
+            ctxEdit.style.display = section === 'called' ? 'none' : '';
+            ctxArchive.style.display = '';
+            ctxDelete.style.display = '';
+            ctxView.style.display = 'none';
+        } else {
+            ctxCreateCall.style.display = 'none';
+            ctxEdit.style.display = 'none';
+            ctxArchive.style.display = 'none';
+            ctxDelete.style.display = 'none';
+            ctxView.style.display = '';
+        }
+        menu.style.left = e.clientX + 'px';
+        menu.style.top = e.clientY + 'px';
+        menu.classList.add('context-menu--visible');
+    });
+
+    document.addEventListener('click', function(e) { if (!menu.contains(e.target)) menu.classList.remove('context-menu--visible'); });
+
+    function submitAction(url) { ctxForm.action = url; ctxForm.submit(); }
+
+    var modal = document.getElementById('editModal');
+    var editModalTitle = document.getElementById('editModalTitle');
+    var callStatusSection = document.getElementById('callStatusSection');
+    var editForm = document.getElementById('editForm');
+
+    function openEditModal(createCall) {
+        if (!selectedId) return;
+        menu.classList.remove('context-menu--visible');
+        var row = document.querySelector('tr[data-client-id="' + selectedId + '"]');
+        if (row) {
+            var cells = row.querySelectorAll('td');
+            document.getElementById('edit_name').value = cells[4]?.textContent.trim() || '';
+            document.getElementById('edit_phone').value = cells[5]?.textContent.trim() || '';
+            document.getElementById('edit_company_name').value = cells[3]?.textContent.trim() || '';
+            document.getElementById('edit_city').value = cells[2]?.textContent.trim() || '';
+            document.getElementById('edit_industry').value = cells[1]?.textContent.trim() || '';
+            document.getElementById('edit_comment').value = cells[8]?.textContent.trim() || '';
+        }
+        if (createCall) {
+            editModalTitle.textContent = 'Создать обзвон';
+            callStatusSection.style.display = '';
+            editForm.action = baseUrl + selectedId + '/create-call/';
+        } else {
+            editModalTitle.textContent = 'Редактирование клиента';
+            callStatusSection.style.display = 'none';
+            editForm.action = baseUrl + selectedId + '/edit/';
+        }
+        modal.classList.add('modal-overlay--visible');
+    }
+
+    ctxView.addEventListener('click', function() {
+        if (!selectedId) return;
+        menu.classList.remove('context-menu--visible');
+        var section = '{{ active_section|default:"clients" }}';
+        window.location.href = baseUrl + selectedId + '/?from=' + section;
+    });
+    ctxCreateCall.addEventListener('click', function() { openEditModal(true); });
+    ctxEdit.addEventListener('click', function() {
+        if (!selectedId) return;
+        menu.classList.remove('context-menu--visible');
+        var section = '{{ active_section|default:"clients" }}';
+        window.location.href = baseUrl + selectedId + '/?from=' + section;
+    });
+    document.getElementById('modalClose').addEventListener('click', function() { modal.classList.remove('modal-overlay--visible'); });
+    document.getElementById('modalCancel').addEventListener('click', function() { modal.classList.remove('modal-overlay--visible'); });
+    modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('modal-overlay--visible'); });
+
+    document.querySelectorAll('#editModal .status-option').forEach(function(opt) {
+        opt.addEventListener('click', function() {
+            document.querySelectorAll('#editModal .status-option').forEach(function(o) { o.classList.remove('status-option--active'); });
+            opt.classList.add('status-option--active');
+        });
+    });
+
+    ctxArchive.addEventListener('click', function() { if (selectedId) submitAction(baseUrl + selectedId + '/archive/'); menu.classList.remove('context-menu--visible'); });
+    ctxDelete.addEventListener('click', function() { if (selectedId && confirm('Удалить клиента?')) submitAction(baseUrl + selectedId + '/delete/'); menu.classList.remove('context-menu--visible'); });
+
+    // Export modal
+    var exportModal = document.getElementById('exportModal');
+    var btnExport = document.getElementById('btnExport');
+    var exportYesBtn = document.getElementById('exportYesBtn');
+    var exportNoBtn = document.getElementById('exportNoBtn');
+    var exportModalText = document.getElementById('exportModalText');
+    var exportUrl = '';
+
+    function closeExportModal() { exportModal.classList.remove('modal-overlay--visible'); }
+
+    if (btnExport) {
+        btnExport.addEventListener('click', function() {
+            var q = searchEl ? searchEl.value.trim() : '';
+            var filtered = q || noManagerActive;
+            if (filtered) {
+                exportModalText.textContent = 'Найдены отфильтрованные данные. Выгрузить только их?';
+                exportUrl = baseUrl + 'export/?q=' + encodeURIComponent(q) + (noManagerActive ? '&no_manager=1' : '');
+            } else {
+                exportModalText.textContent = 'Выгрузить все данные клиентов?';
+                exportUrl = baseUrl + 'export/';
+            }
+            exportModal.classList.add('modal-overlay--visible');
+        });
+    }
+    if (exportYesBtn) {
+        exportYesBtn.addEventListener('click', function() {
+            window.location.href = exportUrl;
+            closeExportModal();
+        });
+    }
+    if (exportNoBtn) {
+        exportNoBtn.addEventListener('click', closeExportModal);
+    }
+    if (exportModal) {
+        exportModal.addEventListener('click', function(e) { if (e.target === exportModal) closeExportModal(); });
+    }
+
+    bindTableEvents();
+})();
+</script>
+{% endblock %}

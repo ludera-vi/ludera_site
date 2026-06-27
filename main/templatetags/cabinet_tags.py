@@ -5,9 +5,21 @@ register = template.Library()
 
 @register.filter
 def field(obj, attr):
-    if hasattr(obj, attr):
-        return getattr(obj, attr, '')
-    return obj.__dict__.get(attr, '')
+    parts = attr.split('.')
+    val = obj
+    for part in parts:
+        if hasattr(val, part):
+            val = getattr(val, part, '')
+        elif isinstance(val, dict):
+            val = val.get(part, '')
+        else:
+            return ''
+    if callable(val):
+        try:
+            val = val()
+        except TypeError:
+            return ''
+    return val if val is not None else ''
 
 
 @register.filter

@@ -35,6 +35,10 @@
                                 {% else %}
                                     <span class="badge badge--new">Нет</span>
                                 {% endif %}
+                            {% elif f.0 == 'profile.role' %}
+                                <span class="badge {% if value == 'admin' %}badge--active{% elif value == 'manager' %}badge--pending{% else %}badge--new{% endif %}">
+                                    {% if value == 'admin' %}Администратор{% elif value == 'manager' %}Менеджер{% else %}Клиент{% endif %}
+                                </span>
                             {% elif f.0 == 'status' %}
                                 {{ value }}
                             {% elif 'timestamp' in f.0 %}

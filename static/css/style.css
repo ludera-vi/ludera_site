@@ -2220,6 +2220,7 @@ img {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
     padding-top: var(--spacing-lg);
     border-top: 1px solid var(--color-card-border);
 }
@@ -2244,6 +2245,34 @@ img {
     font-size: 0.75rem;
     color: var(--color-text-muted);
     opacity: 0.7;
+}
+
+.footer__privacy {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+    text-align: center;
+    opacity: 0.6;
+}
+.footer__privacy:hover {
+    color: var(--color-primary);
+    opacity: 1;
+}
+
+.footer__cabinet-link {
+    display: inline-block;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    opacity: 0.4;
+    margin-bottom: 8px;
+    transition: opacity 0.2s;
+    line-height: 1;
+}
+.footer__cabinet-link:hover {
+    opacity: 0.8;
 }
 
 .footer__socials {
@@ -3041,5 +3070,109 @@ img {
 
     .feature-card__link {
         font-size: 0.75rem;
+    }
+}
+
+/* ================================================================
+   15. Cookie Consent Banner — Glassmorphism Floating Card
+   ================================================================ */
+.cookie-banner {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0) scale(1);
+    z-index: 10000;
+    width: 60%;
+    max-width: 720px;
+    background: rgba(3, 33, 38, 0.92);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(167, 213, 184, 0.12);
+    border-radius: 16px;
+    padding: 18px 24px;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(167, 213, 184, 0.06);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.35s ease;
+    opacity: 1;
+}
+
+.cookie-banner--hidden {
+    transform: translateX(-50%) translateY(20px) scale(0.96);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.cookie-banner__inner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.cookie-banner__text {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--color-text-muted, #768787);
+    flex: 1;
+    margin: 0;
+}
+
+.cookie-banner__text a {
+    color: var(--color-primary, #a7d5b8);
+    text-decoration: none;
+    font-weight: 500;
+}
+.cookie-banner__text a:hover {
+    text-decoration: underline;
+}
+
+.cookie-banner__actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.cookie-btn {
+    padding: 8px 20px;
+    border-radius: var(--radius-sm, 8px);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.cookie-btn--primary {
+    background: var(--color-primary, #a7d5b8);
+    color: var(--color-bg, #032126);
+    box-shadow: 0 2px 8px rgba(167, 213, 184, 0.25);
+}
+.cookie-btn--primary:hover {
+    background: var(--color-primary-hover, #8cbf9e);
+    box-shadow: 0 4px 14px rgba(167, 213, 184, 0.35);
+}
+
+.cookie-btn--ghost {
+    background: transparent;
+    color: var(--color-text-muted, #768787);
+    border: 1px solid rgba(167, 213, 184, 0.15);
+}
+.cookie-btn--ghost:hover {
+    background: rgba(167, 213, 184, 0.08);
+    color: var(--color-text, #d9e1dc);
+}
+
+@media (max-width: 768px) {
+    .cookie-banner {
+        width: calc(100% - 32px);
+        bottom: 16px;
+        padding: 14px 18px;
+    }
+    .cookie-banner__inner {
+        flex-direction: column;
+        text-align: center;
     }
 }

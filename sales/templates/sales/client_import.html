@@ -1,0 +1,26 @@
+{% extends base_template %}
+{% block content %}
+<div class="cabinet-form-card">
+    <h2 class="cabinet-table-title">Импорт клиентов из Excel</h2>
+    <p class="cabinet-text-muted" style="margin-bottom:1.5rem;">
+        Загрузите файл формата .xlsx. Первая строка должна содержать заголовки.
+        Поддерживаемые колонки: Сфера, Город, Наименование, Имя, Телефон, Правовой статус, Комментарий.
+    </p>
+    <form method="post" enctype="multipart/form-data" class="cabinet-form">
+        {% csrf_token %}
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Файл .xlsx</label>
+            <div class="cabinet-file-input">
+                <input type="file" name="file" accept=".xlsx,.xls,.csv" required>
+            </div>
+        </div>
+        <div class="cabinet-form-actions">
+            <button type="submit" class="btn btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Загрузить и импортировать
+            </button>
+            <a href="{{ url_clients }}" class="btn cabinet-btn-ghost">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -25,6 +25,7 @@ def register(request):
 
 
 def user_login(request):
+    manager_error = None
     if request.user.is_authenticated:
         return redirect('users:dashboard')
     form = UserLoginForm()
@@ -32,10 +33,14 @@ def user_login(request):
         form = UserLoginForm(data=request.POST)
         if form.is_valid():
             user = form.get_user()
-            login(request, user)
-            next_url = request.GET.get('next', 'users:dashboard')
-            return redirect(next_url)
-    return render(request, 'users/login.html', {'form': form})
+            role = getattr(getattr(user, 'profile', None), 'role', 'client')
+            if role == 'manager':
+                manager_error = True
+            else:
+                login(request, user)
+                next_url = request.GET.get('next', 'users:dashboard')
+                return redirect(next_url)
+    return render(request, 'users/login.html', {'form': form, 'manager_error': manager_error})
 
 
 def user_logout(request):

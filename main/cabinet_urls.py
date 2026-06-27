@@ -1,5 +1,6 @@
 from django.urls import path
 from . import cabinet_views
+from sales import views as sales_views
 
 app_name = 'cabinet'
 
@@ -96,4 +97,22 @@ urlpatterns = [
     path('usersetting/create/', cabinet_views.usersetting_form, name='usersetting_create'),
     path('usersetting/<int:pk>/', cabinet_views.usersetting_form, name='usersetting_edit'),
     path('usersetting/<int:pk>/delete/', cabinet_views.usersetting_delete, name='usersetting_delete'),
+
+    # Sales / CRM (superuser access from cabinet)
+    path('manager/', cabinet_views.manager_dashboard, name='manager'),
+    path('clients/', sales_views.client_list, name='clients'),
+    path('clients/create/', sales_views.client_create, name='client_create'),
+    path('clients/import/', sales_views.client_import, name='client_import'),
+    path('clients/export/', sales_views.client_export, name='client_export'),
+    path('clients/<int:pk>/', sales_views.client_detail, name='client_detail'),
+    path('clients/<int:pk>/create-call/', sales_views.create_call, name='create_call'),
+    path('clients/<int:pk>/edit/', sales_views.client_update, name='client_update'),
+    path('clients/<int:pk>/delete/', sales_views.client_delete, name='client_delete'),
+    path('clients/<int:pk>/archive/', sales_views.toggle_archive, name='toggle_archive'),
+    path('clients/<int:client_pk>/documents/<int:doc_pk>/delete/', sales_views.delete_document, name='delete_document'),
+    path('called/', sales_views.called_list, name='called_list'),
+    path('in_progress/', sales_views.in_progress_list, name='in_progress_list'),
+    path('archive/', sales_views.archive_list, name='archive_list'),
+    path('completed/', sales_views.completed_list, name='completed_list'),
+    path('calls/<int:pk>/update/', sales_views.call_update, name='call_update'),
 ]

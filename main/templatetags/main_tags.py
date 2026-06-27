@@ -17,6 +17,29 @@ def truncate_chars(value, max_length):
 
 
 @register.filter(is_safe=True)
+def privacy_format(value):
+    if not value:
+        return ''
+    blocks = value.strip().split('\n\n')
+    parts = []
+    for block in blocks:
+        lines = block.strip().split('\n')
+        stripped = [l.strip() for l in lines if l.strip()]
+        if not stripped:
+            continue
+        is_list = all(l.startswith('-') or l.startswith('—') or l.startswith('•') for l in stripped)
+        if is_list:
+            items = []
+            for l in stripped:
+                item = l.lstrip('-—• ').strip()
+                items.append(f'<li class="privacy__list-item">{item}</li>')
+            parts.append('<ul class="privacy__list">' + ''.join(items) + '</ul>')
+        else:
+            parts.append('<p class="privacy__text">' + ' '.join(stripped) + '</p>')
+    return mark_safe('\n'.join(parts))
+
+
+@register.filter(is_safe=True)
 def embed_videos(value):
     if not value:
         return value

@@ -198,6 +198,11 @@ def ecosystem_test(request):
     return render(request, 'main/ecosystem_test.html')
 
 
+def privacy_policy(request):
+    ctx = _common_context(request)
+    return render(request, 'main/privacy.html', ctx)
+
+
 def robots_txt(request):
     lines = [
         'User-agent: *',

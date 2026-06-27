@@ -12,6 +12,56 @@
     <form method="post" class="cabinet-form" enctype="multipart/form-data">
         {% csrf_token %}
 
+        {% if model_name == 'user' %}
+        {# Специальное отображение для создания пользователя #}
+        <div style="margin-bottom:24px;">
+            <label class="cabinet-form-label" style="margin-bottom:12px;display:block;">Роль пользователя</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                {% for choice in form.role %}
+                <label style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px 16px;border:2px solid var(--cab-border);border-radius:12px;cursor:pointer;transition:all 0.2s ease;background:var(--cab-bg);text-align:center;{% if forloop.counter0 == 0 %}border-color:var(--cab-text-muted);{% endif %}" onmouseover="this.style.borderColor='var(--cab-primary)'" onmouseout="this.style.borderColor=this.querySelector('input').checked?'var(--cab-primary)':'var(--cab-border)'" onclick="this.parentElement.querySelectorAll('label').forEach(l=>{l.style.borderColor='var(--cab-border)';l.style.background='var(--cab-bg)'});this.style.borderColor='var(--cab-primary)';this.style.background='var(--cab-primary-light)';this.querySelector('input').checked=true">
+                    {{ choice.tag }}
+                    <span style="font-size:1.5rem;">
+                        {% if forloop.counter0 == 0 %}👤{% elif forloop.counter0 == 1 %}📋{% else %}🛠️{% endif %}
+                    </span>
+                    <span style="font-size:0.875rem;font-weight:600;color:var(--cab-text);">{{ choice.choice_label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label" for="{{ form.email.id_for_label }}">Email <span class="cabinet-required">*</span></label>
+            {{ form.email }}
+            {% if form.email.errors %}
+            <div class="cabinet-form-errors">{% for error in form.email.errors %}<p>{{ error }}</p>{% endfor %}</div>
+            {% endif %}
+        </div>
+        <div class="cabinet-panel-row">
+            <div class="cabinet-form-group">
+                <label class="cabinet-form-label" for="{{ form.first_name.id_for_label }}">Имя</label>
+                {{ form.first_name }}
+            </div>
+            <div class="cabinet-form-group">
+                <label class="cabinet-form-label" for="{{ form.last_name.id_for_label }}">Фамилия</label>
+                {{ form.last_name }}
+            </div>
+        </div>
+        <div class="cabinet-panel-row">
+            <div class="cabinet-form-group">
+                <label class="cabinet-form-label" for="{{ form.password1.id_for_label }}">Пароль <span class="cabinet-required">*</span></label>
+                {{ form.password1 }}
+                {% if form.password1.errors %}
+                <div class="cabinet-form-errors">{% for error in form.password1.errors %}<p>{{ error }}</p>{% endfor %}</div>
+                {% endif %}
+            </div>
+            <div class="cabinet-form-group">
+                <label class="cabinet-form-label" for="{{ form.password2.id_for_label }}">Пароль (ещё раз) <span class="cabinet-required">*</span></label>
+                {{ form.password2 }}
+                {% if form.password2.errors %}
+                <div class="cabinet-form-errors">{% for error in form.password2.errors %}<p>{{ error }}</p>{% endfor %}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
         {% for field in form %}
         {% if field.name in panel_fields %}
         {% elif model_name == 'sitesetting' and site_groups %}
@@ -39,6 +89,7 @@
         </div>
         {% endif %}
         {% endfor %}
+        {% endif %}
 
         {% if model_name == 'sitesetting' and site_groups %}
         {% for group in site_groups %}

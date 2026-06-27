@@ -1,0 +1,241 @@
+{% load static %}
+{% load cabinet_tags %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} — Ludera Manager</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/cabinet.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .cabinet-sidebar--collapsed { width: 56px !important; }
+        .cabinet-sidebar--collapsed .cabinet-sidebar__header > a,
+        .cabinet-sidebar--collapsed .cabinet-sidebar__header > span,
+        .cabinet-sidebar--collapsed .cabinet-nav__label,
+        .cabinet-sidebar--collapsed .cabinet-nav__link span:not(.cabinet-nav__icon),
+        .cabinet-sidebar--collapsed .cabinet-sidebar__subtitle { display: none !important; }
+        .cabinet-sidebar--collapsed .cabinet-sidebar__header { justify-content: center; }
+        .cabinet-sidebar--collapsed .sidebar-toggle { display: flex !important; margin-left: 0 !important; }
+        .cabinet-sidebar--collapsed .cabinet-nav__link { justify-content: center; padding: 10px; }
+        .cabinet-sidebar--collapsed .cabinet-nav__link svg { margin: 0; }
+        .cabinet-sidebar--collapsed .cabinet-nav__link { position: relative; }
+        .cabinet-sidebar--collapsed .cabinet-nav__link:hover::after {
+            content: attr(data-tooltip);
+            position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+            background: var(--cab-surface); border: 1px solid var(--cab-border); border-radius: 6px;
+            padding: 6px 12px; font-size: 0.8125rem; font-weight: 500; white-space: nowrap; z-index: 200;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-left: 10px; color: var(--cab-text);
+            pointer-events: none;
+        }
+        .cabinet-sidebar--collapsed .cabinet-sidebar__footer .cabinet-nav__link span { display: none !important; }
+        .cabinet-sidebar--collapsed .cabinet-sidebar__footer { align-items: center; }
+        .sidebar-toggle {
+            display: flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; border-radius: 6px; border: none;
+            background: transparent; cursor: pointer; color: var(--cab-text-muted);
+            transition: all .15s; flex-shrink: 0;
+        }
+        .sidebar-toggle:hover { background: var(--cab-hover-bg); color: var(--cab-primary); }
+        .sidebar-toggle svg { transition: transform .3s cubic-bezier(.4,0,.2,1); transform: rotate(0deg); }
+        .cabinet-sidebar--collapsed .sidebar-toggle svg { transform: rotate(180deg); }
+        .cabinet-main { transition: margin-left .2s; }
+        .cabinet-sidebar--collapsed ~ .cabinet-main { margin-left: 56px; }
+        .cabinet-nav__link { position: relative; }
+        .cabinet-nav__link span:not(.cabinet-nav__icon) { transition: opacity .15s; }
+        .nav-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+            font-size: 0.6875rem; font-weight: 600; font-family: 'IBM Plex Mono', monospace;
+            background: var(--cab-border); color: var(--cab-text-muted);
+            margin-left: auto; flex-shrink: 0; transition: all .15s;
+        }
+        .cabinet-nav__link:hover .nav-badge { background: var(--cab-primary-light); color: var(--cab-primary); }
+        .cabinet-nav__link.active .nav-badge { background: var(--cab-primary); color: #fff; }
+        .cabinet-sidebar--collapsed .nav-badge { display: none !important; }
+        .context-menu {
+            position: fixed; z-index: 1000; background: var(--cab-surface); border: 1px solid var(--cab-border);
+            border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); padding: 4px; min-width: 200px; display: none;
+        }
+        .context-menu--visible { display: block; }
+        .context-menu__item {
+            display: block; width: 100%; padding: 8px 12px; border: none; background: none;
+            text-align: left; font-size: 0.8125rem; color: var(--cab-text);
+            border-radius: 6px; cursor: pointer; font-family: 'Inter', sans-serif;
+        }
+        .context-menu__item:hover { background: var(--cab-hover-bg); }
+        .context-menu__item--danger { color: var(--cab-danger); }
+        .context-menu__item--danger:hover { background: rgba(239,68,68,0.1); }
+        .call-card { background: var(--cab-surface); border: 1px solid var(--cab-border); border-radius: var(--radius-md); padding: 20px; margin-bottom: 16px; }
+        .call-card__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .call-card__meta { font-size: 0.75rem; color: var(--cab-text-muted); }
+        .client-info { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+        .client-info__item { font-size: 0.875rem; }
+        .client-info__label { font-size: 0.6875rem; color: var(--cab-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+        .client-info__value { font-weight: 500; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="cabinet-layout">
+        <aside class="cabinet-sidebar" id="cabinetSidebar">
+            <div class="cabinet-sidebar__header" style="display:flex;align-items:center;gap:8px;">
+                <a href="{% url 'sales:dashboard' %}" class="cabinet-sidebar__logo">Ludera</a>
+                <span class="cabinet-sidebar__subtitle">Менеджер по продажам</span>
+                <button class="sidebar-toggle" id="sidebarToggle" title="Свернуть/развернуть" style="margin-left:auto;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+            </div>
+            <nav class="cabinet-nav">
+                <div class="cabinet-nav__section">
+                    <span class="cabinet-nav__label">Главное</span>
+                    <a href="{% url 'sales:dashboard' %}" class="cabinet-nav__link {% if active_section == 'dashboard' %}active{% endif %}" data-tooltip="Дашборд">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        <span>Дашборд</span>
+                    </a>
+                </div>
+                <div class="cabinet-nav__section">
+                    <span class="cabinet-nav__label">Клиенты</span>
+                    <a href="{% url 'sales:client_list' %}" class="cabinet-nav__link {% if active_section == 'clients' %}active{% endif %}" data-tooltip="База клиентов">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <span>База клиентов</span>
+                        {% if sidebar_counts.clients %}<span class="nav-badge">{{ sidebar_counts.clients }}</span>{% endif %}
+                    </a>
+                    <a href="{% url 'sales:called_list' %}" class="cabinet-nav__link {% if active_section == 'called' %}active{% endif %}" data-tooltip="Прозвоненные">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        <span>Прозвоненные</span>
+                        {% if sidebar_counts.called %}<span class="nav-badge">{{ sidebar_counts.called }}</span>{% endif %}
+                    </a>
+                    <a href="{% url 'sales:in_progress_list' %}" class="cabinet-nav__link {% if active_section == 'in_progress' %}active{% endif %}" data-tooltip="В работе">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>В работе</span>
+                        {% if sidebar_counts.in_progress %}<span class="nav-badge">{{ sidebar_counts.in_progress }}</span>{% endif %}
+                    </a>
+                    <a href="{% url 'sales:archive_list' %}" class="cabinet-nav__link {% if active_section == 'archive' %}active{% endif %}" data-tooltip="Архив">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                        <span>Архив</span>
+                    </a>
+                    <a href="{% url 'sales:completed_list' %}" class="cabinet-nav__link {% if active_section == 'completed' %}active{% endif %}" data-tooltip="Выполненные">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        <span>Выполненные</span>
+                        {% if sidebar_counts.completed %}<span class="nav-badge">{{ sidebar_counts.completed }}</span>{% endif %}
+                    </a>
+                </div>
+
+                {% if user|can_access:'services' or user|can_access:'projects' or user|can_access:'products' or user|can_access:'blog' %}
+                <div class="cabinet-nav__section">
+                    <span class="cabinet-nav__label">Контент</span>
+                    {% if user|can_access:'services' %}
+                    <a href="{% url 'cabinet:service_list' %}" class="cabinet-nav__link" data-tooltip="Услуги"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span>Услуги</span></a>
+                    {% endif %}
+                    {% if user|can_access:'projects' %}
+                    <a href="{% url 'cabinet:project_list' %}" class="cabinet-nav__link" data-tooltip="Проекты"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><span>Проекты</span></a>
+                    {% endif %}
+                    {% if user|can_access:'products' %}
+                    <a href="{% url 'cabinet:product_list' %}" class="cabinet-nav__link" data-tooltip="Продукты"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><span>Продукты</span></a>
+                    {% endif %}
+                    {% if user|can_access:'blog' %}
+                    <a href="{% url 'cabinet:blog_list' %}" class="cabinet-nav__link" data-tooltip="Блог"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Блог</span></a>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if user|can_access:'goods' %}
+                <div class="cabinet-nav__section">
+                    <span class="cabinet-nav__label">Товары</span>
+                    <a href="{% url 'cabinet:goods_list' %}" class="cabinet-nav__link" data-tooltip="Все товары"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><span>Все товары</span></a>
+                    <a href="{% url 'cabinet:goods_create' %}" class="cabinet-nav__link" data-tooltip="Создать товар"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Создать товар</span></a>
+                </div>
+                {% endif %}
+
+                {% if user|can_access:'structure' %}
+                <div class="cabinet-nav__section">
+                    <span class="cabinet-nav__label">Структура</span>
+                    <a href="{% url 'cabinet:principle_list' %}" class="cabinet-nav__link" data-tooltip="Принципы"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Принципы</span></a>
+                    <a href="{% url 'cabinet:navlink_list' %}" class="cabinet-nav__link" data-tooltip="Навигация"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Навигация</span></a>
+                </div>
+                {% endif %}
+
+                {% if user|can_access:'contacts' %}
+                <div class="cabinet-nav__section">
+                    <span class="cabinet-nav__label">Коммуникация</span>
+                    <a href="{% url 'cabinet:contact_list' %}" class="cabinet-nav__link" data-tooltip="Заявки"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg><span>Заявки</span></a>
+                </div>
+                {% endif %}
+            </nav>
+            <div class="cabinet-sidebar__footer">
+                <a href="{% url 'cabinet:logout' %}" class="cabinet-nav__link" data-tooltip="Выйти">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span>Выйти</span>
+                </a>
+            </div>
+        </aside>
+
+        <div class="cabinet-sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="cabinet-main">
+            <header class="cabinet-header">
+                <div class="cabinet-header__left">
+                    <button class="cabinet-header__burger" id="cabinetBurger" aria-label="Меню">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <span class="cabinet-header__title">{{ title }}</span>
+                </div>
+                <div class="cabinet-header__user">
+                    <span class="cabinet-header__name">
+                        {% if user.first_name or user.last_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.email }}{% endif %}
+                    </span>
+                </div>
+            </header>
+
+            {% if messages %}
+            <div style="padding: 16px 40px 0;">
+                {% for msg in messages %}
+                <div style="padding: 10px 16px;border-radius:8px;margin-bottom:8px;font-size:0.875rem;background:{% if msg.tags == 'success' %}var(--cab-primary-light){% else %}rgba(239,68,68,0.1){% endif %};color:{% if msg.tags == 'success' %}var(--cab-primary){% else %}var(--cab-danger){% endif %};">
+                    {{ msg }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="cabinet-content">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            var sidebar = document.getElementById('cabinetSidebar');
+            var toggle = document.getElementById('sidebarToggle');
+            if (!sidebar) return;
+
+            // Restore collapsed state
+            if (localStorage.getItem('sidebarCollapsed') === '1') {
+                sidebar.classList.add('cabinet-sidebar--collapsed');
+            }
+
+            if (toggle) {
+                toggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('cabinet-sidebar--collapsed');
+                    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('cabinet-sidebar--collapsed') ? '1' : '0');
+                });
+            }
+
+            // Mobile burger
+            document.getElementById('cabinetBurger')?.addEventListener('click', function() {
+                sidebar.classList.toggle('cabinet-sidebar--open');
+                document.getElementById('sidebarOverlay').classList.toggle('open');
+            });
+            document.getElementById('sidebarOverlay')?.addEventListener('click', function() {
+                sidebar.classList.remove('cabinet-sidebar--open');
+                this.classList.remove('open');
+            });
+        })();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

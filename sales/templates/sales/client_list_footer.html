@@ -1,0 +1,32 @@
+{% if page_obj %}
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="table-footer">
+    <span>{{ page_obj.paginator.count }} клиентов</span>
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search %}&q={{ search }}{% endif %}">←</a>
+        {% endif %}
+        {% for p in page_obj.paginator.page_range %}
+            {% if p == page_obj.number %}
+            <span class="active">{{ p }}</span>
+            {% elif p > page_obj.number|add:'-3' and p < page_obj.number|add:'3' %}
+            <a href="?page={{ p }}{% if search %}&q={{ search }}{% endif %}">{{ p }}</a>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search %}&q={{ search }}{% endif %}">→</a>
+        {% endif %}
+        {% if page_obj.paginator.count > 20 %}
+        <a href="?all=1{% if search %}&q={{ search }}{% endif %}" class="show-all">Показать все</a>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+{% if page_obj.paginator.count > 0 %}
+<div class="table-footer">
+    <span>{{ page_obj.paginator.count }} клиентов</span>
+    <span></span>
+</div>
+{% endif %}
+{% endif %}
+{% endif %}

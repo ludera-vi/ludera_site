@@ -24,6 +24,7 @@ URL_SECTION_MAP = [
     (r'^/cabinet/usersetting/', 'users'),
     (r'^/cabinet/sitesetting/', 'settings'),
     (r'^/cabinet/herosection/', 'settings'),
+    (r'^/cabinet/sociallink/', 'settings'),
     (r'^/cabinet/profile/', None),
     (r'^/cabinet/upload-image/', None),
 ]
@@ -32,19 +33,34 @@ URL_SECTION_MAP = [
 class CabinetAccessMiddleware(MiddlewareMixin):
     def process_request(self, request):
         path = request.path
-        if path.startswith('/cabinet/') and not path.startswith('/cabinet/login/') and not path.startswith('/cabinet/logout/'):
-            if not request.user.is_authenticated:
-                return redirect('/cabinet/login/')
-            if not request.user.is_staff:
-                return redirect('/account/login/')
-            if not request.user.is_superuser:
-                for pattern, section in URL_SECTION_MAP:
-                    if re.match(pattern, path):
-                        if section is None:
-                            break
-                        if not request.user.cabinet_permissions.filter(section=section).exists():
-                            return redirect('cabinet:dashboard')
+        if not path.startswith('/cabinet/'):
+            return
+        if path.startswith('/cabinet/login/') or path.startswith('/cabinet/logout/'):
+            return
+        if not request.user.is_authenticated:
+            return redirect('/cabinet/login/')
+        role = getattr(getattr(request.user, 'profile', None), 'role', 'admin')
+        if path.startswith('/cabinet/manager-panel/'):
+            if role == 'manager' or request.user.is_superuser:
+                return
+            return redirect('/cabinet/')
+        if role == 'manager':
+            for pattern, section in URL_SECTION_MAP:
+                if re.match(pattern, path):
+                    if section and request.user.cabinet_permissions.filter(section=section).exists():
+                        return
+                    break
+            return redirect('/cabinet/manager-panel/')
+        if not request.user.is_staff:
+            return redirect('/account/login/')
+        if not request.user.is_superuser:
+            for pattern, section in URL_SECTION_MAP:
+                if re.match(pattern, path):
+                    if section is None:
                         break
+                    if not request.user.cabinet_permissions.filter(section=section).exists():
+                        return redirect('cabinet:dashboard')
+                    break
 
 
 class PageViewMiddleware(MiddlewareMixin):

@@ -4,7 +4,7 @@ from .models import UserProfile, UserProduct, ProductFile, UserSetting
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'phone', 'email_verified', 'phone_verified', 'created_at']
+    list_display = ['user', 'phone', 'role', 'email_verified', 'phone_verified', 'created_at']
     list_filter = ['email_verified', 'phone_verified']
     search_fields = ['user__email', 'user__username', 'phone']
 

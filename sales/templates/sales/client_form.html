@@ -1,0 +1,50 @@
+{% extends base_template %}
+{% block content %}
+<div class="cabinet-form-card">
+    <form method="post" class="cabinet-form">
+        {% csrf_token %}
+        <div class="cabinet-panel-row">
+            <div class="cabinet-form-group">
+                <label class="cabinet-form-label">Имя</label>
+                {{ form.name }}
+            </div>
+            <div class="cabinet-form-group">
+                <label class="cabinet-form-label">Телефон <span class="cabinet-required">*</span></label>
+                {{ form.phone }}
+                {% if form.phone.errors %}<div class="cabinet-form-errors">{{ form.phone.errors }}</div>{% endif %}
+            </div>
+        </div>
+        <div class="cabinet-panel-row cabinet-panel-row--3">
+            <div class="cabinet-form-group">
+                <label class="cabinet-form-label">Наименование</label>
+                {{ form.company_name }}
+            </div>
+            <div class="cabinet-form-group">
+                <label class="cabinet-form-label">Город</label>
+                {{ form.city }}
+            </div>
+            <div class="cabinet-form-group">
+                <label class="cabinet-form-label">Сфера деятельности</label>
+                {{ form.industry }}
+            </div>
+        </div>
+        <div class="cabinet-panel-row">
+            <div class="cabinet-form-group">
+                <label class="cabinet-form-label">Правовой статус</label>
+                {{ form.legal_status }}
+            </div>
+        </div>
+        <div class="cabinet-form-group">
+            <label class="cabinet-form-label">Комментарий</label>
+            {{ form.comment }}
+        </div>
+        <div class="cabinet-form-actions">
+            <button type="submit" class="btn btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Создать
+            </button>
+            <a href="{{ url_clients }}" class="btn cabinet-btn-ghost">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

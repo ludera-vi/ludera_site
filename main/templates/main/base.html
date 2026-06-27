@@ -145,7 +145,7 @@
             <a href="/" class="header__logo">Ludera</a>
             <div class="header__links">
                 {% for link in nav_links %}
-                <a href="{{ link.url }}" class="header__link">{{ link.title }}</a>
+                <a href="{% if link.url|slice:':1' == '#' %}/{% endif %}{{ link.url }}" class="header__link">{{ link.title }}</a>
                 {% endfor %}
                 {% if user.is_authenticated %}
                 <a href="{% url 'users:dashboard' %}" class="header__link">{{ settings.header_account_text }}</a>
@@ -153,7 +153,7 @@
                 <a href="{% url 'users:login' %}" class="header__link">{{ settings.header_login_text }}</a>
                 {% endif %}
             </div>
-            <a href="#contact" class="btn btn--primary header__cta">{{ settings.header_cta_text }}</a>
+            <a href="/#contact" class="btn btn--primary header__cta">{{ settings.header_cta_text }}</a>
             <button class="header__burger" id="headerBurger" aria-label="Меню">
                 <span></span><span></span><span></span>
             </button>
@@ -175,13 +175,12 @@
             <a href="{% url 'users:login' %}" class="mobile-menu__link">{{ settings.header_login_text }}</a>
             {% endif %}
             {% for link in nav_links %}
-            <a href="{{ link.url }}" class="mobile-menu__link">{{ link.title }}</a>
+            <a href="{% if link.url|slice:':1' == '#' %}/{% endif %}{{ link.url }}" class="mobile-menu__link">{{ link.title }}</a>
             {% endfor %}
-            <a href="#contact" class="mobile-menu__link">{{ settings.header_cta_text }}</a>
         </nav>
         <div class="mobile-menu__footer">
             <a href="mailto:{{ settings.email|default:'hello@ludera.ru' }}" class="mobile-menu__footer-link">{{ settings.email|default:'hello@ludera.ru' }}</a>
-            <a href="#contact" class="btn btn--primary header__cta-mobile">{{ settings.header_cta_text }}</a>
+            <a href="/#contact" class="btn btn--primary header__cta-mobile">{{ settings.header_cta_text }}</a>
         </div>
     </div>
 
@@ -197,7 +196,8 @@
             <div class="footer__content">
                 <div class="footer__info">
                     <a href="/" class="footer__logo">Ludera</a>
-                    <p class="footer__desc">{{ settings.footer_description|default:'Создаём современные цифровые решения для малого и среднего бизнеса.' }}</p>
+                    <a href="/cabinet/" class="footer__cabinet-link" aria-label="Служебный вход">служебный вход</a>
+                    <p class="footer__desc">{{ settings.footer_description|default:'Создаём чат-ботов, сайты и CRM-системы, которые автоматизируют бизнес и экономят ваше время.' }}</p>
                     <a href="mailto:{{ settings.email|default:'hello@ludera.ru' }}" class="footer__email">{{ settings.email|default:'hello@ludera.ru' }}</a>
                 </div>
 
@@ -205,7 +205,7 @@
                     <h4 class="footer__col-title">{{ settings.footer_company_title }}</h4>
                     <ul class="footer__links">
                         {% for link in nav_links %}
-                            <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+                            <li><a href="{% if link.url|slice:':1' == '#' %}/{% endif %}{{ link.url }}">{{ link.title }}</a></li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -223,13 +223,14 @@
             <div class="footer__bottom">
                 <div class="footer__copyright-wrap">
                     <p class="footer__copyright">{{ settings.copyright_text|default:'© 2024 Ludera. Все права защищены.' }}</p>
-                    {% if settings.footer_ip_name %}
+                    {% if settings.footer_ip_name or settings.footer_ip_inn or settings.footer_ip_ogrnip %}
                     <p class="footer__ip">{{ settings.footer_ip_name }}{% if settings.footer_ip_inn %}, ИНН: {{ settings.footer_ip_inn }}{% endif %}{% if settings.footer_ip_ogrnip %}, ОГРНИП: {{ settings.footer_ip_ogrnip }}{% endif %}</p>
                     {% endif %}
                     {% if settings.footer_ip_address %}
                     <p class="footer__ip">{{ settings.footer_ip_address }}</p>
                     {% endif %}
                 </div>
+                <a href="{% url 'main:privacy' %}" class="footer__privacy">Политика конфиденциальности</a>
                 <div class="footer__socials">
                     {% for link in social_links %}
                     <a href="{{ link.url }}" class="footer__social-link" aria-label="{{ link.name }}" target="_blank" rel="noopener">
@@ -241,11 +242,43 @@
         </div>
     </footer>
 
+    {# ─── Cookie Consent Banner ────────────────────────────────── #}
+    <div class="cookie-banner" id="cookieBanner" role="dialog" aria-label="Уведомление о cookie">
+        <div class="cookie-banner__inner">
+            <p class="cookie-banner__text">
+                Мы используем cookie, чтобы сайт работал лучше.
+                <a href="{% url 'main:privacy' %}">Подробнее</a>
+            </p>
+            <div class="cookie-banner__actions">
+                <button class="cookie-btn cookie-btn--ghost" data-cookie="reject">Отклонить</button>
+                <button class="cookie-btn cookie-btn--primary" data-cookie="accept">Принять</button>
+            </div>
+        </div>
+    </div>
+
     <button class="scroll-top" id="scrollTop" aria-label="Наверх">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
     </button>
 
     <script src="{% static 'js/main.js' %}"></script>
     <script src="{% static 'main/js/ecosystem.js' %}"></script>
+    <script>
+    (function() {
+        var banner = document.getElementById('cookieBanner');
+        if (!banner) return;
+        var key = 'ludera_cookie_consent';
+        var stored = localStorage.getItem(key);
+        if (stored) {
+            banner.classList.add('cookie-banner--hidden');
+        }
+        banner.querySelectorAll('[data-cookie]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var action = this.getAttribute('data-cookie');
+                localStorage.setItem(key, action === 'accept' ? 'all' : 'necessary');
+                banner.classList.add('cookie-banner--hidden');
+            });
+        });
+    })();
+    </script>
 </body>
 </html>

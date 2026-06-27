@@ -6,11 +6,17 @@ from main.models import Product
 
 
 class UserProfile(models.Model):
+    ROLES = [
+        ('client', 'Клиент'),
+        ('manager', 'Менеджер по продажам'),
+        ('admin', 'Администратор'),
+    ]
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     phone = models.CharField('Телефон', max_length=20, blank=True, null=True)
     email_verified = models.BooleanField('Email подтверждён', default=False)
     phone_verified = models.BooleanField('Телефон подтверждён', default=False)
     avatar = models.ImageField('Аватар', upload_to='avatars/', blank=True)
+    role = models.CharField('Роль', max_length=20, choices=ROLES, default='admin')
     created_at = models.DateTimeField('Создан', auto_now_add=True)
     updated_at = models.DateTimeField('Обновлён', auto_now=True)
 

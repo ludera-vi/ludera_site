@@ -1,0 +1,500 @@
+{% extends base_template %}
+{% block content %}
+<style>
+.client-detail { max-width: 960px; }
+
+.client-detail__back {
+    display: inline-flex; align-items: center; gap: 8px; font-size: 0.8125rem;
+    font-weight: 500; color: var(--cab-text-muted); text-decoration: none;
+    margin-bottom: 24px; padding: 6px 12px; border-radius: 8px;
+    transition: all .2s; margin-left: -12px;
+}
+.client-detail__back:hover { color: var(--cab-primary); background: var(--cab-active-bg); }
+
+.client-card {
+    background: var(--cab-surface); border: 1px solid var(--cab-border);
+    border-radius: 12px; overflow: hidden; margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+.client-card__header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px; border-bottom: 1px solid var(--cab-border);
+    flex-wrap: wrap; gap: 12px;
+}
+.client-card__body { padding: 24px; }
+
+.client-card__title {
+    font-size: 1rem; font-weight: 600; color: var(--cab-text);
+    display: flex; align-items: center; gap: 8px;
+}
+.client-card__subtitle {
+    font-size: 0.8125rem; color: var(--cab-text-muted); margin-top: 2px;
+}
+
+.client-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.client-grid--full { grid-template-columns: 1fr; }
+@media (max-width: 640px) { .client-grid { grid-template-columns: 1fr; } }
+
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label {
+    font-size: 0.6875rem; font-weight: 600; color: var(--cab-text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+}
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 10px 14px; border: 1.5px solid var(--cab-border);
+    border-radius: 8px; font-size: 0.875rem; font-family: 'Inter', sans-serif;
+    background: var(--cab-bg); color: var(--cab-text);
+    transition: all .2s ease; box-sizing: border-box; outline: none;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--cab-primary); box-shadow: 0 0 0 3px rgba(45,143,94,0.1);
+}
+.form-group input:disabled, .form-group select:disabled, .form-group textarea:disabled {
+    opacity: 0.55; cursor: not-allowed; background: var(--cab-bg);
+}
+.status-option input[type="radio"]:disabled + .status-dot {
+    opacity: 0.4;
+}
+.status-option input[type="radio"]:disabled ~ span:not(.status-dot) {
+    opacity: 0.55;
+}
+.form-group textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+.status-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.status-option {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 20px; border: 1.5px solid var(--cab-border);
+    background: var(--cab-bg); cursor: pointer; font-size: 0.8125rem;
+    font-weight: 500; color: var(--cab-text); transition: all .2s ease; user-select: none;
+}
+.status-option:hover { border-color: var(--cab-text-muted); }
+.status-option input[type="radio"] { display: none; }
+.status-option--active { border-color: var(--cab-primary); background: var(--cab-primary-light); color: var(--cab-primary); box-shadow: 0 0 0 1px var(--cab-primary); }
+.status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+.form-actions {
+    display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 20px;
+}
+.btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 24px; border-radius: 8px; font-size: 0.875rem;
+    font-weight: 500; font-family: 'Inter', sans-serif; cursor: pointer;
+    border: 1.5px solid var(--cab-border); background: var(--cab-surface);
+    color: var(--cab-text); transition: all .2s ease; text-decoration: none;
+}
+.btn:hover { border-color: var(--cab-primary); color: var(--cab-primary); }
+.btn--primary { background: var(--cab-primary); color: #fff; border-color: var(--cab-primary); }
+.btn--primary:hover { background: var(--cab-primary-hover); color: #fff; box-shadow: 0 2px 8px rgba(45,143,94,0.25); }
+
+.current-status {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 16px; border-radius: 20px; font-size: 0.8125rem; font-weight: 600;
+}
+.current-status--negotiation { background: #fff7ed; color: #c2410c; }
+.current-status--tz_creation { background: #eff6ff; color: #2563eb; }
+.current-status--tz_approval { background: #f5f3ff; color: #7c3aed; }
+.current-status--contract_signing { background: #fffbeb; color: #d97706; }
+.current-status--in_progress { background: #ecfdf5; color: #059669; }
+.current-status--completed { background: #f0fdf4; color: #15803d; }
+.current-status--refusal { background: #fef2f2; color: #dc2626; }
+.current-status--none { background: #f9fafb; color: #6b7280; }
+
+/* ─── Timeline ─── */
+.timeline { position: relative; padding-left: 32px; }
+.timeline::before {
+    content: ''; position: absolute; left: 7px; top: 12px; bottom: 12px;
+    width: 2px; background: var(--cab-border);
+}
+.timeline-item { position: relative; padding: 16px 0; }
+.timeline-item:last-child { padding-bottom: 0; }
+.timeline-item__dot {
+    position: absolute; left: -32px; top: 20px;
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid var(--cab-surface);
+    box-shadow: 0 0 0 1px var(--cab-border);
+}
+.timeline-item__header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap;
+}
+.timeline-item__badge {
+    font-size: 0.6875rem; font-weight: 600; padding: 3px 10px;
+    border-radius: 6px; font-family: 'IBM Plex Mono', monospace;
+}
+.timeline-item__date {
+    font-size: 0.75rem; color: var(--cab-text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+}
+.timeline-item__manager {
+    font-size: 0.75rem; color: var(--cab-text-muted);
+}
+.timeline-item__comment {
+    font-size: 0.8125rem; color: var(--cab-text); line-height: 1.6;
+    margin-top: 8px; white-space: pre-wrap; overflow-wrap: break-word;
+    background: var(--cab-bg); padding: 10px 14px;
+    border-radius: 8px; border: 1px solid var(--cab-border);
+}
+.timeline-item__comment .was { color: var(--cab-text-muted); font-weight: 500; }
+.timeline-item__comment .became { color: var(--cab-primary); font-weight: 600; }
+
+/* ─── Badges ─── */
+.badge {
+    display: inline-flex; align-items: center; font-size: 0.6875rem; font-weight: 600;
+    padding: 3px 10px; border-radius: 6px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap;
+}
+.badge--negotiation { background: #fff7ed; color: #c2410c; }
+.badge--tz_creation { background: #eff6ff; color: #2563eb; }
+.badge--tz_approval { background: #f5f3ff; color: #7c3aed; }
+.badge--contract_signing { background: #fffbeb; color: #d97706; }
+.badge--in_progress { background: #ecfdf5; color: #059669; }
+.badge--completed { background: #f0fdf4; color: #15803d; }
+.badge--refusal { background: #fef2f2; color: #dc2626; }
+.badge--new { background: #f3f4f6; color: #6b7280; }
+
+/* ─── Documents ─── */
+.documents-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px;
+}
+.doc-card {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border: 1px solid var(--cab-border);
+    border-radius: 10px; background: var(--cab-bg);
+    transition: all .2s ease;
+}
+.doc-card:hover { border-color: var(--cab-primary); background: var(--cab-surface); }
+.doc-card__icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6875rem; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+    color: #fff; flex-shrink: 0;
+}
+.doc-card__info { flex: 1; min-width: 0; }
+.doc-card__name {
+    font-size: 0.8125rem; font-weight: 500; color: var(--cab-text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.doc-card__meta { font-size: 0.6875rem; color: var(--cab-text-muted); margin-top: 2px; }
+.doc-card__actions { display: flex; gap: 2px; flex-shrink: 0; }
+.doc-card__btn {
+    background: none; border: none; cursor: pointer; color: var(--cab-text-muted);
+    padding: 6px; border-radius: 6px; transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+}
+.doc-card__btn:hover { background: rgba(0,0,0,0.04); }
+.doc-card__btn--download:hover { color: var(--cab-primary); background: var(--cab-primary-light); }
+.doc-card__btn--delete:hover { color: var(--cab-danger); background: rgba(239,68,68,0.08); }
+
+/* ─── Upload zone ─── */
+.upload-zone {
+    border: 2px dashed var(--cab-border); border-radius: 12px;
+    padding: 24px 20px; text-align: center; cursor: pointer;
+    transition: all .2s ease; background: var(--cab-bg);
+}
+.upload-zone:hover { border-color: var(--cab-primary); background: var(--cab-primary-light); }
+.upload-zone__text { font-size: 0.8125rem; color: var(--cab-text-muted); }
+.upload-zone__icon { margin-bottom: 8px; opacity: 0.35; }
+
+.upload-preview {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--cab-bg); border: 1px solid var(--cab-border);
+    border-radius: 10px; padding: 12px 16px;
+}
+
+.empty-state {
+    text-align: center; padding: 40px 20px; color: var(--cab-text-muted); font-size: 0.875rem;
+}
+.empty-state svg { opacity: 0.25; margin-bottom: 10px; }
+</style>
+
+<a href="{% if active_section == 'called' %}{% url ns|add:':called_list' %}{% elif active_section == 'in_progress' %}{% url ns|add:':in_progress_list' %}{% elif active_section == 'archive' %}{% url ns|add:':archive_list' %}{% elif active_section == 'completed' %}{% url ns|add:':completed_list' %}{% else %}{{ url_clients }}{% endif %}" class="client-detail__back">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    К списку клиентов
+</a>
+
+<form method="post" action="{% url ns|add:':client_update' client.pk %}" class="client-detail" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="from_section" value="{{ active_section|default:'clients' }}">
+
+    <div class="client-card">
+        <div class="client-card__header">
+            <div>
+                <div class="client-card__title">
+                    {{ client.name|default:client.company_name|default:client.phone }}
+                </div>
+                <div class="client-card__subtitle">{{ client.phone }}{% if client.company_name %} · {{ client.company_name }}{% endif %}{% if client.city %} · {{ client.city }}{% endif %}{% if not can_modify %} · <span class="badge badge--new">просмотр</span>{% endif %}</div>
+            </div>
+            {% with last_call=calls.last %}
+            {% if last_call %}
+            <div class="current-status current-status--{{ last_call.status }}">
+                <span class="status-dot" style="background:inherit;"></span>
+                {{ last_call.get_status_display }}
+            </div>
+            {% else %}
+            <div class="current-status current-status--none">
+                <span class="status-dot" style="background:#6b7280;"></span>
+                Новый
+            </div>
+            {% endif %}
+            {% endwith %}
+        </div>
+        <div class="client-card__body">
+            <div class="client-grid">
+                <div class="form-group">
+                    <label>Имя</label>
+                    <input type="text" name="name" value="{{ client.name }}" placeholder="Имя клиента" {% if not can_modify %}disabled{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label>Телефон</label>
+                    <input type="text" name="phone" value="{{ client.phone }}" placeholder="+7 (999) 123-45-67" required {% if not can_modify %}disabled{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label>Наименование компании</label>
+                    <input type="text" name="company_name" value="{{ client.company_name }}" placeholder="Название организации" {% if not can_modify %}disabled{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label>Город</label>
+                    <input type="text" name="city" value="{{ client.city }}" placeholder="Город" {% if not can_modify %}disabled{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label>Сфера деятельности</label>
+                    <input type="text" name="industry" value="{{ client.industry }}" placeholder="IT, retail, services..." {% if not can_modify %}disabled{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label>Правовой статус</label>
+                    <select name="legal_status" {% if not can_modify %}disabled{% endif %}>
+                        <option value="">Не указан</option>
+                        {% for key, label in form_legal_statuses %}
+                        {% if key %}<option value="{{ key }}" {% if client.legal_status == key %}selected{% endif %}>{{ label }}</option>{% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% with last_call=calls.last %}
+    {% if last_call %}
+    <div class="client-card">
+        <div class="client-card__header">
+            <div class="client-card__title">Статус</div>
+            <div class="client-card__subtitle">Последний обзвон: {{ last_call.created_at|date:'d.m.Y H:i' }}</div>
+        </div>
+        <div class="client-card__body">
+            <div class="status-grid">
+                <label class="status-option {% if last_call.status == 'negotiation' %}status-option--active{% endif %}">
+                    <input type="radio" name="status" value="negotiation" {% if last_call.status == 'negotiation' %}checked{% endif %} {% if not can_modify %}disabled{% endif %}>
+                    <span class="status-dot" style="background:#c2410c;"></span>Согласование
+                </label>
+                <label class="status-option {% if last_call.status == 'tz_creation' %}status-option--active{% endif %}">
+                    <input type="radio" name="status" value="tz_creation" {% if last_call.status == 'tz_creation' %}checked{% endif %} {% if not can_modify %}disabled{% endif %}>
+                    <span class="status-dot" style="background:#2563eb;"></span>Создание ТЗ
+                </label>
+                <label class="status-option {% if last_call.status == 'tz_approval' %}status-option--active{% endif %}">
+                    <input type="radio" name="status" value="tz_approval" {% if last_call.status == 'tz_approval' %}checked{% endif %} {% if not can_modify %}disabled{% endif %}>
+                    <span class="status-dot" style="background:#7c3aed;"></span>Согласование ТЗ
+                </label>
+                <label class="status-option {% if last_call.status == 'contract_signing' %}status-option--active{% endif %}">
+                    <input type="radio" name="status" value="contract_signing" {% if last_call.status == 'contract_signing' %}checked{% endif %} {% if not can_modify %}disabled{% endif %}>
+                    <span class="status-dot" style="background:#d97706;"></span>Подписание договора
+                </label>
+                <label class="status-option {% if last_call.status == 'in_progress' %}status-option--active{% endif %}">
+                    <input type="radio" name="status" value="in_progress" {% if last_call.status == 'in_progress' %}checked{% endif %} {% if not can_modify %}disabled{% endif %}>
+                    <span class="status-dot" style="background:#059669;"></span>В работе
+                </label>
+                <label class="status-option {% if last_call.status == 'completed' %}status-option--active{% endif %}">
+                    <input type="radio" name="status" value="completed" {% if last_call.status == 'completed' %}checked{% endif %} {% if not can_modify %}disabled{% endif %}>
+                    <span class="status-dot" style="background:#15803d;"></span>Выполнено
+                </label>
+                <label class="status-option {% if last_call.status == 'refusal' %}status-option--active{% endif %}">
+                    <input type="radio" name="status" value="refusal" {% if last_call.status == 'refusal' %}checked{% endif %} {% if not can_modify %}disabled{% endif %}>
+                    <span class="status-dot" style="background:#dc2626;"></span>Отказ
+                </label>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="client-card">
+        <div class="client-card__header">
+            <div class="client-card__title">Комментарий</div>
+        </div>
+        <div class="client-card__body">
+            <div class="client-grid client-grid--full">
+                <div class="form-group">
+                    <textarea name="comment" placeholder="Заметки о клиенте, детали обзвона..." {% if not can_modify %}disabled{% endif %}>{{ client.comment }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="client-card">
+        <div class="client-card__header">
+            <div class="client-card__title">Документы</div>
+            <div class="client-card__subtitle">{{ documents.count }} файлов</div>
+        </div>
+        <div class="client-card__body">
+            {% if documents %}
+            <div class="documents-grid" id="documentsGrid">
+                {% for doc in documents %}
+                <div class="doc-card" data-doc-id="{{ doc.pk }}">
+                    <div class="doc-card__icon" style="background:{% if doc.extension == 'PDF' %}#dc2626{% elif doc.extension == 'XLSX' or doc.extension == 'XLS' %}#059669{% elif doc.extension == 'DOCX' or doc.extension == 'DOC' %}#2563eb{% elif doc.extension == 'JPG' or doc.extension == 'JPEG' or doc.extension == 'PNG' %}#7c3aed{% else %}#6b7280{% endif %}">
+                        {{ doc.extension|default:'FILE' }}
+                    </div>
+                    <div class="doc-card__info">
+                        <div class="doc-card__name" title="{{ doc.title }}">{{ doc.title }}</div>
+                        <div class="doc-card__meta">{{ doc.uploaded_by.first_name|default:doc.uploaded_by.email|default:'—' }} · {{ doc.created_at|date:'d.m.Y' }}</div>
+                    </div>
+                    <div class="doc-card__actions">
+                        <a href="{{ doc.file.url }}" download class="doc-card__btn doc-card__btn--download" title="Скачать">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        </a>
+                        {% if can_modify %}
+                        <button type="button" class="doc-card__btn doc-card__btn--delete delete-doc-btn" data-url="{% url ns|add:':delete_document' client.pk doc.pk %}" title="Удалить">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if can_modify %}
+            <div style="margin-top:16px;">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-zone__icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <div class="upload-zone__text">Нажмите или перетащите файл</div>
+                    <input type="file" name="doc_file" id="docFileInput" style="display:none;">
+                </div>
+                <div id="uploadPreview" style="display:none;margin-top:12px;">
+                    <div class="upload-preview">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cab-primary)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <span id="uploadFileName" style="flex:1;font-size:0.8125rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                        <button type="button" id="uploadRemoveBtn" class="doc-card__btn doc-card__btn--delete" title="Убрать">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if can_modify %}
+    <div class="form-actions">
+        <button type="submit" class="btn btn--primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Сохранить
+        </button>
+    </div>
+    {% endif %}
+
+    <div class="client-card">
+        <div class="client-card__header">
+            <div class="client-card__title">История</div>
+            <div class="client-card__subtitle">{{ activities.count }} записей</div>
+        </div>
+        <div class="client-card__body">
+            <div class="timeline">
+                {% for act in activities %}
+                <div class="timeline-item">
+                    <div class="timeline-item__dot" style="background:
+                        {% if act.activity_type == 'status' %}var(--cab-primary)
+                        {% elif act.activity_type == 'edit' %}#2563eb
+                        {% elif act.activity_type == 'comment' %}#7c3aed
+                        {% elif act.activity_type == 'document' %}#d97706
+                        {% elif act.activity_type == 'call' %}#059669
+                        {% else %}#6b7280{% endif %};"></div>
+                    <div class="timeline-item__header">
+                        {% if act.activity_type == 'status' %}
+                        <span class="badge badge--{{ act.new_value|cut:' ' }}">{{ act.title }}</span>
+                        {% else %}
+                        <span class="badge" style="background:{% if act.activity_type == 'edit' %}#eff6ff;color:#2563eb{% elif act.activity_type == 'comment' %}#f5f3ff;color:#7c3aed{% elif act.activity_type == 'document' %}#fffbeb;color:#d97706{% else %}#f3f4f6;color:#6b7280{% endif %};">{{ act.title }}</span>
+                        {% endif %}
+                        <span class="timeline-item__date">{{ act.created_at|date:'d.m.Y H:i' }}</span>
+                        <span class="timeline-item__manager">{{ act.user.first_name|default:act.user.email|default:'—' }}</span>
+                    </div>
+                    {% if act.old_value or act.new_value %}
+                    <div class="timeline-item__comment">
+                        {% if act.new_value %}<span class="became">Стало:</span> {{ act.new_value }}{% endif %}
+                        {% if act.old_value and act.new_value %}<br>{% endif %}
+                        {% if act.old_value %}<span class="was">Было:</span> {{ act.old_value }}{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <p>История пуста</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+(function() {
+    document.querySelectorAll('.status-option').forEach(function(opt) {
+        opt.addEventListener('click', function() {
+            var inp = opt.querySelector('input[type="radio"]');
+            if (inp && inp.disabled) return;
+            document.querySelectorAll('.status-option').forEach(function(o) { o.classList.remove('status-option--active'); });
+            opt.classList.add('status-option--active');
+        });
+    });
+
+    var uploadZone = document.getElementById('uploadZone');
+    var fileInput = document.getElementById('docFileInput');
+    var preview = document.getElementById('uploadPreview');
+    var fileName = document.getElementById('uploadFileName');
+    var removeBtn = document.getElementById('uploadRemoveBtn');
+
+    if (uploadZone && fileInput) {
+        uploadZone.addEventListener('click', function() { fileInput.click(); });
+        uploadZone.addEventListener('dragover', function(e) { e.preventDefault(); uploadZone.style.borderColor = 'var(--cab-primary)'; });
+        uploadZone.addEventListener('dragleave', function() { uploadZone.style.borderColor = ''; });
+        uploadZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadZone.style.borderColor = '';
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                showFile(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', function() {
+            if (this.files.length) showFile(this.files[0]);
+        });
+    }
+
+    function showFile(file) {
+        fileName.textContent = file.name;
+        preview.style.display = '';
+    }
+
+    if (removeBtn) {
+        removeBtn.addEventListener('click', function() {
+            fileInput.value = '';
+            preview.style.display = 'none';
+        });
+    }
+
+    document.querySelectorAll('.delete-doc-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            if (!confirm('Удалить документ?')) return;
+            var form = document.getElementById('deleteDocForm');
+            form.action = this.dataset.url;
+            form.submit();
+        });
+    });
+})();
+</script>
+
+<form method="post" id="deleteDocForm" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="from_section" value="{{ active_section|default:'clients' }}">
+</form>
+
+{% endblock %}

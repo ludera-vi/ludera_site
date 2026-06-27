@@ -1,0 +1,52 @@
+{% extends base_template %}
+{% block content %}
+<div class="cabinet-dashboard">
+    <div class="cabinet-stats-grid">
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ total_clients }}</div>
+            <div class="cabinet-stat-label">Всего клиентов в базе</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value cabinet-stat-value--warn">{{ uncalled }}</div>
+            <div class="cabinet-stat-label">Непрозвоненные</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ in_progress }}</div>
+            <div class="cabinet-stat-label">В работе</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ archived }}</div>
+            <div class="cabinet-stat-label">В архиве</div>
+        </div>
+        <div class="cabinet-stat-card">
+            <div class="cabinet-stat-value">{{ my_clients }}</div>
+            <div class="cabinet-stat-label">Мои клиенты</div>
+        </div>
+    </div>
+
+    {% if status_counts %}
+    <div class="cabinet-chart-card">
+        <div class="cabinet-chart-title">Статусы обзвонов</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            {% for item in status_counts %}
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span style="width:120px;font-size:0.8125rem;color:var(--cab-text-muted);">
+                    {% if item.status == 'refusal' %}Отказ
+                    {% elif item.status == 'tz_creation' %}Создание ТЗ
+                    {% elif item.status == 'tz_approval' %}Согласование ТЗ
+                    {% elif item.status == 'contract_signing' %}Подписание договора
+                    {% elif item.status == 'in_progress' %}В работе
+                    {% elif item.status == 'completed' %}Выполнено
+                    {% else %}{{ item.status }}{% endif %}
+                </span>
+                <div style="flex:1;height:8px;background:var(--cab-bg);border-radius:4px;overflow:hidden;">
+                    <div style="height:100%;background:{% if item.status == 'refusal' %}#ef4444{% elif item.status == 'tz_creation' %}#3b82f6{% elif item.status == 'tz_approval' %}#8b5cf6{% elif item.status == 'contract_signing' %}#f59e0b{% elif item.status == 'in_progress' %}#22c55e{% else %}#6b7280{% endif %};border-radius:4px;transition:width 0.5s ease;width:{% widthratio item.count total_calls 100 %}%;"></div>
+                </div>
+                <span style="font-size:0.8125rem;font-weight:600;min-width:30px;text-align:right;">{{ item.count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
