@@ -138,6 +138,15 @@
     </script>
 
     {% block extra_head %}{% endblock extra_head %}
+
+    {# ─── Cookie Consent: no-flash check ─────────────────────── #}
+    <script>
+    (function(){
+        if (localStorage.getItem('ludera_cookie_consent')) {
+            document.documentElement.classList.add('cookie-consent-given');
+        }
+    })();
+    </script>
 </head>
 <body>
     <header class="header">
@@ -267,10 +276,6 @@
         var banner = document.getElementById('cookieBanner');
         if (!banner) return;
         var key = 'ludera_cookie_consent';
-        var stored = localStorage.getItem(key);
-        if (stored) {
-            banner.classList.add('cookie-banner--hidden');
-        }
         banner.querySelectorAll('[data-cookie]').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var action = this.getAttribute('data-cookie');

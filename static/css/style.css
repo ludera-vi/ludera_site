@@ -3104,6 +3104,10 @@ img {
     pointer-events: none;
 }
 
+html.cookie-consent-given .cookie-banner {
+    display: none;
+}
+
 .cookie-banner__inner {
     display: flex;
     align-items: center;
