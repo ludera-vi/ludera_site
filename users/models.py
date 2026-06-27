@@ -5,6 +5,47 @@ from django.urls import reverse
 from main.models import Product
 
 
+class ManagerSuggestion(models.Model):
+    STATUS_CHOICES = [
+        ('unread', 'Не прочитано'),
+        ('read', 'Прочитано'),
+        ('accepted', 'Принято'),
+        ('rejected', 'Отклонено'),
+    ]
+    manager = models.ForeignKey(User, on_delete=models.CASCADE, related_name='suggestions', verbose_name='Менеджер')
+    admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='handled_suggestions', verbose_name='Администратор')
+    message = models.TextField('Сообщение')
+    status = models.CharField('Статус', max_length=20, choices=STATUS_CHOICES, default='unread')
+    admin_comment = models.TextField('Комментарий администратора', blank=True, default='')
+    is_closed = models.BooleanField('Топик закрыт', default=False)
+    created_at = models.DateTimeField('Создано', auto_now_add=True)
+    updated_at = models.DateTimeField('Обновлено', auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Предложение менеджера'
+        verbose_name_plural = 'Предложения менеджеров'
+
+    def __str__(self):
+        return f'От {self.manager.email} — {self.get_status_display()}'
+
+
+class SuggestionMessage(models.Model):
+    suggestion = models.ForeignKey(ManagerSuggestion, on_delete=models.CASCADE, related_name='messages', verbose_name='Предложение')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='suggestion_messages', verbose_name='Автор')
+    message = models.TextField('Сообщение')
+    is_read = models.BooleanField('Прочитано', default=False)
+    created_at = models.DateTimeField('Создано', auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        verbose_name = 'Сообщение в предложении'
+        verbose_name_plural = 'Сообщения в предложениях'
+
+    def __str__(self):
+        return f'{self.author.email} — {self.message[:60]}'
+
+
 class UserProfile(models.Model):
     ROLES = [
         ('client', 'Клиент'),

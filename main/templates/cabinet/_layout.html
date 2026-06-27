@@ -126,6 +126,11 @@
                         <span>Выполненные</span>
                         {% if sidebar_counts.completed %}<span class="nav-badge">{{ sidebar_counts.completed }}</span>{% endif %}
                     </a>
+                    <a href="{% url 'cabinet:admin_suggestion_list' %}" class="cabinet-nav__link {% if request.resolver_match.url_name == 'admin_suggestion_list' %}active{% endif %}" data-tooltip="Обратная связь">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span>Обратная связь</span>
+                        {% if sidebar_counts.suggestions_unread %}<span class="nav-badge" style="background:var(--cab-danger);color:#fff;">{{ sidebar_counts.suggestions_unread }}</span>{% endif %}
+                    </a>
                 </div>
                 {% endif %}
 

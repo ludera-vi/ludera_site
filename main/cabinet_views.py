@@ -22,7 +22,7 @@ from .forms import (
     PrincipleForm, ContactRequestForm,
     LoginForm, GoodsForm, GoodsFileForm, SocialLinkForm,
 )
-from users.models import UserProfile, UserProduct, ProductFile, UserSetting, Goods, GoodsFile, UserGoods, CabinetPermission
+from users.models import UserProfile, UserProduct, ProductFile, UserSetting, Goods, GoodsFile, UserGoods, CabinetPermission, ManagerSuggestion, SuggestionMessage
 from users.forms import UserProfileForm, UserCreateForm
 from sales.models import Client, Call, ClientActivity, CALL_STATUSES
 
@@ -1084,3 +1084,174 @@ def manager_dashboard(request):
         'manager_rows': manager_rows,
         'activities_today': activities_today,
     })
+
+
+@login_required(login_url='/cabinet/login/')
+def admin_suggestion_list(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'Доступ запрещён')
+        return redirect('cabinet:dashboard')
+
+    open_pk = ''
+
+    # Handle reply
+    if request.method == 'POST':
+        pk = request.POST.get('pk', '')
+        action = request.POST.get('action', '')
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+        if action == 'reply' and pk:
+            sug = get_object_or_404(ManagerSuggestion, pk=pk)
+            if not sug.is_closed:
+                text = request.POST.get('message', '').strip()
+                if text:
+                    msg = SuggestionMessage.objects.create(
+                        suggestion=sug, author=request.user, message=text
+                    )
+                    if sug.status == 'unread':
+                        sug.status = 'read'
+                        sug.save(update_fields=['status'])
+                    if is_ajax:
+                        from django.utils import timezone
+                        t = timezone.localtime(msg.created_at)
+                        return JsonResponse({
+                            'ok': True,
+                            'message': msg.message,
+                            'author': msg.author.get_full_name() or msg.author.email,
+                            'is_superuser': msg.author.is_superuser,
+                            'time': t.strftime('%H:%M'),
+                            'pk': msg.pk,
+                        })
+            open_pk = pk
+        elif action == 'close' and pk:
+            sug = get_object_or_404(ManagerSuggestion, pk=pk)
+            sug.is_closed = True
+            sug.save(update_fields=['is_closed'])
+            messages.success(request, 'Топик закрыт')
+            open_pk = pk
+        elif action == 'reopen' and pk:
+            sug = get_object_or_404(ManagerSuggestion, pk=pk)
+            sug.is_closed = False
+            sug.save(update_fields=['is_closed'])
+            messages.success(request, 'Топик открыт')
+            open_pk = pk
+
+        if is_ajax:
+            return JsonResponse({'ok': False}, status=400)
+        url = reverse('cabinet:admin_suggestion_list')
+        if open_pk:
+            url += f'?open={open_pk}'
+        return redirect(url)
+
+    qs = ManagerSuggestion.objects.select_related('manager', 'admin').prefetch_related('messages', 'messages__author').all()
+    search = request.GET.get('q', '').strip()
+    if search:
+        qs = qs.filter(
+            Q(message__icontains=search) |
+            Q(admin_comment__icontains=search) |
+            Q(manager__email__icontains=search) |
+            Q(manager__first_name__icontains=search) |
+            Q(manager__last_name__icontains=search)
+        )
+    paginator = Paginator(qs, 15)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    suggestions = list(page_obj.object_list)
+    for s in suggestions:
+        s.has_unread = any(
+            not m.is_read and not m.author.is_superuser
+            for m in s.messages.all()
+        )
+    return render(request, 'cabinet/suggestion_list.html', {
+        'title': 'Обратная связь — Предложения менеджеров',
+        'suggestions': suggestions,
+        'page_obj': page_obj,
+        'search': search,
+    })
+
+
+@login_required(login_url='/cabinet/login/')
+def suggestion_mark_read(request):
+    if request.method != 'POST':
+        return JsonResponse({'ok': False}, status=405)
+    pk = request.POST.get('pk', '')
+    if not pk:
+        return JsonResponse({'ok': False}, status=400)
+    try:
+        sug = ManagerSuggestion.objects.get(pk=pk)
+        if request.user.is_superuser or sug.manager == request.user:
+            SuggestionMessage.objects.filter(
+                suggestion=sug,
+                is_read=False
+            ).exclude(author=request.user).update(is_read=True)
+            return JsonResponse({'ok': True})
+    except ManagerSuggestion.DoesNotExist:
+        pass
+    return JsonResponse({'ok': False}, status=404)
+
+
+@login_required(login_url='/cabinet/login/')
+def admin_suggestion_action(request, pk):
+    if request.method != 'POST':
+        return redirect('cabinet:admin_suggestion_list')
+    if not request.user.is_superuser:
+        messages.error(request, 'Доступ запрещён')
+        return redirect('cabinet:dashboard')
+    suggestion = get_object_or_404(ManagerSuggestion, pk=pk)
+    status = request.POST.get('status', '')
+    comment = request.POST.get('admin_comment', '').strip()
+    reply_text = request.POST.get('message', '').strip()
+    if status in dict(ManagerSuggestion.STATUS_CHOICES):
+        suggestion.status = status
+    suggestion.admin = request.user
+    if comment:
+        suggestion.admin_comment = comment
+    suggestion.save()
+    if reply_text:
+        SuggestionMessage.objects.create(
+            suggestion=suggestion, author=request.user, message=reply_text
+        )
+    messages.success(request, 'Статус предложения обновлён')
+    return redirect('cabinet:admin_suggestion_list')
+
+
+@login_required(login_url='/cabinet/login/')
+def suggestion_poll(request):
+    from django.utils import timezone
+    data = {'unread_count': 0, 'new_messages': []}
+
+    if request.user.is_superuser:
+        unread_suggestions = ManagerSuggestion.objects.filter(status='unread').count()
+        unread_msgs = SuggestionMessage.objects.filter(
+            author__is_superuser=False, is_read=False
+        ).select_related('author').order_by('created_at')
+        data['unread_count'] = unread_suggestions + unread_msgs.count()
+        for m in unread_msgs:
+            t = timezone.localtime(m.created_at)
+            data['new_messages'].append({
+                'suggestion_pk': m.suggestion_id,
+                'pk': m.pk,
+                'message': m.message,
+                'author': m.author.get_full_name() or m.author.email,
+                'is_superuser': False,
+                'time': t.strftime('%H:%M'),
+            })
+    elif getattr(getattr(request.user, 'profile', None), 'role', None) == 'manager':
+        unread_msgs = SuggestionMessage.objects.filter(
+            suggestion__manager=request.user,
+            author__is_superuser=True,
+            is_read=False
+        ).select_related('author').order_by('created_at')
+        data['unread_count'] = unread_msgs.count()
+        for m in unread_msgs:
+            t = timezone.localtime(m.created_at)
+            data['new_messages'].append({
+                'suggestion_pk': m.suggestion_id,
+                'pk': m.pk,
+                'message': m.message,
+                'author': m.author.get_full_name() or m.author.email,
+                'is_superuser': True,
+                'time': t.strftime('%H:%M'),
+            })
+
+    return JsonResponse(data)

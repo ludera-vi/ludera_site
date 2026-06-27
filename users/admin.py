@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserProfile, UserProduct, ProductFile, UserSetting
+from .models import UserProfile, UserProduct, ProductFile, UserSetting, ManagerSuggestion, SuggestionMessage
 
 
 @admin.register(UserProfile)
@@ -25,3 +25,26 @@ class ProductFileAdmin(admin.ModelAdmin):
 class UserSettingAdmin(admin.ModelAdmin):
     list_display = ['name', 'is_active', 'created_at']
     list_filter = ['is_active']
+
+
+@admin.register(ManagerSuggestion)
+class ManagerSuggestionAdmin(admin.ModelAdmin):
+    list_display = ['manager', 'short_message', 'status', 'is_closed', 'created_at']
+    list_filter = ['status', 'is_closed']
+    search_fields = ['manager__email', 'message']
+    readonly_fields = ['created_at', 'updated_at']
+
+    def short_message(self, obj):
+        return obj.message[:80] + '...' if len(obj.message) > 80 else obj.message
+    short_message.short_description = 'Сообщение'
+
+
+@admin.register(SuggestionMessage)
+class SuggestionMessageAdmin(admin.ModelAdmin):
+    list_display = ['suggestion', 'author', 'short_message', 'is_read', 'created_at']
+    list_filter = ['is_read']
+    search_fields = ['message', 'author__email']
+
+    def short_message(self, obj):
+        return obj.message[:80] + '...' if len(obj.message) > 80 else obj.message
+    short_message.short_description = 'Сообщение'

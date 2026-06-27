@@ -12,6 +12,7 @@ from django.core.paginator import Paginator
 
 from .models import Client, Call, ClientDocument, ClientActivity, LEGAL_STATUSES
 from .forms import ClientForm
+from users.models import ManagerSuggestion, SuggestionMessage
 
 FORM_LEGAL_STATUSES = [('', '—')] + list(LEGAL_STATUSES)
 
@@ -59,23 +60,31 @@ def _ctx(request, **kw):
     kw.setdefault('ns', ns)
     kw.setdefault('form_legal_statuses', FORM_LEGAL_STATUSES)
 
+    sidebar = {}
     if ns == 'sales':
-        kw.setdefault('sidebar_counts', {
+        sidebar = {
             'clients': Client.objects.filter(is_archived=False).count(),
             'called': Client.objects.filter(calls__isnull=False, is_archived=False).distinct().count(),
             'in_progress': Client.objects.filter(
                 calls__isnull=False, is_archived=False
             ).exclude(calls__status__in=['refusal', 'completed']).distinct().count(),
             'completed': Client.objects.filter(calls__status='completed', is_archived=False).distinct().count(),
-        })
+        }
+        sidebar['suggestions_unread'] = SuggestionMessage.objects.filter(
+            suggestion__manager=request.user,
+            author__is_superuser=True,
+            is_read=False
+        ).count()
     elif ns == 'cabinet':
-        kw.setdefault('sidebar_counts', {
+        sidebar = {
             'clients': Client.objects.filter(is_archived=False).count(),
             'in_progress': Client.objects.filter(
                 calls__isnull=False, is_archived=False
             ).exclude(calls__status__in=['refusal', 'completed']).distinct().count(),
             'completed': Client.objects.filter(calls__status='completed', is_archived=False).distinct().count(),
-        })
+        }
+    if sidebar:
+        kw.setdefault('sidebar_counts', sidebar)
 
     if ns == 'cabinet':
         kw.setdefault('url_clients', reverse('cabinet:clients'))
@@ -661,3 +670,65 @@ def delete_document(request, client_pk, doc_pk):
     from_section = request.POST.get('from_section', 'clients')
     detail_url = 'sales:client_detail' if ns == 'sales' else 'cabinet:client_detail'
     return redirect(f'{reverse(detail_url, args=[client_pk])}?from={from_section}')
+
+
+@_manager_required
+def suggestion_list(request):
+    open_pk = ''
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+        if action == 'create':
+            message = request.POST.get('message', '').strip()
+            if message:
+                ManagerSuggestion.objects.create(manager=request.user, message=message)
+                messages.success(request, 'Предложение отправлено')
+            else:
+                messages.error(request, 'Напишите текст предложения')
+        elif action == 'reply':
+            pk = request.POST.get('pk', '')
+            text = request.POST.get('message', '').strip()
+            if pk and text:
+                sug = get_object_or_404(ManagerSuggestion, pk=pk, manager=request.user)
+                if not sug.is_closed:
+                    msg = SuggestionMessage.objects.create(
+                        suggestion=sug, author=request.user, message=text
+                    )
+                    if is_ajax:
+                        from django.utils import timezone
+                        t = timezone.localtime(msg.created_at)
+                        return JsonResponse({
+                            'ok': True,
+                            'message': msg.message,
+                            'author': msg.author.get_full_name() or msg.author.email,
+                            'is_superuser': msg.author.is_superuser,
+                            'time': t.strftime('%H:%M'),
+                            'pk': msg.pk,
+                        })
+            open_pk = pk
+
+        if is_ajax:
+            return JsonResponse({'ok': False}, status=400)
+        url = reverse('sales:suggestion_list')
+        if open_pk:
+            url += f'?open={open_pk}'
+        return redirect(url)
+
+    suggestions = ManagerSuggestion.objects.filter(
+        manager=request.user
+    ).select_related('admin').prefetch_related('messages', 'messages__author').all()
+
+    # Compute unread for each suggestion
+    suggestions_list = list(suggestions)
+    for s in suggestions_list:
+        s.has_unread = any(
+            not m.is_read and m.author.is_superuser
+            for m in s.messages.all()
+        )
+
+    return render(request, 'sales/suggestion_list.html', _ctx(request,
+        title='Обратная связь',
+        suggestions=suggestions_list,
+        active_section='suggestions',
+    ))

@@ -115,4 +115,10 @@ urlpatterns = [
     path('archive/', sales_views.archive_list, name='archive_list'),
     path('completed/', sales_views.completed_list, name='completed_list'),
     path('calls/<int:pk>/update/', sales_views.call_update, name='call_update'),
+
+    # Manager Suggestions (Feedback)
+    path('suggestions/', cabinet_views.admin_suggestion_list, name='admin_suggestion_list'),
+    path('suggestions/<int:pk>/action/', cabinet_views.admin_suggestion_action, name='admin_suggestion_action'),
+    path('suggestions/mark-read/', cabinet_views.suggestion_mark_read, name='suggestion_mark_read'),
+    path('suggestions/poll/', cabinet_views.suggestion_poll, name='suggestion_poll'),
 ]

@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from main.cabinet_views import suggestion_mark_read, suggestion_poll
 
 app_name = 'sales'
 
@@ -20,4 +21,7 @@ urlpatterns = [
     path('in-progress/', views.in_progress_list, name='in_progress_list'),
     path('archive/', views.archive_list, name='archive_list'),
     path('completed/', views.completed_list, name='completed_list'),
+    path('suggestions/', views.suggestion_list, name='suggestion_list'),
+    path('suggestions/mark-read/', suggestion_mark_read, name='suggestion_mark_read'),
+    path('suggestions/poll/', suggestion_poll, name='suggestion_poll'),
 ]
