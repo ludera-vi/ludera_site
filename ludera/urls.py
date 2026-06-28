@@ -15,6 +15,7 @@ urlpatterns = [
     path('', include('main.urls')),
 ]
 
-if settings.DEBUG:
+if settings.DEBUG and settings.MEDIA_URL and settings.MEDIA_ROOT:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
+if settings.DEBUG and settings.STATIC_URL:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
