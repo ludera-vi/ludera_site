@@ -388,6 +388,8 @@
 .sug-btn--close:hover { background: #6b7280; color: #fff; }
 .sug-btn--reopen { background: var(--cab-primary-light); color: var(--cab-primary); }
 .sug-btn--reopen:hover { background: var(--cab-primary); color: #fff; }
+.sug-btn--delete { background: rgba(239,68,68,0.1); color: #ef4444; }
+.sug-btn--delete:hover { background: #ef4444; color: #fff; }
 .sug-closed-banner {
     display: flex;
     align-items: center;
@@ -565,6 +567,12 @@
                                 <button type="submit" class="sug-btn sug-btn--close">Закрыть топик</button>
                             </form>
                             {% endif %}
+                            <form method="post" action="{% url 'cabinet:admin_suggestion_list' %}" onsubmit="return confirm('Удалить топик навсегда?')">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="pk" value="{{ s.pk }}">
+                                <button type="submit" class="sug-btn sug-btn--delete">Удалить</button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -812,6 +820,12 @@ window.onNotif(function(m) {
             if (closedBadge) closedBadge.remove();
         }
     }
+    if (m.type === 'deleted') {
+        var card = document.querySelector('.sug-card[data-pk="' + m.suggestion_pk + '"]');
+        if (card) card.remove();
+        var remaining = document.querySelectorAll('.sug-card').length;
+        if (remaining === 0) location.reload();
+    }
 });
 
 function createSugCard(m) {
@@ -847,6 +861,12 @@ function createSugCard(m) {
             '<input type="hidden" name="action" value="' + (m.sug_is_closed ? 'reopen' : 'close') + '">' +
             '<input type="hidden" name="pk" value="' + pk + '">' +
             '<button type="submit" class="sug-btn sug-btn--' + (m.sug_is_closed ? 'reopen' : 'close') + '">' + (m.sug_is_closed ? 'Открыть топик' : 'Закрыть топик') + '</button>' +
+        '</form>' +
+        '<form method="post" action="' + escapeHtml(sugListUrl) + '" onsubmit="return confirm(\'Удалить топик навсегда?\')">' +
+            csrfInput +
+            '<input type="hidden" name="action" value="delete">' +
+            '<input type="hidden" name="pk" value="' + pk + '">' +
+            '<button type="submit" class="sug-btn sug-btn--delete">Удалить</button>' +
         '</form>';
     card.innerHTML =
         '<div class="sug-card__header" onclick="toggleSugBody(this)">' +

@@ -72,3 +72,20 @@ def broadcast_status_change(suggestion):
             f'suggestions_manager_{suggestion.manager_id}',
             {'type': 'send_message', 'data': data},
         )
+
+
+def broadcast_suggestion_delete(suggestion):
+    channel_layer = get_channel_layer()
+    data = {
+        'type': 'deleted',
+        'suggestion_pk': suggestion.pk,
+    }
+    async_to_sync(channel_layer.group_send)(
+        'suggestions_admin',
+        {'type': 'send_message', 'data': data},
+    )
+    if suggestion.manager_id:
+        async_to_sync(channel_layer.group_send)(
+            f'suggestions_manager_{suggestion.manager_id}',
+            {'type': 'send_message', 'data': data},
+        )

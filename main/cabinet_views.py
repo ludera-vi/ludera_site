@@ -1139,6 +1139,16 @@ def admin_suggestion_list(request):
             broadcast_status_change(sug)
             messages.success(request, 'Топик открыт')
             open_pk = pk
+        elif action == 'delete' and pk:
+            sug = get_object_or_404(ManagerSuggestion, pk=pk)
+            from main.notification import broadcast_suggestion_delete
+            broadcast_suggestion_delete(sug)
+            sug.delete()
+            if is_ajax:
+                return JsonResponse({'ok': True})
+            messages.success(request, 'Топик удалён')
+            url = reverse('cabinet:admin_suggestion_list')
+            return redirect(url)
 
         if is_ajax:
             return JsonResponse({'ok': False}, status=400)
