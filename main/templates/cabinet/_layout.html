@@ -105,11 +105,10 @@
                     <a href="{% url 'cabinet:clients' %}" class="cabinet-nav__link {% if active_section == 'clients' %}active{% endif %}" data-tooltip="База клиентов">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         <span>База клиентов</span>
-                        {% if sidebar_counts.clients %}<span class="nav-badge">{{ sidebar_counts.clients }}</span>{% endif %}
                     </a>
-                    <a href="{% url 'cabinet:called_list' %}" class="cabinet-nav__link {% if active_section == 'called' %}active{% endif %}" data-tooltip="Прозвоненные">
+                    <a href="{% url 'cabinet:called_list' %}" class="cabinet-nav__link {% if active_section == 'called' %}active{% endif %}" data-tooltip="Перезвонить">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                        <span>Прозвоненные</span>
+                        <span>Перезвонить</span>
                         {% if sidebar_counts.called %}<span class="nav-badge">{{ sidebar_counts.called }}</span>{% endif %}
                     </a>
                     <a href="{% url 'cabinet:in_progress_list' %}" class="cabinet-nav__link {% if active_section == 'in_progress' %}active{% endif %}" data-tooltip="В работе">
@@ -120,11 +119,23 @@
                     <a href="{% url 'cabinet:archive_list' %}" class="cabinet-nav__link {% if active_section == 'archive' %}active{% endif %}" data-tooltip="Архив">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
                         <span>Архив</span>
+                        {% if sidebar_counts.archive %}<span class="nav-badge">{{ sidebar_counts.archive }}</span>{% endif %}
                     </a>
+                    {% if user.is_superuser %}
+                    <a href="{% url 'cabinet:deleted_list' %}" class="cabinet-nav__link {% if active_section == 'deleted' %}active{% endif %}" data-tooltip="Удалённые">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        <span>Удалённые</span>
+                        {% if sidebar_counts.deleted %}<span class="nav-badge">{{ sidebar_counts.deleted }}</span>{% endif %}
+                    </a>
+                    {% endif %}
                     <a href="{% url 'cabinet:completed_list' %}" class="cabinet-nav__link {% if active_section == 'completed' %}active{% endif %}" data-tooltip="Выполненные">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                         <span>Выполненные</span>
                         {% if sidebar_counts.completed %}<span class="nav-badge">{{ sidebar_counts.completed }}</span>{% endif %}
+                    </a>
+                    <a href="{% url 'cabinet:refusal_list' %}" class="cabinet-nav__link {% if active_section == 'refusal' %}active{% endif %}" data-tooltip="Отказ">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        <span>Отказ</span>
                     </a>
                     <a href="{% url 'cabinet:admin_suggestion_list' %}" class="cabinet-nav__link {% if request.resolver_match.url_name == 'admin_suggestion_list' %}active{% endif %}" data-tooltip="Обратная связь">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -257,12 +268,67 @@
             </header>
 
             <div class="cabinet-content">
+                <script>window.notifHandlers=window.notifHandlers||[];window.onNotif=window.onNotif||function(h){window.notifHandlers.push(h);};</script>
                 {% block content %}{% endblock %}
             </div>
         </main>
     </div>
 
     {% block extra_js %}{% endblock %}
+
+    <script>
+    function setSugBadgeCount(count) {
+        var links = document.querySelectorAll('.cabinet-nav__link');
+        var badge = null;
+        var link = null;
+        for (var i = 0; i < links.length; i++) {
+            var href = links[i].getAttribute('href');
+            if (href && href.indexOf('suggestion') !== -1) {
+                link = links[i];
+                badge = links[i].querySelector('.nav-badge');
+                break;
+            }
+        }
+        if (count > 0) {
+            if (badge) {
+                badge.textContent = count;
+            } else if (link) {
+                badge = document.createElement('span');
+                badge.className = 'nav-badge';
+                badge.style.background = 'var(--cab-danger)';
+                badge.style.color = '#fff';
+                badge.textContent = count;
+                link.appendChild(badge);
+            }
+        } else {
+            if (badge) badge.remove();
+        }
+    }
+
+    // notifHandlers might already be populated from early stub in content area
+    if (!window.notifHandlers) window.notifHandlers = [];
+    if (!window.onNotif) window.onNotif = function(h) { window.notifHandlers.push(h); };
+
+    (function() {
+        var proto = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        var socket = null;
+        function connectWS() {
+            socket = new WebSocket(proto + window.location.host + '/ws/suggestions/');
+            socket.onmessage = function(e) {
+                try {
+                    var m = JSON.parse(e.data);
+                    var noUpdate = false;
+                    for (var i = 0; i < window.notifHandlers.length; i++) {
+                        if (window.notifHandlers[i](m) === false) noUpdate = true;
+                    }
+                    if (m.unread_count !== undefined && !noUpdate) setSugBadgeCount(m.unread_count);
+                } catch(e) {}
+            };
+            socket.onclose = function() { setTimeout(connectWS, 3000); };
+        }
+        connectWS();
+    })();
+    </script>
 
     <script>
     (function() {

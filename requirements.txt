@@ -6,3 +6,6 @@ PyJWT>=2.8
 cryptography>=42.0
 python-decouple>=3.8
 psycopg2-binary>=2.9
+channels>=4.3
+channels_redis>=4.3
+daphne>=4.2

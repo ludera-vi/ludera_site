@@ -3,18 +3,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.db.models import Count, Q
+from django.db.models import Count, Q, OuterRef, Subquery
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.core.paginator import Paginator
 
-from .models import Client, Call, ClientDocument, ClientActivity, LEGAL_STATUSES
+from .models import Client, Call, ClientDocument, ClientActivity
 from .forms import ClientForm
 from users.models import ManagerSuggestion, SuggestionMessage
-
-FORM_LEGAL_STATUSES = [('', '—')] + list(LEGAL_STATUSES)
 
 
 def _manager_required(view_func):
@@ -50,6 +48,7 @@ def _list_viewname(ns, section):
         'in_progress': f'{ns}:in_progress_list',
         'archive': f'{ns}:archive_list',
         'completed': f'{ns}:completed_list',
+        'refusal': f'{ns}:refusal_list',
     }
     return reverse(map.get(section, f'{ns}:client_list'))
 
@@ -58,34 +57,31 @@ def _ctx(request, **kw):
     ns = _ns(request)
     kw.setdefault('base_template', _base_template(request))
     kw.setdefault('ns', ns)
-    kw.setdefault('form_legal_statuses', FORM_LEGAL_STATUSES)
 
     sidebar = {}
-    if ns == 'sales':
+    if ns in ('sales', 'cabinet'):
+        def _scoped(*statuses):
+            qs = _last_status_clients(*statuses).filter(is_archived=False, is_deleted=False)
+            if ns == 'sales' and not request.user.is_superuser:
+                qs = qs.filter(assigned_manager=request.user)
+            return qs.count()
         sidebar = {
-            'clients': Client.objects.filter(is_archived=False).count(),
-            'called': Client.objects.filter(calls__isnull=False, is_archived=False).distinct().count(),
-            'in_progress': Client.objects.filter(
-                calls__isnull=False, is_archived=False
-            ).exclude(calls__status__in=['refusal', 'completed']).distinct().count(),
-            'completed': Client.objects.filter(calls__status='completed', is_archived=False).distinct().count(),
+            'called': _scoped('call_back', 'unavailable'),
+            'in_progress': _scoped('negotiation', 'tz_creation', 'tz_approval', 'contract_signing', 'in_progress'),
+            'completed': _scoped('completed'),
+            'archive': Client.objects.filter(is_archived=True, is_deleted=False).count(),
+            'deleted': Client.objects.filter(is_deleted=True).count(),
         }
-        sidebar['suggestions_unread'] = SuggestionMessage.objects.filter(
-            suggestion__manager=request.user,
-            author__is_superuser=True,
-            is_read=False
-        ).count()
-    elif ns == 'cabinet':
-        sidebar = {
-            'clients': Client.objects.filter(is_archived=False).count(),
-            'in_progress': Client.objects.filter(
-                calls__isnull=False, is_archived=False
-            ).exclude(calls__status__in=['refusal', 'completed']).distinct().count(),
-            'completed': Client.objects.filter(calls__status='completed', is_archived=False).distinct().count(),
-        }
+        if ns == 'sales':
+            sidebar['suggestions_unread'] = SuggestionMessage.objects.filter(
+                suggestion__manager=request.user,
+                author__is_superuser=True,
+                is_read=False
+            ).count()
     if sidebar:
-        kw.setdefault('sidebar_counts', sidebar)
+        kw['sidebar_counts'] = sidebar
 
+    kw.setdefault('managers', User.objects.filter(is_active=True).order_by('last_name', 'first_name'))
     if ns == 'cabinet':
         kw.setdefault('url_clients', reverse('cabinet:clients'))
         kw.setdefault('url_call_update', '/cabinet/calls/{pk}/update/')
@@ -99,13 +95,13 @@ def _ctx(request, **kw):
 
 @_manager_required
 def dashboard(request):
-    total_clients = Client.objects.count()
+    total_clients = Client.objects.filter(is_deleted=False).count()
     uncalled = Client.objects.filter(
-        ~Q(calls__isnull=False), is_archived=False
+        ~Q(calls__isnull=False), is_archived=False, is_deleted=False
     ).count()
-    in_progress = Call.objects.exclude(status__in=['refusal', 'completed']).count()
-    archived = Client.objects.filter(is_archived=True).count()
-    my_clients = Client.objects.filter(assigned_manager=request.user).count()
+    in_progress = Call.objects.exclude(status__in=['refusal', 'completed', 'call_back', 'unavailable']).count()
+    archived = Client.objects.filter(is_archived=True, is_deleted=False).count()
+    my_clients = Client.objects.filter(assigned_manager=request.user, is_deleted=False).count()
 
     status_counts = list(
         Call.objects.values('status')
@@ -134,6 +130,8 @@ STATUS_SEARCH_MAP = {
     'в работе': 'in_progress',
     'выполнено': 'completed',
     'отказ': 'refusal',
+    'перезвонить': 'call_back',
+    'не доступен': 'unavailable',
     'новый': '__new__',
 }
 
@@ -145,7 +143,14 @@ STATUS_TEXT_SEARCH = {
     'in_progress': 'В работе',
     'completed': 'Выполнено',
     'refusal': 'Отказ',
+    'call_back': 'Перезвонить',
+    'unavailable': 'Не доступен',
 }
+
+
+def _last_status_clients(*statuses):
+    latest_status = Call.objects.filter(client=OuterRef('pk')).order_by('-created_at').values('status')[:1]
+    return Client.objects.annotate(_last_status=Subquery(latest_status)).filter(_last_status__in=statuses)
 
 
 def _apply_search(qs, search):
@@ -159,13 +164,14 @@ def _apply_search(qs, search):
         return qs.filter(calls__status=matched_status).distinct()
     status_pks = [pk for pk, txt in STATUS_TEXT_SEARCH.items() if search_lower in txt.lower()]
     q = (
-        Q(name__icontains=search) | Q(phone__icontains=search) |
+        Q(phone__icontains=search) |
         Q(company_name__icontains=search) | Q(city__icontains=search) |
         Q(industry__icontains=search) | Q(comment__icontains=search) |
+        Q(online_booking__icontains=search) |
+        Q(website_link__icontains=search) | Q(map_link__icontains=search) |
         Q(assigned_manager__first_name__icontains=search) |
         Q(assigned_manager__last_name__icontains=search) |
-        Q(assigned_manager__email__icontains=search) |
-        Q(legal_status__icontains=search)
+        Q(assigned_manager__email__icontains=search)
     )
     if status_pks:
         q |= Q(calls__status__in=status_pks)
@@ -174,7 +180,9 @@ def _apply_search(qs, search):
 
 @_manager_required
 def client_list(request):
-    qs = Client.objects.filter(is_archived=False).select_related('assigned_manager', 'imported_by')
+    qs = Client.objects.filter(is_archived=False, is_deleted=False).exclude(
+        pk__in=_last_status_clients('refusal').values('pk')
+    ).select_related('assigned_manager', 'imported_by')
     search = request.GET.get('q', '').strip()
     no_manager = request.GET.get('no_manager') == '1'
     if no_manager:
@@ -213,7 +221,9 @@ def client_list(request):
 
 @_manager_required
 def called_list(request):
-    qs = Client.objects.filter(calls__isnull=False, is_archived=False).distinct().select_related('assigned_manager', 'imported_by')
+    qs = _last_status_clients('call_back', 'unavailable').filter(is_archived=False, is_deleted=False).select_related('assigned_manager', 'imported_by')
+    if not request.user.is_superuser:
+        qs = qs.filter(assigned_manager=request.user)
     search = request.GET.get('q', '').strip()
     qs = _apply_search(qs, search)
     per_page = qs.count() if request.GET.get('all') == '1' else 20
@@ -222,16 +232,14 @@ def called_list(request):
     ctx = dict(clients=page_obj.object_list, page_obj=page_obj, search=search, active_section='called', user=request.user)
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'rows': render_to_string('sales/client_list_rows.html', ctx), 'footer': render_to_string('sales/client_list_footer.html', ctx)})
-    return render(request, 'sales/client_list.html', _ctx(request, title='Прозвоненные', **ctx))
+    return render(request, 'sales/client_list.html', _ctx(request, title='Перезвонить', **ctx))
 
 
 @_manager_required
 def in_progress_list(request):
-    qs = Client.objects.filter(
-        calls__isnull=False, is_archived=False
-    ).exclude(
-        calls__status__in=['refusal', 'completed']
-    ).distinct().select_related('assigned_manager', 'imported_by')
+    qs = _last_status_clients('negotiation', 'tz_creation', 'tz_approval', 'contract_signing', 'in_progress').filter(
+        is_archived=False, is_deleted=False
+    ).select_related('assigned_manager', 'imported_by')
     search = request.GET.get('q', '').strip()
     qs = _apply_search(qs, search)
     per_page = qs.count() if request.GET.get('all') == '1' else 20
@@ -245,7 +253,7 @@ def in_progress_list(request):
 
 @_manager_required
 def archive_list(request):
-    qs = Client.objects.filter(is_archived=True).select_related('assigned_manager', 'imported_by')
+    qs = Client.objects.filter(is_archived=True, is_deleted=False).select_related('assigned_manager', 'imported_by')
     search = request.GET.get('q', '').strip()
     qs = _apply_search(qs, search)
     per_page = qs.count() if request.GET.get('all') == '1' else 20
@@ -259,9 +267,9 @@ def archive_list(request):
 
 @_manager_required
 def completed_list(request):
-    qs = Client.objects.filter(
-        calls__status='completed', is_archived=False
-    ).distinct().select_related('assigned_manager', 'imported_by')
+    qs = _last_status_clients('completed').filter(
+        is_archived=False, is_deleted=False
+    ).select_related('assigned_manager', 'imported_by')
     search = request.GET.get('q', '').strip()
     qs = _apply_search(qs, search)
     per_page = qs.count() if request.GET.get('all') == '1' else 20
@@ -274,21 +282,61 @@ def completed_list(request):
 
 
 @_manager_required
+def refusal_list(request):
+    qs = _last_status_clients('refusal').filter(is_archived=False, is_deleted=False).select_related('assigned_manager', 'imported_by')
+    search = request.GET.get('q', '').strip()
+    qs = _apply_search(qs, search)
+    per_page = qs.count() if request.GET.get('all') == '1' else 20
+    paginator = Paginator(qs, max(per_page, 1))
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+    ctx = dict(clients=page_obj.object_list, page_obj=page_obj, search=search, active_section='refusal', user=request.user)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'rows': render_to_string('sales/client_list_rows.html', ctx), 'footer': render_to_string('sales/client_list_footer.html', ctx)})
+    return render(request, 'sales/client_list.html', _ctx(request, title='Отказ', **ctx))
+
+
+@_manager_required
+@require_POST
+def client_restore_from_refusal(request, pk):
+    if not request.user.is_superuser:
+        messages.error(request, 'Доступ запрещён')
+        return redirect('sales:client_list')
+    client = get_object_or_404(Client, pk=pk)
+    last_call = client.calls.filter(status='refusal').last()
+    if last_call:
+        last_call.status = 'in_progress'
+        last_call.save(update_fields=['status'])
+        ClientActivity.objects.create(
+            client=client, user=request.user, activity_type='status',
+            title='Восстановлен из отказа',
+            old_value='Отказ', new_value='В работе',
+        )
+        messages.success(request, f'Клиент {client.company_name or client.phone} восстановлен из отказа')
+    return redirect('sales:refusal_list')
+
+
+@_manager_required
 def client_detail(request, pk):
     client = get_object_or_404(Client, pk=pk)
+    if client.is_deleted and not request.user.is_superuser:
+        messages.error(request, 'Клиент недоступен')
+        return redirect('sales:client_list')
     calls = client.calls.select_related('manager').all()
     documents = client.documents.select_related('uploaded_by').all()
     activities = client.activities.select_related('user').all()
     form = ClientForm(instance=client)
     from_section = request.GET.get('from', 'clients')
+    can_modify = _can_modify(request, client)
+    if from_section in ('archive', 'refusal') and not request.user.is_superuser:
+        can_modify = False
     return render(request, 'sales/client_detail.html', _ctx(request,
-        title=f'Клиент — {client.name or client.company_name or client.phone}',
+        title=f'Клиент — {client.company_name or client.phone}',
         client=client,
         calls=calls,
         documents=documents,
         activities=activities,
         form=form,
-        can_modify=_can_modify(request, client),
+        can_modify=can_modify,
         active_section=from_section,
     ))
 
@@ -297,7 +345,11 @@ def client_detail(request, pk):
 @require_POST
 def create_call(request, pk):
     client = get_object_or_404(Client, pk=pk)
-    editable_fields = ['name', 'phone', 'company_name', 'city', 'industry', 'legal_status', 'comment']
+    if not _can_modify(request, client):
+        messages.error(request, 'Нет прав на изменение этого клиента')
+        ns = _ns(request)
+        return redirect('cabinet:clients' if ns == 'cabinet' else 'sales:client_list')
+    editable_fields = ['phone', 'company_name', 'city', 'industry', 'online_booking', 'comment', 'website_link', 'map_link']
     for field in editable_fields:
         if field in request.POST:
             old = str(getattr(client, field, ''))
@@ -316,7 +368,10 @@ def create_call(request, pk):
                     title=f'Изменено поле «{label}»',
                     old_value=old[:500], new_value=new[:500],
                 )
-    if not client.assigned_manager:
+    if request.user.is_superuser and 'assigned_manager' in request.POST:
+        mgr_id = request.POST['assigned_manager']
+        client.assigned_manager_id = int(mgr_id) if mgr_id else None
+    elif not client.assigned_manager:
         client.assigned_manager = request.user
     client.save()
     status = request.POST.get('status', 'in_progress')
@@ -328,7 +383,7 @@ def create_call(request, pk):
         title='Создан обзвон',
         new_value=dict(Call._meta.get_field('status').flatchoices).get(status, status),
     )
-    messages.success(request, f'Обзвон создан для {client.name or client.phone}')
+    messages.success(request, f'Обзвон создан для {client.company_name or client.phone}')
     ns = _ns(request)
     if ns == 'cabinet':
         return redirect('cabinet:clients')
@@ -379,7 +434,7 @@ def client_create(request):
             client = form.save(commit=False)
             client.imported_by = request.user
             client.save()
-            messages.success(request, f'Клиент {client.name or client.phone} создан')
+            messages.success(request, f'Клиент {client.company_name or client.phone} создан')
             ns = _ns(request)
             if ns == 'cabinet':
                 return redirect('cabinet:client_detail', pk=client.pk)
@@ -394,10 +449,13 @@ def client_create(request):
 
 @_manager_required
 def client_export(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'Доступ запрещён')
+        return redirect(_ns(request) + ':client_list')
     import openpyxl
     from openpyxl.styles import Font, Alignment, PatternFill
 
-    qs = Client.objects.filter(is_archived=False).select_related('assigned_manager').all()
+    qs = Client.objects.filter(is_archived=False, is_deleted=False).select_related('assigned_manager').all()
     search = request.GET.get('q', '').strip()
     no_manager = request.GET.get('no_manager') == '1'
     if no_manager:
@@ -408,8 +466,9 @@ def client_export(request):
     ws = wb.active
     ws.title = 'Клиенты'
 
-    headers = ['Сфера', 'Город', 'Наименование', 'Имя', 'Телефон',
-               'Правовой статус', 'Комментарий', 'Ответственный', 'Дата создания']
+    headers = ['Сфера', 'Город', 'Наименование', 'Телефон', 'Онлайн-запись',
+               'Комментарий', 'Ответственный', 'Ссылка на сайт', 'Ссылка на Яндекс/2ГИС',
+               'В архиве', 'Дата создания']
     header_font = Font(bold=True, color='FFFFFF')
     header_fill = PatternFill(start_color='2D8F5E', end_color='2D8F5E', fill_type='solid')
     for col, h in enumerate(headers, 1):
@@ -418,17 +477,18 @@ def client_export(request):
         cell.fill = header_fill
         cell.alignment = Alignment(horizontal='center')
 
-    status_map = dict(LEGAL_STATUSES)
     for row, client in enumerate(qs, 2):
         ws.cell(row=row, column=1, value=client.industry or '')
         ws.cell(row=row, column=2, value=client.city or '')
         ws.cell(row=row, column=3, value=client.company_name or '')
-        ws.cell(row=row, column=4, value=client.name or '')
-        ws.cell(row=row, column=5, value=client.phone)
-        ws.cell(row=row, column=6, value=status_map.get(client.legal_status, ''))
-        ws.cell(row=row, column=7, value=client.comment or '')
-        ws.cell(row=row, column=8, value=client.assigned_manager.email if client.assigned_manager else '')
-        ws.cell(row=row, column=9, value=client.created_at.strftime('%d.%m.%Y %H:%M'))
+        ws.cell(row=row, column=4, value=client.phone)
+        ws.cell(row=row, column=5, value=client.online_booking or '')
+        ws.cell(row=row, column=6, value=client.comment or '')
+        ws.cell(row=row, column=7, value=client.assigned_manager.email if client.assigned_manager else '')
+        ws.cell(row=row, column=8, value=client.website_link or '')
+        ws.cell(row=row, column=9, value=client.map_link or '')
+        ws.cell(row=row, column=10, value='Да' if client.is_archived else '')
+        ws.cell(row=row, column=11, value=client.created_at.strftime('%d.%m.%Y %H:%M'))
 
     for col in range(1, len(headers) + 1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 20
@@ -443,6 +503,9 @@ def client_export(request):
 
 @_manager_required
 def client_import(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'Доступ запрещён')
+        return redirect(_ns(request) + ':client_list')
     if request.method == 'POST' and request.FILES.get('file'):
         import openpyxl
         import csv
@@ -479,7 +542,6 @@ def client_import(request):
             messages.error(request, 'Файл пуст')
             return redirect(clients_url)
 
-        status_map = {v: k for k, v in LEGAL_STATUSES}
         created = 0
         updated = 0
         skipped = 0
@@ -487,10 +549,14 @@ def client_import(request):
             industry = str(row[0]).strip() if len(row) >= 1 and row[0] else ''
             city = str(row[1]).strip() if len(row) >= 2 and row[1] else ''
             company = str(row[2]).strip() if len(row) >= 3 and row[2] else ''
-            name = str(row[3]).strip() if len(row) >= 4 and row[3] else ''
-            phone = str(row[4]).strip() if len(row) >= 5 and row[4] else None
-            raw = str(row[5]).strip() if len(row) >= 6 and row[5] else ''
-            comment = str(row[6]).strip() if len(row) >= 7 and row[6] else ''
+            phone = str(row[3]).strip() if len(row) >= 4 and row[3] else None
+            raw_online = str(row[4]).strip() if len(row) >= 5 and row[4] else ''
+            online_booking = raw_online if raw_online.startswith('http') else ''
+            comment = str(row[5]).strip() if len(row) >= 6 and row[5] else ''
+            raw_website = str(row[7]).strip() if len(row) >= 8 and row[7] else ''
+            website_link = raw_website if raw_website.startswith('http') else ''
+            raw_map = str(row[8]).strip() if len(row) >= 9 and row[8] else ''
+            map_link = raw_map if raw_map.startswith('http') else ''
 
             if not phone:
                 skipped += 1
@@ -500,15 +566,14 @@ def client_import(request):
             if existing:
                 changed = False
                 for field, val in [('industry', industry), ('city', city),
-                                   ('company_name', company), ('name', name),
-                                   ('comment', comment)]:
+                                   ('company_name', company),
+                                   ('online_booking', online_booking),
+                                   ('comment', comment),
+                                   ('website_link', website_link),
+                                   ('map_link', map_link)]:
                     if val and getattr(existing, field) != val:
                         setattr(existing, field, val)
                         changed = True
-                legal_val = status_map.get(raw, '')
-                if legal_val and existing.legal_status != legal_val:
-                    existing.legal_status = legal_val
-                    changed = True
                 if changed:
                     existing.save()
                     updated += 1
@@ -517,9 +582,10 @@ def client_import(request):
             else:
                 Client.objects.create(
                     industry=industry, city=city, company_name=company,
-                    name=name, phone=phone,
-                    legal_status=status_map.get(raw, ''),
-                    comment=comment, imported_by=request.user,
+                    phone=phone,
+                    online_booking=online_booking, comment=comment,
+                    website_link=website_link, map_link=map_link,
+                    imported_by=request.user,
                 )
                 created += 1
 
@@ -550,7 +616,7 @@ def client_update(request, pk):
             return redirect('sales:client_list')
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            editable_fields = ['name', 'phone', 'company_name', 'city', 'industry', 'legal_status', 'comment']
+            editable_fields = ['phone', 'company_name', 'city', 'industry', 'online_booking', 'comment', 'website_link', 'map_link']
             for field in editable_fields:
                 if field in request.POST:
                     old = str(getattr(client, field, ''))
@@ -569,6 +635,18 @@ def client_update(request, pk):
                             title=f'Изменено поле «{label}»',
                             old_value=old[:500], new_value=new[:500],
                         )
+            if request.user.is_superuser and 'assigned_manager' in request.POST:
+                mgr_id = request.POST['assigned_manager']
+                new_mgr_id = int(mgr_id) if mgr_id else None
+                if client.assigned_manager_id != new_mgr_id:
+                    old_name = str(client.assigned_manager) if client.assigned_manager else '—'
+                    client.assigned_manager_id = new_mgr_id
+                    new_name = str(User.objects.get(pk=new_mgr_id)) if new_mgr_id else '—'
+                    ClientActivity.objects.create(
+                        client=client, user=request.user, activity_type='edit',
+                        title='Изменён ответственный',
+                        old_value=old_name, new_value=new_name,
+                    )
             client.save()
             return JsonResponse({'ok': True})
 
@@ -587,6 +665,19 @@ def client_update(request, pk):
                 label = form.fields[field].label if field in form.fields else field
                 changes.append((field, label, old, new))
         form.save()
+        if request.user.is_superuser and 'assigned_manager' in request.POST:
+            mgr_id = request.POST['assigned_manager']
+            new_mgr_id = int(mgr_id) if mgr_id else None
+            if client.assigned_manager_id != new_mgr_id:
+                old_name = str(client.assigned_manager) if client.assigned_manager else '—'
+                client.assigned_manager_id = new_mgr_id
+                client.save(update_fields=['assigned_manager'])
+                new_name = str(User.objects.get(pk=new_mgr_id)) if new_mgr_id else '—'
+                ClientActivity.objects.create(
+                    client=client, user=request.user, activity_type='edit',
+                    title='Изменён ответственный',
+                    old_value=old_name, new_value=new_name,
+                )
         for field, label, old, new in changes:
             choices = getattr(form.fields.get(field), 'choices', None)
             if choices:
@@ -644,11 +735,49 @@ def client_delete(request, pk):
     if not _can_modify(request, client):
         messages.error(request, 'Нет прав на удаление этого клиента')
         return redirect('sales:client_list')
-    name = str(client)
-    client.delete()
-    messages.success(request, f'Клиент {name} удалён')
+    if client.is_deleted:
+        if not request.user.is_superuser:
+            messages.error(request, 'Только администратор может удалять окончательно')
+            return redirect('sales:deleted_list')
+        name = str(client)
+        client.delete()
+        messages.success(request, f'Клиент {name} окончательно удалён')
+        return redirect('sales:deleted_list')
+    client.is_deleted = True
+    client.save(update_fields=['is_deleted'])
+    messages.success(request, f'Клиент перемещён в удалённые')
     ns = _ns(request)
     return redirect('cabinet:clients' if ns == 'cabinet' else 'sales:client_list')
+
+
+@_manager_required
+def deleted_list(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'Доступ запрещён')
+        return redirect('sales:client_list')
+    qs = Client.objects.filter(is_deleted=True).select_related('assigned_manager', 'imported_by')
+    search = request.GET.get('q', '').strip()
+    qs = _apply_search(qs, search)
+    per_page = qs.count() if request.GET.get('all') == '1' else 20
+    paginator = Paginator(qs, max(per_page, 1))
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+    ctx = dict(clients=page_obj.object_list, page_obj=page_obj, search=search, active_section='deleted', user=request.user)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'rows': render_to_string('sales/client_list_rows.html', ctx), 'footer': render_to_string('sales/client_list_footer.html', ctx)})
+    return render(request, 'sales/client_list.html', _ctx(request, title='Удалённые', **ctx))
+
+
+@_manager_required
+@require_POST
+def client_restore(request, pk):
+    if not request.user.is_superuser:
+        messages.error(request, 'Доступ запрещён')
+        return redirect('sales:client_list')
+    client = get_object_or_404(Client, pk=pk, is_deleted=True)
+    client.is_deleted = False
+    client.save(update_fields=['is_deleted'])
+    messages.success(request, f'Клиент восстановлен')
+    return redirect('sales:deleted_list')
 
 
 @_manager_required
@@ -682,7 +811,10 @@ def suggestion_list(request):
         if action == 'create':
             message = request.POST.get('message', '').strip()
             if message:
-                ManagerSuggestion.objects.create(manager=request.user, message=message)
+                sug = ManagerSuggestion.objects.create(manager=request.user, message=message)
+                msg = SuggestionMessage.objects.create(suggestion=sug, author=request.user, message=message)
+                from main.notification import broadcast_suggestion_message
+                broadcast_suggestion_message(msg)
                 messages.success(request, 'Предложение отправлено')
             else:
                 messages.error(request, 'Напишите текст предложения')
@@ -695,6 +827,8 @@ def suggestion_list(request):
                     msg = SuggestionMessage.objects.create(
                         suggestion=sug, author=request.user, message=text
                     )
+                    from main.notification import broadcast_suggestion_message
+                    broadcast_suggestion_message(msg)
                     if is_ajax:
                         from django.utils import timezone
                         t = timezone.localtime(msg.created_at)
@@ -725,7 +859,7 @@ def suggestion_list(request):
         s.has_unread = any(
             not m.is_read and m.author.is_superuser
             for m in s.messages.all()
-        )
+        ) or s.status == 'unread'
 
     return render(request, 'sales/suggestion_list.html', _ctx(request,
         title='Обратная связь',

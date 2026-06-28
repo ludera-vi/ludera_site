@@ -17,7 +17,6 @@ staticfiles/
 # Environment
 .env
 
-settings.py
 # IDE
 .vscode/
 .idea/

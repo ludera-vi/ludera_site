@@ -113,6 +113,10 @@ urlpatterns = [
     path('called/', sales_views.called_list, name='called_list'),
     path('in_progress/', sales_views.in_progress_list, name='in_progress_list'),
     path('archive/', sales_views.archive_list, name='archive_list'),
+    path('deleted/', sales_views.deleted_list, name='deleted_list'),
+    path('clients/<int:pk>/restore/', sales_views.client_restore, name='client_restore'),
+    path('refusal/', sales_views.refusal_list, name='refusal_list'),
+    path('clients/<int:pk>/restore-from-refusal/', sales_views.client_restore_from_refusal, name='client_restore_from_refusal'),
     path('completed/', sales_views.completed_list, name='completed_list'),
     path('calls/<int:pk>/update/', sales_views.call_update, name='call_update'),
 
@@ -120,5 +124,5 @@ urlpatterns = [
     path('suggestions/', cabinet_views.admin_suggestion_list, name='admin_suggestion_list'),
     path('suggestions/<int:pk>/action/', cabinet_views.admin_suggestion_action, name='admin_suggestion_action'),
     path('suggestions/mark-read/', cabinet_views.suggestion_mark_read, name='suggestion_mark_read'),
-    path('suggestions/poll/', cabinet_views.suggestion_poll, name='suggestion_poll'),
+
 ]

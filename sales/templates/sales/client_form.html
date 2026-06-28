@@ -5,20 +5,16 @@
         {% csrf_token %}
         <div class="cabinet-panel-row">
             <div class="cabinet-form-group">
-                <label class="cabinet-form-label">Имя</label>
-                {{ form.name }}
-            </div>
-            <div class="cabinet-form-group">
                 <label class="cabinet-form-label">Телефон <span class="cabinet-required">*</span></label>
                 {{ form.phone }}
                 {% if form.phone.errors %}<div class="cabinet-form-errors">{{ form.phone.errors }}</div>{% endif %}
             </div>
-        </div>
-        <div class="cabinet-panel-row cabinet-panel-row--3">
             <div class="cabinet-form-group">
                 <label class="cabinet-form-label">Наименование</label>
                 {{ form.company_name }}
             </div>
+        </div>
+        <div class="cabinet-panel-row cabinet-panel-row--3">
             <div class="cabinet-form-group">
                 <label class="cabinet-form-label">Город</label>
                 {{ form.city }}
@@ -27,11 +23,19 @@
                 <label class="cabinet-form-label">Сфера деятельности</label>
                 {{ form.industry }}
             </div>
+            <div class="cabinet-form-group">
+                <label class="cabinet-form-label">Онлайн-запись</label>
+                {{ form.online_booking }}
+            </div>
         </div>
         <div class="cabinet-panel-row">
             <div class="cabinet-form-group">
-                <label class="cabinet-form-label">Правовой статус</label>
-                {{ form.legal_status }}
+                <label class="cabinet-form-label">Ссылка на сайт</label>
+                {{ form.website_link }}
+            </div>
+            <div class="cabinet-form-group">
+                <label class="cabinet-form-label">Ссылка на Яндекс/2ГИС</label>
+                {{ form.map_link }}
             </div>
         </div>
         <div class="cabinet-form-group">

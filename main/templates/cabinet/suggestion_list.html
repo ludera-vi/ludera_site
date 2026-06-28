@@ -613,7 +613,10 @@
 {% endif %}
 
 <script>
+var csrfToken = '{{ csrf_token }}';
 var markReadUrl = '{% url "cabinet:suggestion_mark_read" %}';
+var sugListUrl = '{% url "cabinet:admin_suggestion_list" %}';
+var sugActionUrlTmpl = '{% url "cabinet:admin_suggestion_action" 99999 %}';
 var currentUserIsSuperuser = {% if user.is_superuser %}true{% else %}false{% endif %};
 
 function toggleSugBody(header) {
@@ -641,12 +644,12 @@ function toggleSugBody(header) {
                 xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
                 xhr.onload = function() {
                     if (xhr.status === 200) {
-                        var b = document.querySelector('.nav-badge[style*="danger"]');
-                        if (b) {
-                            var n = parseInt(b.textContent, 10);
-                            if (n > 1) b.textContent = n - 1;
-                            else b.remove();
-                        }
+                        try {
+                            var resp = JSON.parse(xhr.responseText);
+                            if (resp.ok && resp.unread_count !== undefined) {
+                                setSugBadgeCount(resp.unread_count);
+                            }
+                        } catch(e) {}
                     }
                 };
                 xhr.send('pk=' + pk);
@@ -656,34 +659,34 @@ function toggleSugBody(header) {
     }
 }
 
-// AJAX reply submission
-document.querySelectorAll('.sug-reply-form').forEach(function(form) {
-    form.addEventListener('submit', function(e) {
-        var submitter = e.submitter;
-        if (submitter && submitter.hasAttribute('formaction')) return;
-        e.preventDefault();
-        var textarea = form.querySelector('textarea');
-        var message = textarea.value.trim();
-        if (!message) return;
-        var pk = form.querySelector('input[name="pk"]').value;
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', form.getAttribute('action') || window.location.href, true);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-        xhr.setRequestHeader('X-CSRFToken', form.querySelector('[name=csrfmiddlewaretoken]').value);
-        xhr.onload = function() {
-            if (xhr.status === 200) {
-                try {
-                    var data = JSON.parse(xhr.responseText);
-                    if (data.ok) {
-                        appendSugMsg(form.closest('.sug-card'), data);
-                        textarea.value = '';
-                    }
-                } catch(e) {}
-            }
-        };
-        xhr.send('action=reply&pk=' + encodeURIComponent(pk) + '&message=' + encodeURIComponent(message));
-    });
+// AJAX reply submission (event delegation for static + dynamic forms)
+document.addEventListener('submit', function(e) {
+    var form = e.target.closest('.sug-reply-form');
+    if (!form) return;
+    var submitter = e.submitter;
+    if (submitter && submitter.hasAttribute('formaction')) return;
+    e.preventDefault();
+    var textarea = form.querySelector('textarea');
+    var message = textarea.value.trim();
+    if (!message) return;
+    var pk = form.querySelector('input[name="pk"]').value;
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', form.getAttribute('action') || window.location.href, true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.setRequestHeader('X-CSRFToken', form.querySelector('[name=csrfmiddlewaretoken]').value);
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            try {
+                var data = JSON.parse(xhr.responseText);
+                if (data.ok) {
+                    appendSugMsg(form.closest('.sug-card'), data);
+                    textarea.value = '';
+                }
+            } catch(e) {}
+        }
+    };
+    xhr.send('action=reply&pk=' + encodeURIComponent(pk) + '&message=' + encodeURIComponent(message));
 });
 
 function appendSugMsg(card, data) {
@@ -725,75 +728,171 @@ function appendSugMsg(card, data) {
     if (scrollArea) setTimeout(function(){ scrollArea.scrollTop = scrollArea.scrollHeight; }, 50);
 }
 
-function setSugBadgeCount(count) {
-    var links = document.querySelectorAll('.cabinet-nav__link');
-    var badge = null;
-    var link = null;
-    for (var i = 0; i < links.length; i++) {
-        var href = links[i].getAttribute('href');
-        if (href && href.indexOf('suggestion') !== -1) {
-            link = links[i];
-            badge = links[i].querySelector('.nav-badge');
-            break;
-        }
-    }
-    if (count > 0) {
-        if (badge) {
-            badge.textContent = count;
-        } else if (link) {
-            badge = document.createElement('span');
-            badge.className = 'nav-badge';
-            badge.style.background = 'var(--cab-danger)';
-            badge.style.color = '#fff';
-            badge.textContent = count;
-            link.appendChild(badge);
-        }
-    } else {
-        if (badge) badge.remove();
-    }
-}
-
-// Polling for new messages
-var pollUrl = '{% url "cabinet:suggestion_poll" %}';
+// Register notification handlers (WS lives in base template)
 var seenMsgPks = new Set();
 document.querySelectorAll('.sug-msg__bubble').forEach(function(el) {
-    var pk = el.getAttribute('data-msg-pk');
-    if (pk) seenMsgPks.add(parseInt(pk, 10));
+    var pk = parseInt(el.getAttribute('data-msg-pk'), 10);
+    if (pk) seenMsgPks.add(pk);
 });
 
-function pollSuggestions() {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', pollUrl, true);
-    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    xhr.onload = function() {
-        if (xhr.status === 200) {
-            try {
-                var data = JSON.parse(xhr.responseText);
-                setSugBadgeCount(data.unread_count);
-                data.new_messages.forEach(function(m) {
-                    if (seenMsgPks.has(m.pk)) return;
-                    seenMsgPks.add(m.pk);
-                    var card = document.querySelector('.sug-card[data-pk="' + m.suggestion_pk + '"]');
-                    if (!card) return;
-                    var body = card.querySelector('.sug-card__body');
-                    if (body.classList.contains('sug-card__body--open')) {
-                        appendSugMsg(card, m);
-                    } else if (!card.querySelector('.sug-card__unread-dot')) {
-                        var right = card.querySelector('.sug-card__right');
-                        if (right) {
-                            var dot = document.createElement('span');
-                            dot.className = 'sug-card__unread-dot';
-                            right.insertBefore(dot, right.firstChild);
-                        }
-                    }
-                });
-            } catch(e) {}
+window.onNotif(function(m) {
+    if (m.type === 'new_message' && m.sug_manager_name !== undefined) {
+        if (seenMsgPks.has(m.pk)) return;
+        seenMsgPks.add(m.pk);
+        var card = document.querySelector('.sug-card[data-pk="' + m.suggestion_pk + '"]');
+        if (!card) {
+            var grid = document.querySelector('.sug-grid');
+            if (!grid) {
+                var emptyState = document.querySelector('.empty-state-sug, .empty-search');
+                var sugGridParent = document.querySelector('.sug-header');
+                if (sugGridParent) {
+                    grid = document.createElement('div');
+                    grid.className = 'sug-grid';
+                    sugGridParent.insertAdjacentElement('afterend', grid);
+                    if (emptyState) emptyState.remove();
+                }
+            }
+            if (grid) {
+                card = createSugCard(m);
+                grid.insertBefore(card, grid.firstChild);
+            }
         }
-    };
-    xhr.send();
+        if (!card) return;
+        appendSugMsg(card, m);
+        var body = card.querySelector('.sug-card__body');
+        var isOpen = body && body.classList.contains('sug-card__body--open');
+        if (!isOpen) {
+            if (!card.querySelector('.sug-card__unread-dot')) {
+                var right = card.querySelector('.sug-card__right');
+                if (right) {
+                    var dot = document.createElement('span');
+                    dot.className = 'sug-card__unread-dot';
+                    right.insertBefore(dot, right.firstChild);
+                }
+            }
+            setSugBadgeCount(m.unread_count);
+        } else if (markReadUrl) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', markReadUrl, true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.setRequestHeader('X-CSRFToken', '{{ csrf_token }}');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                        var resp = JSON.parse(xhr.responseText);
+                        if (resp.ok && resp.unread_count !== undefined) setSugBadgeCount(resp.unread_count);
+                    } catch(e) {}
+                }
+            };
+            xhr.send('pk=' + m.suggestion_pk);
+            return false; // suppress WS hub badge update
+        }
+    }
+    if (m.type === 'status_changed') {
+        var card = document.querySelector('.sug-card[data-pk="' + m.suggestion_pk + '"]');
+        if (!card) return;
+        var statusEl = card.querySelector('.sug-card__status');
+        if (statusEl) {
+            var labels = {'unread':'Не прочитано','read':'Прочитано','accepted':'Принято','rejected':'Отклонено'};
+            statusEl.className = 'sug-card__status sug-card__status--' + m.status;
+            statusEl.innerHTML = '<span style="width:5px;height:5px;border-radius:50%;background:currentColor"></span> ' + (labels[m.status] || m.status);
+        }
+        var closedBadge = card.querySelector('.sug-card__closed-badge');
+        if (m.is_closed) {
+            if (!closedBadge) {
+                var right = card.querySelector('.sug-card__right');
+                if (right) {
+                    var badge = document.createElement('span');
+                    badge.className = 'sug-card__closed-badge';
+                    badge.textContent = 'Закрыто';
+                    right.insertBefore(badge, right.querySelector('.sug-card__status'));
+                }
+            }
+        } else {
+            if (closedBadge) closedBadge.remove();
+        }
+    }
+});
+
+function createSugCard(m) {
+    var pk = m.suggestion_pk;
+    var card = document.createElement('div');
+    card.className = 'sug-card';
+    card.setAttribute('data-pk', pk);
+    var statusClass = 'sug-card__status--' + m.sug_status;
+    var statusLabel = {'unread': 'Не прочитано', 'read': 'Прочитано', 'accepted': 'Принято', 'rejected': 'Отклонено'}[m.sug_status] || m.sug_status;
+    var initials = (m.sug_manager_name || '?').charAt(0).toUpperCase();
+    var csrfInput = '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrfToken + '">';
+    var actUrl = sugActionUrlTmpl.replace('99999', pk);
+    var replyForm = m.sug_is_closed ? '' :
+        '<form method="post" action="' + escapeHtml(sugListUrl) + '" class="sug-reply-form">' +
+            csrfInput +
+            '<input type="hidden" name="action" value="reply">' +
+            '<input type="hidden" name="pk" value="' + pk + '">' +
+            '<textarea name="message" placeholder="Напишите ответ..." required></textarea>' +
+            '<div class="sug-reply-form-actions">' +
+                '<div class="sug-reply-form-actions-left">' +
+                    '<button type="submit" formaction="' + escapeHtml(actUrl) + '" name="status" value="read" class="sug-btn sug-btn--mark">Прочитано</button>' +
+                    '<button type="submit" formaction="' + escapeHtml(actUrl) + '" name="status" value="accepted" class="sug-btn sug-btn--accept">Принять</button>' +
+                    '<button type="submit" formaction="' + escapeHtml(actUrl) + '" name="status" value="rejected" class="sug-btn sug-btn--reject">Отклонить</button>' +
+                '</div>' +
+                '<div class="sug-reply-form-actions-right">' +
+                    '<button type="submit" class="sug-btn sug-btn--primary">Отправить</button>' +
+                '</div>' +
+            '</div>' +
+        '</form>';
+    var closeForm =
+        '<form method="post" action="' + escapeHtml(sugListUrl) + '">' +
+            csrfInput +
+            '<input type="hidden" name="action" value="' + (m.sug_is_closed ? 'reopen' : 'close') + '">' +
+            '<input type="hidden" name="pk" value="' + pk + '">' +
+            '<button type="submit" class="sug-btn sug-btn--' + (m.sug_is_closed ? 'reopen' : 'close') + '">' + (m.sug_is_closed ? 'Открыть топик' : 'Закрыть топик') + '</button>' +
+        '</form>';
+    card.innerHTML =
+        '<div class="sug-card__header" onclick="toggleSugBody(this)">' +
+            '<div class="sug-card__left">' +
+                '<div class="sug-card__avatar">' + initials + '</div>' +
+                '<div class="sug-card__info">' +
+                    '<div class="sug-card__info-top">' +
+                        '<span class="sug-card__name">' + escapeHtml(m.sug_manager_name) + '</span>' +
+                        '<span class="sug-card__date">' + escapeHtml(m.sug_created) + '</span>' +
+                    '</div>' +
+                    '<span class="sug-card__preview">' + escapeHtml(m.sug_preview) + '</span>' +
+                '</div>' +
+            '</div>' +
+            '<div class="sug-card__right">' +
+                '<span class="sug-card__unread-dot"></span>' +
+                (m.sug_is_closed ? '<span class="sug-card__closed-badge">Закрыто</span>' : '') +
+                '<span class="sug-card__status ' + statusClass + '">' +
+                    '<span style="width:5px;height:5px;border-radius:50%;background:currentColor"></span> ' +
+                    statusLabel +
+                '</span>' +
+                '<span class="sug-card__toggle">' +
+                    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>' +
+                '</span>' +
+            '</div>' +
+        '</div>' +
+        '<div class="sug-card__body">' +
+            '<div class="sug-card__body-inner">' +
+                '<div class="sug-card__scroll">' +
+                    '<div class="sug-thread"></div>' +
+                '</div>' +
+                '<div class="sug-card__bottom-fixed">' +
+                    '<div class="sug-actions-wrap">' +
+                        replyForm +
+                        '<div style="display:flex;gap:6px;padding:8px 0 0;">' + closeForm + '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+    return card;
 }
 
-setInterval(pollSuggestions, 5000);
+function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
 
 (function() {
     var params = new URLSearchParams(window.location.search);

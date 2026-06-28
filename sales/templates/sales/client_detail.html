@@ -58,7 +58,8 @@
 .status-option input[type="radio"]:disabled ~ span:not(.status-dot) {
     opacity: 0.55;
 }
-.form-group textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+.form-group textarea { resize: vertical; min-height: 240px; line-height: 1.6; }
+.form-group input { word-break: break-all; }
 
 .status-grid { display: flex; gap: 8px; flex-wrap: wrap; }
 .status-option {
@@ -95,6 +96,8 @@
 .current-status--tz_approval { background: #f5f3ff; color: #7c3aed; }
 .current-status--contract_signing { background: #fffbeb; color: #d97706; }
 .current-status--in_progress { background: #ecfdf5; color: #059669; }
+.current-status--call_back { background: #fff7ed; color: #c2410c; }
+.current-status--unavailable { background: #f3f4f6; color: #6b7280; }
 .current-status--completed { background: #f0fdf4; color: #15803d; }
 .current-status--refusal { background: #fef2f2; color: #dc2626; }
 .current-status--none { background: #f9fafb; color: #6b7280; }
@@ -146,6 +149,8 @@
 .badge--tz_approval { background: #f5f3ff; color: #7c3aed; }
 .badge--contract_signing { background: #fffbeb; color: #d97706; }
 .badge--in_progress { background: #ecfdf5; color: #059669; }
+.badge--call_back { background: #fff7ed; color: #c2410c; }
+.badge--unavailable { background: #f3f4f6; color: #6b7280; }
 .badge--completed { background: #f0fdf4; color: #15803d; }
 .badge--refusal { background: #fef2f2; color: #dc2626; }
 .badge--new { background: #f3f4f6; color: #6b7280; }
@@ -218,7 +223,7 @@
         <div class="client-card__header">
             <div>
                 <div class="client-card__title">
-                    {{ client.name|default:client.company_name|default:client.phone }}
+                    {{ client.company_name|default:client.phone }}
                 </div>
                 <div class="client-card__subtitle">{{ client.phone }}{% if client.company_name %} · {{ client.company_name }}{% endif %}{% if client.city %} · {{ client.city }}{% endif %}{% if not can_modify %} · <span class="badge badge--new">просмотр</span>{% endif %}</div>
             </div>
@@ -239,10 +244,6 @@
         <div class="client-card__body">
             <div class="client-grid">
                 <div class="form-group">
-                    <label>Имя</label>
-                    <input type="text" name="name" value="{{ client.name }}" placeholder="Имя клиента" {% if not can_modify %}disabled{% endif %}>
-                </div>
-                <div class="form-group">
                     <label>Телефон</label>
                     <input type="text" name="phone" value="{{ client.phone }}" placeholder="+7 (999) 123-45-67" required {% if not can_modify %}disabled{% endif %}>
                 </div>
@@ -259,14 +260,28 @@
                     <input type="text" name="industry" value="{{ client.industry }}" placeholder="IT, retail, services..." {% if not can_modify %}disabled{% endif %}>
                 </div>
                 <div class="form-group">
-                    <label>Правовой статус</label>
-                    <select name="legal_status" {% if not can_modify %}disabled{% endif %}>
-                        <option value="">Не указан</option>
-                        {% for key, label in form_legal_statuses %}
-                        {% if key %}<option value="{{ key }}" {% if client.legal_status == key %}selected{% endif %}>{{ label }}</option>{% endif %}
+                    <label>Онлайн-запись</label>
+                    <input type="text" name="online_booking" value="{{ client.online_booking }}" placeholder="Ссылка на онлайн-запись" {% if not can_modify %}disabled{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label>Ссылка на сайт</label>
+                    <input type="text" name="website_link" value="{{ client.website_link }}" placeholder="https://example.com" {% if not can_modify %}disabled{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label>Яндекс/2ГИС</label>
+                    <input type="text" name="map_link" value="{{ client.map_link }}" placeholder="Ссылка на карту" {% if not can_modify %}disabled{% endif %}>
+                </div>
+                {% if user.is_superuser %}
+                <div class="form-group">
+                    <label>Ответственный</label>
+                    <select name="assigned_manager" {% if not can_modify %}disabled{% endif %}>
+                        <option value="">— Не назначен —</option>
+                        {% for m in managers %}
+                        <option value="{{ m.pk }}" {% if client.assigned_manager_id == m.pk %}selected{% endif %}>{% if m.last_name and m.first_name %}{{ m.first_name }} {{ m.last_name }}{% elif m.first_name %}{{ m.first_name }}{% elif m.last_name %}{{ m.last_name }}{% else %}{{ m.email }}{% endif %}</option>
                         {% endfor %}
                     </select>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -300,6 +315,14 @@
                     <input type="radio" name="status" value="in_progress" {% if last_call.status == 'in_progress' %}checked{% endif %} {% if not can_modify %}disabled{% endif %}>
                     <span class="status-dot" style="background:#059669;"></span>В работе
                 </label>
+                <label class="status-option {% if last_call.status == 'call_back' %}status-option--active{% endif %}">
+                    <input type="radio" name="status" value="call_back" {% if last_call.status == 'call_back' %}checked{% endif %} {% if not can_modify %}disabled{% endif %}>
+                    <span class="status-dot" style="background:#c2410c;"></span>Перезвонить
+                </label>
+                <label class="status-option {% if last_call.status == 'unavailable' %}status-option--active{% endif %}">
+                    <input type="radio" name="status" value="unavailable" {% if last_call.status == 'unavailable' %}checked{% endif %} {% if not can_modify %}disabled{% endif %}>
+                    <span class="status-dot" style="background:#6b7280;"></span>Не доступен
+                </label>
                 <label class="status-option {% if last_call.status == 'completed' %}status-option--active{% endif %}">
                     <input type="radio" name="status" value="completed" {% if last_call.status == 'completed' %}checked{% endif %} {% if not can_modify %}disabled{% endif %}>
                     <span class="status-dot" style="background:#15803d;"></span>Выполнено
@@ -327,6 +350,7 @@
         </div>
     </div>
 
+    {% if calls %}
     <div class="client-card">
         <div class="client-card__header">
             <div class="client-card__title">Документы</div>
@@ -381,6 +405,7 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
 
     {% if can_modify %}
     <div class="form-actions">
@@ -391,6 +416,7 @@
     </div>
     {% endif %}
 
+    {% if calls %}
     <div class="client-card">
         <div class="client-card__header">
             <div class="client-card__title">История</div>
@@ -433,6 +459,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 </form>
 
 <script>

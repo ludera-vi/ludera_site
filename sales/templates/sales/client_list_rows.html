@@ -1,15 +1,15 @@
 {% for client in clients %}
-<tr data-client-id="{{ client.pk }}" data-client-name="{{ client.name }}" data-client-phone="{{ client.phone }}" data-has-call="{% if client.calls.exists %}true{% else %}false{% endif %}" data-has-manager="{% if client.assigned_manager %}true{% else %}false{% endif %}" data-is-responsible="{% if user.is_superuser or client.assigned_manager == user %}true{% else %}false{% endif %}">
-    <td class="cell-id">{{ client.pk }}</td>
+<tr data-client-id="{{ client.pk }}" data-client-name="{{ client.company_name|default:client.phone }}" data-client-phone="{{ client.phone }}" data-client-comment="{{ client.comment }}" data-has-call="{% if client.calls.exists %}true{% else %}false{% endif %}" data-has-manager="{% if client.assigned_manager %}true{% else %}false{% endif %}" data-is-responsible="{% if user.is_superuser or client.assigned_manager == user %}true{% else %}false{% endif %}" data-manager-id="{{ client.assigned_manager_id }}">
     <td>{{ client.industry|default:'' }}</td>
     <td>{{ client.city|default:'' }}</td>
     <td>{{ client.company_name|default:'' }}</td>
-    <td>{{ client.name|default:'' }}</td>
     <td class="cell-phone"><a href="tel:{{ client.phone }}">{{ client.phone }}</a></td>
+    <td>{% if client.online_booking|slice:":4" == "http" %}<a href="{{ client.online_booking }}" target="_blank" rel="noopener" class="cell-link">{{ client.online_booking }}</a>{% elif client.online_booking %}{{ client.online_booking }}{% else %}<span class="cell-no">нет</span>{% endif %}</td>
+    <td>{{ client.comment|truncatechars:40|default:'' }}</td>
     <td>
         {% with call=client.calls.last %}
         {% if call %}
-        <span class="badge {% if call.status == 'negotiation' %}badge--negotiation{% elif call.status == 'tz_creation' %}badge--tz-creation{% elif call.status == 'tz_approval' %}badge--tz-approval{% elif call.status == 'contract_signing' %}badge--contract{% elif call.status == 'in_progress' %}badge--in-progress{% elif call.status == 'completed' %}badge--completed{% elif call.status == 'refusal' %}badge--refusal{% else %}badge--no-status{% endif %}">{{ call.get_status_display }}</span>
+        <span class="badge {% if call.status == 'negotiation' %}badge--negotiation{% elif call.status == 'tz_creation' %}badge--tz-creation{% elif call.status == 'tz_approval' %}badge--tz-approval{% elif call.status == 'contract_signing' %}badge--contract{% elif call.status == 'in_progress' %}badge--in-progress{% elif call.status == 'completed' %}badge--completed{% elif call.status == 'refusal' %}badge--refusal{% elif call.status == 'call_back' %}badge--call_back{% elif call.status == 'unavailable' %}badge--unavailable{% else %}badge--no-status{% endif %}">{{ call.get_status_display }}</span>
         {% else %}
         <span class="badge badge--new">Новый</span>
         {% endif %}
@@ -28,7 +28,8 @@
             {% endif %}
         {% endif %}
     </td>
-    <td>{{ client.comment|default:'' }}</td>
+    <td>{% if client.website_link|slice:":4" == "http" %}<a href="{{ client.website_link }}" target="_blank" rel="noopener" class="cell-link">{{ client.website_link }}</a>{% elif client.website_link %}{{ client.website_link }}{% else %}<span class="cell-no">нет</span>{% endif %}</td>
+    <td>{% if client.map_link|slice:":4" == "http" %}<a href="{{ client.map_link }}" target="_blank" rel="noopener" class="cell-link">{% if '2gis' in client.map_link %}Карта 2ГИС{% elif 'yandex' in client.map_link %}Яндекс Карты{% else %}Карта{% endif %}</a>{% elif client.map_link %}{{ client.map_link }}{% else %}<span class="cell-no">нет</span>{% endif %}</td>
 </tr>
 {% empty %}
 <tr><td colspan="9" class="empty-state">Нет клиентов</td></tr>

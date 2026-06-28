@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
     new Chart(document.getElementById('viewsChart'), {
         type: 'line',
         data: {
-            labels: {{ days_labels|safe }},
+            labels: {{ days_labels|escapejs }},
             datasets: [{
                 label: 'Просмотры',
                 data: {{ days_data|safe }},
@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
     new Chart(document.getElementById('pagesChart'), {
         type: 'bar',
         data: {
-            labels: {{ top_urls|safe }},
+            labels: {{ top_urls|escapejs }},
             datasets: [{
                 label: 'Просмотры',
                 data: {{ top_counts|safe }},

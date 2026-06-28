@@ -16,6 +16,8 @@ CALL_STATUSES = [
     ('in_progress', 'В работе'),
     ('completed', 'Выполнено'),
     ('refusal', 'Отказ'),
+    ('call_back', 'Перезвонить'),
+    ('unavailable', 'Не доступен'),
 ]
 
 
@@ -24,12 +26,16 @@ class Client(models.Model):
     city = models.CharField('Город', max_length=200, blank=True)
     company_name = models.CharField('Наименование', max_length=300, blank=True)
     name = models.CharField('Имя', max_length=200, blank=True)
-    phone = models.CharField('Телефон', max_length=20)
+    phone = models.CharField('Телефон', max_length=200)
     legal_status = models.CharField('Правовой статус', max_length=20, choices=LEGAL_STATUSES, blank=True)
+    online_booking = models.CharField('Онлайн-запись', max_length=5000, blank=True)
+    website_link = models.CharField('Ссылка на сайт', max_length=5000, blank=True)
+    map_link = models.CharField('Ссылка на Яндекс/2ГИС', max_length=5000, blank=True)
     comment = models.TextField('Комментарий', blank=True)
     assigned_manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='clients', verbose_name='Ответственный менеджер')
     imported_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='imported_clients', verbose_name='Подгрузил')
     is_archived = models.BooleanField('В архиве', default=False)
+    is_deleted = models.BooleanField('Удалён', default=False)
     created_at = models.DateTimeField('Создан', auto_now_add=True)
     updated_at = models.DateTimeField('Обновлён', auto_now=True)
 

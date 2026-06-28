@@ -87,8 +87,8 @@ class UserCreateForm(forms.Form):
         p2 = self.cleaned_data.get('password2')
         if p1 and p2 and p1 != p2:
             raise forms.ValidationError('Пароли не совпадают')
-        if p1 and len(p1) < 6:
-            raise forms.ValidationError('Пароль должен быть не менее 6 символов')
+        if p1 and len(p1) < 8:
+            raise forms.ValidationError('Пароль должен быть не менее 8 символов')
         return p2
 
     def save(self, commit=True):

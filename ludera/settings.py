@@ -11,12 +11,14 @@ CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=Csv())
 
 # ─── Application definition ────────────────────────────────────────
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'django.contrib.sites',
     'allauth',
     'allauth.account',
@@ -69,6 +71,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ludera.wsgi.application'
+ASGI_APPLICATION = 'ludera.asgi.application'
+
+# ─── Channels (WebSockets) ─────────────────────────────────────────
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 # ─── Database ──────────────────────────────────────────────────────
 DB_ENGINE = config('DB_ENGINE', default='sqlite')

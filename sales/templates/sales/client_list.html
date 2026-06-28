@@ -66,15 +66,16 @@ table.client-table tbody tr:hover { background: var(--cab-active-bg); }
 table.client-table tbody tr.selected { background: rgba(45,143,94,0.12); }
 table.client-table tbody { user-select: none; -webkit-user-select: none; cursor: default; }
 
-th.col-id       { width: 42px; }
-th.col-industry { width: 11%; }
-th.col-city     { width: 9%; }
-th.col-company  { width: 14%; }
-th.col-name     { width: 10%; }
-th.col-phone    { width: 11%; }
-th.col-status   { width: 13%; }
-th.col-manager  { width: 14%; }
-th.col-comment  { width: 18%; }
+th.col-industry { width: 9%; }
+th.col-city     { width: 8%; }
+th.col-company  { width: 12%; }
+th.col-phone    { width: 10%; }
+th.col-online   { width: 10%; }
+th.col-comment  { width: 12%; }
+th.col-status   { width: 11%; }
+th.col-manager  { width: 10%; }
+th.col-website  { width: 9%; }
+th.col-map      { width: 9%; }
 
 .col-resizer {
     position: absolute; top: 2px; bottom: 2px; right: -1px; width: 4px;
@@ -93,6 +94,8 @@ table.client-table thead th:last-child .col-resizer { display: none; }
 .badge--new     { background: #f3f4f6; color: #6b7280; }
 .badge--negotiation { background: #fff7ed; color: #c2410c; }
 .badge--refusal { background: #fef2f2; color: #dc2626; }
+.badge--call_back { background: #fff7ed; color: #c2410c; }
+.badge--unavailable { background: #f3f4f6; color: #6b7280; }
 .badge--tz-creation { background: #eff6ff; color: #2563eb; }
 .badge--tz-approval { background: #f5f3ff; color: #7c3aed; }
 .badge--contract { background: #fffbeb; color: #d97706; }
@@ -100,10 +103,12 @@ table.client-table thead th:last-child .col-resizer { display: none; }
 .badge--completed { background: #f0fdf4; color: #15803d; }
 .badge--no-status { background: #f9fafb; color: #6b7280; }
 
-.cell-id { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--cab-text-muted); }
 .cell-phone a { color: var(--cab-text); text-decoration: none; }
 .cell-phone a:hover { color: var(--cab-primary); text-decoration: underline; }
 .cell-manager { font-size: 0.8125rem; }
+.cell-link { color: var(--cab-primary); text-decoration: none; font-size: 0.75rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; max-width: 100%; }
+.cell-link:hover { text-decoration: underline; }
+.cell-no { color: var(--cab-text-muted); opacity: 0.5; font-size: 0.75rem; }
 
 .status-select {
     font-size: 0.75rem; padding: 3px 6px; border-radius: 6px;
@@ -114,6 +119,8 @@ table.client-table thead th:last-child .col-resizer { display: none; }
 .status-select:focus { border-color: var(--cab-primary); }
 .status-select[data-status="negotiation"] { border-color: #fdba74; color: #c2410c; background: #fff7ed; }
 .status-select[data-status="refusal"] { border-color: #fca5a5; color: #dc2626; background: #fef2f2; }
+.status-select[data-status="call_back"] { border-color: #fdba74; color: #c2410c; background: #fff7ed; }
+.status-select[data-status="unavailable"] { border-color: #d1d5db; color: #6b7280; background: #f9fafb; }
 .status-select[data-status="tz_creation"] { border-color: #93c5fd; color: #2563eb; background: #eff6ff; }
 .status-select[data-status="tz_approval"] { border-color: #c4b5fd; color: #7c3aed; background: #f5f3ff; }
 .status-select[data-status="contract_signing"] { border-color: #fcd34d; color: #d97706; background: #fffbeb; }
@@ -193,14 +200,18 @@ table.client-table thead th:last-child .col-resizer { display: none; }
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Создать
             </a>
+            {% if user.is_superuser %}
             <a href="{{ url_clients }}import/" class="btn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Импорт
             </a>
+            {% endif %}
+            {% if user.is_superuser %}
             <button type="button" class="btn" id="btnExport">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Экспорт
             </button>
+            {% endif %}
             <button type="button" class="btn {% if no_manager %}btn--active{% endif %}" id="btnNoManager" data-active="{{ no_manager|yesno:'true,false' }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
                 Новые
@@ -217,15 +228,16 @@ table.client-table thead th:last-child .col-resizer { display: none; }
             <table class="client-table" id="clientTable">
                 <thead>
                     <tr>
-                        <th class="col-id">#</th>
                         <th class="col-industry">Сфера <span class="col-resizer"></span></th>
                         <th class="col-city">Город <span class="col-resizer"></span></th>
                         <th class="col-company">Наименование <span class="col-resizer"></span></th>
-                        <th class="col-name">Имя <span class="col-resizer"></span></th>
                         <th class="col-phone">Телефон <span class="col-resizer"></span></th>
+                        <th class="col-online">Онлайн-запись <span class="col-resizer"></span></th>
+                        <th class="col-comment">Комментарий <span class="col-resizer"></span></th>
                         <th class="col-status">Статус <span class="col-resizer"></span></th>
                         <th class="col-manager">Ответственный <span class="col-resizer"></span></th>
-                        <th class="col-comment">Комментарий</th>
+                        <th class="col-website">Ссылка на сайт <span class="col-resizer"></span></th>
+                        <th class="col-map">Яндекс/2ГИС</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -263,6 +275,10 @@ table.client-table thead th:last-child .col-resizer { display: none; }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         Удалить
     </button>
+    <button type="button" class="context-menu__item" id="ctxRestore" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Восстановить
+    </button>
 </div>
 
 <div class="modal-overlay" id="editModal">
@@ -274,24 +290,28 @@ table.client-table thead th:last-child .col-resizer { display: none; }
         <form method="post" id="editForm" action="">
             {% csrf_token %}
             <div class="modal-form-row">
-                <div class="modal-form-group"><label>Имя</label><input type="text" name="name" id="edit_name"></div>
                 <div class="modal-form-group"><label>Телефон</label><input type="text" name="phone" id="edit_phone"></div>
+                <div class="modal-form-group"><label>Наименование</label><input type="text" name="company_name" id="edit_company_name"></div>
             </div>
             <div class="modal-form-row">
-                <div class="modal-form-group"><label>Наименование</label><input type="text" name="company_name" id="edit_company_name"></div>
                 <div class="modal-form-group"><label>Город</label><input type="text" name="city" id="edit_city"></div>
                 <div class="modal-form-group"><label>Сфера</label><input type="text" name="industry" id="edit_industry"></div>
             </div>
-            <div class="modal-form-group">
-                <label>Правовой статус</label>
-                <select name="legal_status" id="edit_legal_status">
-                    <option value="">—</option>
-                    {% for key, label in form_legal_statuses %}
-                    <option value="{{ key }}">{{ label }}</option>
+            {% if user.is_superuser %}
+            <div class="modal-form-group" id="managerField">
+                <label>Ответственный</label>
+                <select name="assigned_manager" id="edit_assigned_manager">
+                    <option value="">— Не назначен —</option>
+                    {% for m in managers %}
+                    <option value="{{ m.pk }}">{% if m.last_name and m.first_name %}{{ m.first_name }} {{ m.last_name }}{% elif m.first_name %}{{ m.first_name }}{% elif m.last_name %}{{ m.last_name }}{% else %}{{ m.email }}{% endif %}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="modal-form-group"><label>Комментарий</label><textarea name="comment" id="edit_comment" rows="8"></textarea></div>
+            {% endif %}
+            <input type="hidden" name="online_booking" id="edit_online_booking">
+            <input type="hidden" name="website_link" id="edit_website_link">
+            <input type="hidden" name="map_link" id="edit_map_link">
+            <div class="modal-form-group"><label>Комментарий</label><textarea name="comment" id="edit_comment" rows="10"></textarea></div>
             <div id="callStatusSection" style="display:none;">
                 <div class="modal-form-group">
                     <label>Статус</label>
@@ -315,6 +335,14 @@ table.client-table thead th:last-child .col-resizer { display: none; }
                         <label class="status-option">
                             <input type="radio" name="status" value="in_progress">
                             <span class="status-dot" style="background:#059669;"></span>В работе
+                        </label>
+                        <label class="status-option">
+                            <input type="radio" name="status" value="call_back">
+                            <span class="status-dot" style="background:#c2410c;"></span>Перезвонить
+                        </label>
+                        <label class="status-option">
+                            <input type="radio" name="status" value="unavailable">
+                            <span class="status-dot" style="background:#6b7280;"></span>Не доступен
                         </label>
                         <label class="status-option">
                             <input type="radio" name="status" value="completed">
@@ -433,6 +461,7 @@ table.client-table thead th:last-child .col-resizer { display: none; }
     var ctxEdit = document.getElementById('ctxEdit');
     var ctxArchive = document.getElementById('ctxArchive');
     var ctxDelete = document.getElementById('ctxDelete');
+    var ctxRestore = document.getElementById('ctxRestore');
     var selectedId = null;
 
     document.addEventListener('contextmenu', function(e) {
@@ -446,18 +475,42 @@ table.client-table thead th:last-child .col-resizer { display: none; }
         selectedId = row.dataset.clientId;
         document.querySelectorAll('.client-table tbody tr.selected').forEach(function(r) { r.classList.remove('selected'); });
         row.classList.add('selected');
-        if (isResp || !hasManager) {
-            ctxCreateCall.style.display = (section === 'called' || hasCall) ? 'none' : '';
-            ctxEdit.style.display = section === 'called' ? 'none' : '';
+        var isSuperuser = {{ user.is_superuser|yesno:'true,false' }};
+        if (section === 'deleted') {
+            ctxCreateCall.style.display = 'none';
+            ctxEdit.style.display = 'none';
+            ctxArchive.style.display = 'none';
+            ctxDelete.style.display = isSuperuser ? '' : 'none';
+            ctxView.style.display = '';
+            ctxRestore.style.display = '';
+        } else if (section === 'archive') {
+            ctxCreateCall.style.display = 'none';
+            ctxEdit.style.display = 'none';
+            ctxArchive.style.display = 'none';
+            ctxDelete.style.display = isSuperuser ? '' : 'none';
+            ctxView.style.display = '';
+            ctxRestore.style.display = '';
+        } else if (section === 'refusal') {
+            ctxCreateCall.style.display = 'none';
+            ctxEdit.style.display = isSuperuser ? '' : 'none';
+            ctxArchive.style.display = 'none';
+            ctxDelete.style.display = isSuperuser ? '' : 'none';
+            ctxView.style.display = '';
+            ctxRestore.style.display = isSuperuser ? '' : 'none';
+        } else if (isResp || !hasManager) {
+            ctxCreateCall.style.display = (section === 'called') ? '' : ((hasCall) ? 'none' : '');
+            ctxEdit.style.display = '';
             ctxArchive.style.display = '';
             ctxDelete.style.display = '';
             ctxView.style.display = 'none';
+            ctxRestore.style.display = 'none';
         } else {
             ctxCreateCall.style.display = 'none';
             ctxEdit.style.display = 'none';
             ctxArchive.style.display = 'none';
             ctxDelete.style.display = 'none';
             ctxView.style.display = '';
+            ctxRestore.style.display = 'none';
         }
         menu.style.left = e.clientX + 'px';
         menu.style.top = e.clientY + 'px';
@@ -479,12 +532,19 @@ table.client-table thead th:last-child .col-resizer { display: none; }
         var row = document.querySelector('tr[data-client-id="' + selectedId + '"]');
         if (row) {
             var cells = row.querySelectorAll('td');
-            document.getElementById('edit_name').value = cells[4]?.textContent.trim() || '';
-            document.getElementById('edit_phone').value = cells[5]?.textContent.trim() || '';
-            document.getElementById('edit_company_name').value = cells[3]?.textContent.trim() || '';
-            document.getElementById('edit_city').value = cells[2]?.textContent.trim() || '';
-            document.getElementById('edit_industry').value = cells[1]?.textContent.trim() || '';
-            document.getElementById('edit_comment').value = cells[8]?.textContent.trim() || '';
+            document.getElementById('edit_phone').value = cells[3]?.textContent.trim() || '';
+            document.getElementById('edit_company_name').value = cells[2]?.textContent.trim() || '';
+            document.getElementById('edit_city').value = cells[1]?.textContent.trim() || '';
+            document.getElementById('edit_industry').value = cells[0]?.textContent.trim() || '';
+            document.getElementById('edit_comment').value = row.dataset.clientComment || cells[5]?.textContent.trim() || '';
+            var ob = cells[4]?.querySelector('a')?.getAttribute('href') || '';
+            var ws = cells[8]?.querySelector('a')?.getAttribute('href') || '';
+            var mp = cells[9]?.querySelector('a')?.getAttribute('href') || '';
+            document.getElementById('edit_online_booking').value = ob;
+            document.getElementById('edit_website_link').value = ws;
+            document.getElementById('edit_map_link').value = mp;
+            var mgrEl = document.getElementById('edit_assigned_manager');
+            if (mgrEl) mgrEl.value = row.dataset.managerId || '';
         }
         if (createCall) {
             editModalTitle.textContent = 'Создать обзвон';
@@ -524,6 +584,16 @@ table.client-table thead th:last-child .col-resizer { display: none; }
 
     ctxArchive.addEventListener('click', function() { if (selectedId) submitAction(baseUrl + selectedId + '/archive/'); menu.classList.remove('context-menu--visible'); });
     ctxDelete.addEventListener('click', function() { if (selectedId && confirm('Удалить клиента?')) submitAction(baseUrl + selectedId + '/delete/'); menu.classList.remove('context-menu--visible'); });
+    ctxRestore.addEventListener('click', function() {
+        if (!selectedId) return;
+        var section = '{{ active_section|default:"clients" }}';
+        var url;
+        if (section === 'archive') url = baseUrl + selectedId + '/archive/';
+        else if (section === 'refusal') url = baseUrl + selectedId + '/restore-from-refusal/';
+        else url = baseUrl + selectedId + '/restore/';
+        if (confirm('Восстановить клиента?')) submitAction(url);
+        menu.classList.remove('context-menu--visible');
+    });
 
     // Export modal
     var exportModal = document.getElementById('exportModal');

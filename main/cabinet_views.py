@@ -19,12 +19,13 @@ from .models import (
 from .forms import (
     ServiceForm, ProjectForm, ProductForm, BlogPostForm,
     SiteSettingForm, HeroSectionForm, NavLinkForm,
-    PrincipleForm, ContactRequestForm,
+    PrincipleForm,
     LoginForm, GoodsForm, GoodsFileForm, SocialLinkForm,
 )
 from users.models import UserProfile, UserProduct, ProductFile, UserSetting, Goods, GoodsFile, UserGoods, CabinetPermission, ManagerSuggestion, SuggestionMessage
 from users.forms import UserProfileForm, UserCreateForm
 from sales.models import Client, Call, ClientActivity, CALL_STATUSES
+from sales.views import _last_status_clients
 
 
 @login_required(login_url='/cabinet/login/')
@@ -369,14 +370,6 @@ def product_delete(request, pk):
 
 # ─── Product Files (inline in product form) ────────────────────
 
-def _get_product_file_formset(instance=None):
-    return inlineformset_factory(
-        Product, ProductFile,
-        fields=('title', 'file', 'file_type', 'order'),
-        extra=1, can_delete=True,
-    )(instance=instance)
-
-
 @login_required(login_url='/cabinet/login/')
 def product_files(request, pk):
     product = get_object_or_404(Product, pk=pk)
@@ -463,8 +456,6 @@ def goods_files(request, pk):
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.conf import settings
-import uuid
 import os
 
 @login_required(login_url='/cabinet/login/')
@@ -518,6 +509,9 @@ def user_list(request):
 
 @login_required(login_url='/cabinet/login/')
 def user_detail(request, pk):
+    if not request.user.is_superuser:
+        messages.error(request, 'Доступ запрещён')
+        return redirect('cabinet:dashboard')
     user = get_object_or_404(User, pk=pk)
     profile, _ = UserProfile.objects.get_or_create(user=user)
     user_goods = UserGoods.objects.filter(user=user).select_related('goods')
@@ -955,11 +949,11 @@ def manager_dashboard(request):
     status_labels = dict(CALL_STATUSES)
 
     # ── General stats ──
-    total_clients = Client.objects.count()
-    called = Client.objects.filter(calls__isnull=False, is_archived=False).distinct().count()
-    uncalled = Client.objects.filter(~Q(calls__isnull=False), is_archived=False).count()
+    total_clients = Client.objects.filter(is_deleted=False).count()
+    called = Client.objects.filter(calls__isnull=False, is_archived=False, is_deleted=False).distinct().count()
+    uncalled = Client.objects.filter(~Q(calls__isnull=False), is_archived=False, is_deleted=False).count()
     in_progress = Call.objects.exclude(status__in=['refusal', 'completed']).count()
-    archived = Client.objects.filter(is_archived=True).count()
+    archived = Client.objects.filter(is_archived=True, is_deleted=False).count()
 
     status_counts = list(Call.objects.values('status').annotate(count=Count('id')).order_by('status'))
     total_calls = sum(s['count'] for s in status_counts) or 1
@@ -978,12 +972,6 @@ def manager_dashboard(request):
         # Conversion: refusal = 0, any other = 1
         non_refusal = calls.exclude(status='refusal').count()
         conversion = round(non_refusal / total * 100, 1) if total else 0
-
-        # Clients imported
-        imported = Client.objects.filter(imported_by=m)
-        imp_today = imported.filter(created_at__date=today).count()
-        imp_week = imported.filter(created_at__gte=week_ago).count()
-        imp_month = imported.filter(created_at__gte=month_ago).count()
 
         # Active clients (assigned, not archived, has a call not in refusal/completed)
         assigned = Client.objects.filter(assigned_manager=m)
@@ -1010,9 +998,6 @@ def manager_dashboard(request):
             'calls_month': calls_month,
             'total_calls': total,
             'conversion': conversion,
-            'imp_today': imp_today,
-            'imp_week': imp_week,
-            'imp_month': imp_month,
             'active_clients': active,
             'assigned_total': assigned_total,
             'status_breakdown': status_breakdown,
@@ -1071,6 +1056,18 @@ def manager_dashboard(request):
     # Today's activity feed
     activities_today = ClientActivity.objects.filter(created_at__date=today).select_related('user', 'client').order_by('-created_at')[:20]
 
+    sidebar_counts = {
+        'called': _last_status_clients('call_back', 'unavailable').filter(is_archived=False, is_deleted=False).count(),
+        'in_progress': _last_status_clients('negotiation', 'tz_creation', 'tz_approval', 'contract_signing', 'in_progress').filter(is_archived=False, is_deleted=False).count(),
+        'completed': _last_status_clients('completed').filter(is_archived=False, is_deleted=False).count(),
+        'archive': Client.objects.filter(is_archived=True, is_deleted=False).count(),
+        'deleted': Client.objects.filter(is_deleted=True).count(),
+        'suggestions_unread': SuggestionMessage.objects.filter(
+            author__is_superuser=False,
+            is_read=False,
+        ).count(),
+    }
+
     return render(request, 'cabinet/admin_dashboard.html', {
         'title': 'Дашборд продаж',
         'total_clients': total_clients,
@@ -1083,6 +1080,7 @@ def manager_dashboard(request):
         'stats_total_display': stats_total_display,
         'manager_rows': manager_rows,
         'activities_today': activities_today,
+        'sidebar_counts': sidebar_counts,
     })
 
 
@@ -1111,6 +1109,8 @@ def admin_suggestion_list(request):
                     if sug.status == 'unread':
                         sug.status = 'read'
                         sug.save(update_fields=['status'])
+                    from main.notification import broadcast_suggestion_message
+                    broadcast_suggestion_message(msg)
                     if is_ajax:
                         from django.utils import timezone
                         t = timezone.localtime(msg.created_at)
@@ -1127,12 +1127,16 @@ def admin_suggestion_list(request):
             sug = get_object_or_404(ManagerSuggestion, pk=pk)
             sug.is_closed = True
             sug.save(update_fields=['is_closed'])
+            from main.notification import broadcast_status_change
+            broadcast_status_change(sug)
             messages.success(request, 'Топик закрыт')
             open_pk = pk
         elif action == 'reopen' and pk:
             sug = get_object_or_404(ManagerSuggestion, pk=pk)
             sug.is_closed = False
             sug.save(update_fields=['is_closed'])
+            from main.notification import broadcast_status_change
+            broadcast_status_change(sug)
             messages.success(request, 'Топик открыт')
             open_pk = pk
 
@@ -1161,7 +1165,7 @@ def admin_suggestion_list(request):
         s.has_unread = any(
             not m.is_read and not m.author.is_superuser
             for m in s.messages.all()
-        )
+        ) or s.status == 'unread'
     return render(request, 'cabinet/suggestion_list.html', {
         'title': 'Обратная связь — Предложения менеджеров',
         'suggestions': suggestions,
@@ -1184,7 +1188,16 @@ def suggestion_mark_read(request):
                 suggestion=sug,
                 is_read=False
             ).exclude(author=request.user).update(is_read=True)
-            return JsonResponse({'ok': True})
+            if request.user.is_superuser and sug.status == 'unread':
+                sug.status = 'read'
+                sug.save(update_fields=['status'])
+                from main.notification import broadcast_status_change
+                broadcast_status_change(sug)
+            if request.user.is_superuser:
+                unread_count = SuggestionMessage.objects.filter(author__is_superuser=False, is_read=False).count()
+            else:
+                unread_count = SuggestionMessage.objects.filter(suggestion__manager=request.user, author__is_superuser=True, is_read=False).count()
+            return JsonResponse({'ok': True, 'unread_count': unread_count})
     except ManagerSuggestion.DoesNotExist:
         pass
     return JsonResponse({'ok': False}, status=404)
@@ -1207,51 +1220,22 @@ def admin_suggestion_action(request, pk):
     if comment:
         suggestion.admin_comment = comment
     suggestion.save()
+    # Mark all manager messages as read
+    SuggestionMessage.objects.filter(
+        suggestion=suggestion,
+        author__is_superuser=False,
+        is_read=False
+    ).update(is_read=True)
+    from main.notification import broadcast_status_change
+    broadcast_status_change(suggestion)
     if reply_text:
-        SuggestionMessage.objects.create(
+        msg = SuggestionMessage.objects.create(
             suggestion=suggestion, author=request.user, message=reply_text
         )
+        from main.notification import broadcast_suggestion_message
+        broadcast_suggestion_message(msg)
     messages.success(request, 'Статус предложения обновлён')
     return redirect('cabinet:admin_suggestion_list')
 
 
-@login_required(login_url='/cabinet/login/')
-def suggestion_poll(request):
-    from django.utils import timezone
-    data = {'unread_count': 0, 'new_messages': []}
 
-    if request.user.is_superuser:
-        unread_suggestions = ManagerSuggestion.objects.filter(status='unread').count()
-        unread_msgs = SuggestionMessage.objects.filter(
-            author__is_superuser=False, is_read=False
-        ).select_related('author').order_by('created_at')
-        data['unread_count'] = unread_suggestions + unread_msgs.count()
-        for m in unread_msgs:
-            t = timezone.localtime(m.created_at)
-            data['new_messages'].append({
-                'suggestion_pk': m.suggestion_id,
-                'pk': m.pk,
-                'message': m.message,
-                'author': m.author.get_full_name() or m.author.email,
-                'is_superuser': False,
-                'time': t.strftime('%H:%M'),
-            })
-    elif getattr(getattr(request.user, 'profile', None), 'role', None) == 'manager':
-        unread_msgs = SuggestionMessage.objects.filter(
-            suggestion__manager=request.user,
-            author__is_superuser=True,
-            is_read=False
-        ).select_related('author').order_by('created_at')
-        data['unread_count'] = unread_msgs.count()
-        for m in unread_msgs:
-            t = timezone.localtime(m.created_at)
-            data['new_messages'].append({
-                'suggestion_pk': m.suggestion_id,
-                'pk': m.pk,
-                'message': m.message,
-                'author': m.author.get_full_name() or m.author.email,
-                'is_superuser': True,
-                'time': t.strftime('%H:%M'),
-            })
-
-    return JsonResponse(data)
