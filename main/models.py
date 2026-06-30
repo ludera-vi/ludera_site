@@ -163,7 +163,13 @@ class SiteSetting(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.pk and SiteSetting.objects.exists():
-            raise ValidationError('Может существовать только один экземпляр SiteSetting')
+            existing = SiteSetting.objects.first()
+            for field in self._meta.fields:
+                if field.primary_key:
+                    continue
+                setattr(existing, field.name, getattr(self, field.name))
+            existing.save()
+            return
         super().save(*args, **kwargs)
 
     def get_social_links(self):
@@ -448,6 +454,10 @@ class PageView(models.Model):
         ordering = ['-timestamp']
         verbose_name = 'Просмотр страницы'
         verbose_name_plural = 'Статистика просмотров'
+        indexes = [
+            models.Index(fields=['session_key', 'url', 'timestamp']),
+            models.Index(fields=['timestamp']),
+        ]
 
     def __str__(self):
         return f'{self.url} — {self.timestamp.strftime("%d.%m.%Y %H:%M")}'

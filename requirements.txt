@@ -9,3 +9,5 @@ psycopg2-binary>=2.9
 channels>=4.3
 channels_redis>=4.3
 daphne>=4.2
+openpyxl>=3.1
+whitenoise>=6.12

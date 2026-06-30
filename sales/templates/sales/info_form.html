@@ -1,0 +1,56 @@
+{% extends base_template %}
+{% block content %}
+<style>
+.info-dpage { max-width: 800px; margin: 0 auto; }
+.info-dhead { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.info-dhead__back { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--cab-border); background: var(--cab-surface); color: var(--cab-text); text-decoration: none; transition: all .15s; flex-shrink: 0; }
+.info-dhead__back:hover { border-color: var(--cab-primary); color: var(--cab-primary); }
+.info-dhead__info { flex: 1; }
+.info-dhead__title { font-size: 1.25rem; font-weight: 600; margin: 0; color: var(--cab-text); }
+.edit-form { max-width: 800px; }
+.edit-form .field { margin-bottom: 16px; }
+.edit-form label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--cab-text); margin-bottom: 4px; }
+.edit-form input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid var(--cab-border); border-radius: 8px; font-size: 0.875rem; background: var(--cab-bg); color: var(--cab-text); outline: none; font-family: inherit; box-sizing: border-box; }
+.edit-form input[type="text"]:focus { border-color: var(--cab-primary); }
+.edit-form .form-actions { display: flex; gap: 8px; margin-top: 20px; }
+.info-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 0.8125rem; font-weight: 500; border: 1px solid var(--cab-border); background: var(--cab-surface); color: var(--cab-text); cursor: pointer; text-decoration: none; transition: all .15s; font-family: inherit; }
+.info-btn:hover { border-color: var(--cab-primary); color: var(--cab-primary); }
+.info-btn--primary { background: var(--cab-primary); color: #fff; border-color: var(--cab-primary); }
+.info-btn--primary:hover { background: var(--cab-primary-hover); color: #fff; }
+</style>
+
+<div class="info-dpage">
+    <div class="info-dhead">
+        <a href="{% url ns|add:':info_list' %}" class="info-dhead__back">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </a>
+        <div class="info-dhead__info">
+            <h1 class="info-dhead__title">{{ title }}</h1>
+        </div>
+    </div>
+
+    <div class="edit-form">
+        <form method="post">
+            {% csrf_token %}
+            <div class="field">
+                <label>Заголовок</label>
+                <input type="text" name="title" value="{{ topic.title }}" required autofocus>
+            </div>
+            <div class="field">
+                <label>Содержание</label>
+                <textarea name="content" class="rich-editor" rows="12" style="display:none;">{{ topic.content }}</textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="info-btn info-btn--primary">Сохранить</button>
+                <a href="{% url ns|add:':info_detail' topic.pk %}" class="info-btn">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+{% include "cabinet/_quill_editor.html" %}
+{% endblock %}

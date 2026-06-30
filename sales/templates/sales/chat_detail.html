@@ -1,0 +1,282 @@
+{% extends base_template %}
+{% block content %}
+<div class="ch-dpage">
+    <div class="ch-dhead">
+        <a href="{% url ns|add:':chat_list' %}" class="ch-dhead__back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </a>
+        <div class="ch-dhead__info">
+            <span class="ch-dhead__name">
+                {% if chat.client %}
+                {{ chat.client.name }}
+                {% elif chat.title %}
+                {{ chat.title }}
+                {% else %}
+                {% for m in members %}{% if m.user_id != user.pk %}{{ m.user.get_full_name|default:m.user.email }}{% endif %}{% endfor %}
+                {% endif %}
+            </span>
+        </div>
+        <div class="ch-dhead__actions">
+            {% if user.is_superuser or chat.created_by == user %}
+            <button class="kb-btn kb-btn--ghost kb-btn--sm" onclick="document.getElementById('memberModal').style.display='flex'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            </button>
+            {% endif %}
+            {% if user.is_superuser %}
+            <form method="post" action="{% url ns|add:':chat_delete' chat.pk %}" onsubmit="return confirm('Удалить чат для всех участников?')" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="kb-btn kb-btn--ghost kb-btn--sm" title="Удалить чат">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+            </form>
+            {% endif %}
+            <button class="kb-btn kb-btn--ghost kb-btn--sm" id="chToggleSidebar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="ch-dbody">
+        <div class="ch-dlayout">
+            <div class="sug-card__scroll" id="chatScroll">
+                {% if chat_messages %}
+            <div class="sug-thread" id="chatMessagesInner">
+                {% for msg in chat_messages %}
+                    <div class="sug-msg {% if msg.author_id == user.pk %}sug-msg--admin{% else %}sug-msg--manager{% endif %}" data-pk="{{ msg.pk }}">
+                        <div class="sug-msg__avatar {% if msg.author_id == user.pk %}sug-msg__avatar--admin{% else %}sug-msg__avatar--manager{% endif %}">
+                            {{ msg.author.get_full_name|default:msg.author.email|first|upper }}
+                        </div>
+                        <div>
+                            <div class="sug-msg__meta">
+                                <span class="sug-msg__author">{{ msg.author.get_full_name|default:msg.author.email }}</span>
+                                <span class="sug-msg__time">{{ msg.created_at|date:"H:i" }}</span>
+                            </div>
+                            <div class="sug-msg__bubble" data-msg-pk="{{ msg.pk }}">{{ msg.message }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="ch-dmsgs__inner" style="border:none;" id="chatMessagesInner">
+                    <div class="ch-dmsgs__empty" id="chatEmpty">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="color:var(--kb-muted);opacity:.3;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <p>Нет сообщений</p>
+                        <span>Напишите первое сообщение</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="sug-card__bottom-fixed" style="border-top:1px solid var(--cab-border);">
+                <form class="sug-reply-form" id="chatSendForm" style="padding:12px 16px;border-top:none;margin:0;">
+                    {% csrf_token %}
+                    <textarea name="message" placeholder="Введите сообщение..." rows="1" required></textarea>
+                    <div class="sug-reply-form-actions">
+                        <div class="sug-reply-form-actions-right">
+                            <button type="submit" class="sug-btn sug-btn--primary">Отправить</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="ch-dsidebar" id="chSidebar">
+        <div class="ch-dsidebar__head">
+            <h3>Участники</h3>
+            <button class="kb-modal__close" id="chCloseSidebar" type="button">&times;</button>
+        </div>
+        <div class="ch-dsidebar__list">
+            {% for m in members %}
+            <div class="ch-dsidebar__member">
+                <div class="ch-dsidebar__av">
+                    {{ m.user.get_full_name|default:m.user.email|first|upper }}
+                </div>
+                <span class="ch-dsidebar__name">{{ m.user.get_full_name|default:m.user.email }}</span>
+                {% if user.is_superuser and m.user_id != user.pk %}
+                <form method="post" action="{% url ns|add:':chat_remove_member' chat.pk %}" class="ch-dsidebar__rm">
+                    {% csrf_token %}
+                    <input type="hidden" name="user_id" value="{{ m.user_id }}">
+                    <button type="submit" title="Удалить">&times;</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% if user.is_superuser or chat.created_by == user %}
+        <form method="post" action="{% url ns|add:':chat_add_member' chat.pk %}" class="ch-dsidebar__add" id="addMemberForm">
+            {% csrf_token %}
+            <select name="user_id" class="kb-input">
+                {% for u in users %}
+                <option value="{{ u.pk }}">{{ u.get_full_name|default:u.email }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="kb-btn kb-btn--primary kb-btn--sm">+</button>
+        </form>
+        {% endif %}
+    </div>
+    </div>
+</div>
+
+<div id="memberModal" class="kb-modal" style="display:none;">
+    <div class="kb-modal__overlay" onclick="this.parentElement.style.display='none'"></div>
+    <div class="kb-modal__content" style="max-width:400px;">
+        <div class="kb-modal__header">
+            <h3>Добавить участника</h3>
+            <button class="kb-modal__close" type="button" onclick="document.getElementById('memberModal').style.display='none'">&times;</button>
+        </div>
+        <form method="post" action="{% url ns|add:':chat_add_member' chat.pk %}">
+            {% csrf_token %}
+            <div class="kb-field" style="padding:0 20px;">
+                <label class="kb-field__label">Пользователь</label>
+                <select name="user_id" class="kb-input">
+                    {% for u in users %}
+                    <option value="{{ u.pk }}">{{ u.get_full_name|default:u.email }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="kb-modal__footer">
+                <button type="button" class="kb-btn" onclick="document.getElementById('memberModal').style.display='none'">Отмена</button>
+                <button type="submit" class="kb-btn kb-btn--primary">Добавить</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    var threadEl = document.getElementById('chatMessagesInner');
+    var scrollEl = document.getElementById('chatScroll');
+    var sendForm = document.getElementById('chatSendForm');
+    var textarea = sendForm?.querySelector('textarea');
+    var urlSend = '{% url ns|add:":chat_send" chat.pk %}';
+    var chatId = {{ chat.pk }};
+    window.__currentChatId = chatId;
+    var addedPks = {};
+
+    if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
+
+    // ─── Auto-resize textarea ───
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+    }
+
+    // ─── Send message ───
+    sendForm?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var fd = new FormData(this);
+        fetch(urlSend, { method: 'POST', body: fd,
+            headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken}
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.ok) {
+                addMessage(d.pk, d.message, d.author_name, d.created_at, true);
+                textarea.value = '';
+                textarea.style.height = 'auto';
+            } else { alert(d.error || 'Ошибка'); }
+        }).catch(function() { alert('Ошибка сети'); });
+    });
+
+    function addMessage(pk, text, author, time, isMine) {
+        if (addedPks[pk]) return;
+        addedPks[pk] = true;
+        var empty = document.getElementById('chatEmpty');
+        if (empty) {
+            var parent = scrollEl;
+            empty.closest('.ch-dmsgs__inner')?.remove();
+            var newThread = document.createElement('div');
+            newThread.className = 'sug-thread';
+            newThread.id = 'chatMessagesInner';
+            parent.appendChild(newThread);
+            threadEl = newThread;
+        }
+        var sideClass = isMine ? 'sug-msg--admin' : 'sug-msg--manager';
+        var msgDiv = document.createElement('div');
+        msgDiv.className = 'sug-msg ' + sideClass;
+        msgDiv.dataset.pk = pk;
+
+        var avatarDiv = document.createElement('div');
+        avatarDiv.className = 'sug-msg__avatar ' + (isMine ? 'sug-msg__avatar--admin' : 'sug-msg__avatar--manager');
+        avatarDiv.textContent = author.charAt(0).toUpperCase();
+
+        var contentDiv = document.createElement('div');
+        var metaDiv = document.createElement('div');
+        metaDiv.className = 'sug-msg__meta';
+        var authorSpan = document.createElement('span');
+        authorSpan.className = 'sug-msg__author';
+        authorSpan.textContent = author;
+        var timeSpan = document.createElement('span');
+        timeSpan.className = 'sug-msg__time';
+        timeSpan.textContent = time;
+        metaDiv.appendChild(authorSpan);
+        metaDiv.appendChild(timeSpan);
+
+        var bubbleDiv = document.createElement('div');
+        bubbleDiv.className = 'sug-msg__bubble';
+        bubbleDiv.setAttribute('data-msg-pk', pk);
+        bubbleDiv.textContent = text;
+
+        contentDiv.appendChild(metaDiv);
+        contentDiv.appendChild(bubbleDiv);
+        msgDiv.appendChild(avatarDiv);
+        msgDiv.appendChild(contentDiv);
+
+        threadEl.appendChild(msgDiv);
+        setTimeout(function(){ scrollEl.scrollTop = scrollEl.scrollHeight; }, 50);
+    }
+
+    // ─── WebSocket: real-time messages ───
+    (function() {
+        var proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        var sock = null;
+        function connect() {
+            sock = new WebSocket(proto + '//' + window.location.host + '/ws/chats/');
+            sock.onmessage = function(e) {
+                try {
+                    var m = JSON.parse(e.data);
+                    if (m.type === 'chat_message' && m.chat_id === chatId) {
+                        addMessage(m.pk, m.message, m.author_name, m.created_at, m.author_id === {{ user.pk }});
+                        fetch(window.location.href, {
+                            method: 'POST',
+                            headers: {'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest'},
+                        });
+                    }
+                } catch(e) {}
+            };
+            sock.onclose = function() { connect(); };
+        }
+        connect();
+    })();
+
+    // ─── Sidebar toggle ───
+    document.getElementById('chToggleSidebar')?.addEventListener('click', function() {
+        document.getElementById('chSidebar')?.classList.toggle('ch-dsidebar--open');
+    });
+    document.getElementById('chCloseSidebar')?.addEventListener('click', function() {
+        document.getElementById('chSidebar')?.classList.remove('ch-dsidebar--open');
+    });
+
+    // ─── Add member ───
+    document.getElementById('addMemberForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var fd = new FormData(this);
+        fetch(this.action, { method: 'POST', body: fd,
+            headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken}
+        }).then(function(r) { return r.json(); })
+        .then(function(d) { if (d.ok) location.reload(); else alert(d.error || 'Ошибка'); })
+        .catch(function() { alert('Ошибка сети'); });
+    });
+
+    // Enter to send, Shift+Enter for newline
+    textarea?.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendForm.querySelector('button[type="submit"]')?.click();
+        }
+    });
+})();
+</script>
+{% endblock %}

@@ -1,7 +1,7 @@
 import re
+from collections import defaultdict
 from datetime import timedelta
 
-from django.utils.deprecation import MiddlewareMixin
 from django.shortcuts import redirect
 from django.utils import timezone
 from django.conf import settings
@@ -30,41 +30,47 @@ URL_SECTION_MAP = [
 ]
 
 
-class CabinetAccessMiddleware(MiddlewareMixin):
-    def process_request(self, request):
+class CabinetAccessMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
         path = request.path
-        if not path.startswith('/cabinet/'):
-            return
+        if not path.startswith('/cabinet/') and not path.startswith('/manager/'):
+            return self.get_response(request)
+
+        # Public auth-free paths
         if path.startswith('/cabinet/login/') or path.startswith('/cabinet/logout/'):
-            return
+            return self.get_response(request)
+        if path.startswith('/manager/login/') or path.startswith('/manager/logout/'):
+            return self.get_response(request)
+
         if not request.user.is_authenticated:
+            if path.startswith('/manager/'):
+                return redirect('/manager/login/')
             return redirect('/cabinet/login/')
+
         role = getattr(getattr(request.user, 'profile', None), 'role', 'admin')
-        if path.startswith('/cabinet/manager-panel/'):
-            if role == 'manager' or request.user.is_superuser:
-                return
+
+        if path.startswith('/manager/'):
+            if role == 'manager':
+                return self.get_response(request)
             return redirect('/cabinet/')
-        if role == 'manager':
-            for pattern, section in URL_SECTION_MAP:
-                if re.match(pattern, path):
-                    if section and request.user.cabinet_permissions.filter(section=section).exists():
-                        return
-                    break
-            return redirect('/cabinet/manager-panel/')
-        if not request.user.is_staff:
-            return redirect('/account/login/')
-        if not request.user.is_superuser:
-            for pattern, section in URL_SECTION_MAP:
-                if re.match(pattern, path):
-                    if section is None:
-                        break
-                    if not request.user.cabinet_permissions.filter(section=section).exists():
-                        return redirect('cabinet:dashboard')
-                    break
+
+        if path.startswith('/cabinet/'):
+            if role == 'admin' or request.user.is_superuser:
+                return self.get_response(request)
+            return redirect('/manager/login/')
+
+        return self.get_response(request)
 
 
-class PageViewMiddleware(MiddlewareMixin):
-    def process_response(self, request, response):
+class PageViewMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
         if settings.DEBUG:
             return response
         if request.path.startswith('/admin') or request.path.startswith('/static'):
@@ -76,10 +82,9 @@ class PageViewMiddleware(MiddlewareMixin):
             return response
         url = request.get_full_path()
         today = timezone.now().date()
-        exists = PageView.objects.filter(
+        if not PageView.objects.filter(
             session_key=session, url=url, timestamp__date=today,
-        ).exists()
-        if not exists:
+        ).exists():
             PageView.objects.create(
                 url=url,
                 user_agent=request.META.get('HTTP_USER_AGENT', ''),

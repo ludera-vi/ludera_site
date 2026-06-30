@@ -1,0 +1,51 @@
+<div id="chatCreateModal" class="kb-modal" style="display:none;">
+    <div class="kb-modal__overlay" onclick="this.parentElement.style.display='none'"></div>
+    <div class="kb-modal__content" style="max-width:480px;">
+        <div class="kb-modal__header">
+            <h3>Новый чат</h3>
+            <button class="kb-modal__close" type="button" onclick="document.getElementById('chatCreateModal').style.display='none'">&times;</button>
+        </div>
+        <form method="post" action="{% url ns|add:':chat_create' %}" id="chatCreateForm">
+            {% csrf_token %}
+            <div style="padding:0 20px;">
+                <div class="kb-field">
+                    <label class="kb-field__label">Тип чата</label>
+                    <select name="chat_type" class="kb-input" id="chatTypeSelect">
+                        <option value="personal">Личный</option>
+                        <option value="group">Групповой</option>
+                        <option value="client">С клиентом</option>
+                    </select>
+                </div>
+                <div class="kb-field" id="chatTitleGroup">
+                    <label class="kb-field__label">Название чата</label>
+                    <input type="text" name="title" class="kb-input" placeholder="Название (для групповых)">
+                </div>
+                <div class="kb-field">
+                    <label class="kb-field__label">Участники</label>
+                    <select name="member_ids" class="kb-input" multiple style="min-height:120px;">
+                        {% for u in users %}
+                        <option value="{{ u.pk }}">{{ u.get_full_name|default:u.email }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="kb-modal__footer">
+                <button type="button" class="kb-btn" onclick="document.getElementById('chatCreateModal').style.display='none'">Отмена</button>
+                <button type="submit" class="kb-btn kb-btn--primary">Создать</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function() {
+    var typeSelect = document.getElementById('chatTypeSelect');
+    var titleGroup = document.getElementById('chatTitleGroup');
+    if (typeSelect) {
+        typeSelect.addEventListener('change', function() {
+            if (titleGroup) titleGroup.style.display = this.value === 'group' ? '' : 'none';
+        });
+        typeSelect.dispatchEvent(new Event('change'));
+    }
+})();
+</script>

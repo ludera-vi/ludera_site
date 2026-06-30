@@ -1,0 +1,64 @@
+{% extends 'sales/base.html' %}
+{% load static %}
+
+{% block title %}Вход в панель менеджера{% endblock %}
+
+{% block content %}
+<div class="manager-login-page">
+  <div class="manager-login-card">
+    <h1>Вход в панель менеджера</h1>
+    {% if error %}
+      <div class="manager-login-error">{{ error }}</div>
+    {% endif %}
+    <form method="post" class="manager-login-form">
+      {% csrf_token %}
+      <div class="manager-login-field">
+        <label for="id_username">Email</label>
+        <input type="email" name="username" id="id_username" required autocomplete="email" placeholder="your@email.com">
+      </div>
+      <div class="manager-login-field">
+        <label for="id_password">Пароль</label>
+        <input type="password" name="password" id="id_password" required autocomplete="current-password" placeholder="••••••••">
+      </div>
+      <button type="submit" class="manager-login-btn">Войти</button>
+    </form>
+  </div>
+</div>
+
+<style>
+.manager-login-page {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 20px;
+  background: var(--cab-bg, #f5f5f5);
+}
+.manager-login-card {
+  width: 100%; max-width: 400px;
+  background: var(--cab-card-bg, #fff);
+  border: 1px solid var(--cab-border, #e0e0e0);
+  border-radius: 12px; padding: 40px;
+}
+.manager-login-card h1 {
+  margin: 0 0 24px; font-size: 22px; text-align: center;
+}
+.manager-login-error {
+  background: #fef2f2; color: #dc2626;
+  border: 1px solid #fecaca; border-radius: 8px;
+  padding: 10px 14px; margin-bottom: 16px; font-size: 14px;
+}
+.manager-login-form { display: flex; flex-direction: column; gap: 16px; }
+.manager-login-field { display: flex; flex-direction: column; gap: 4px; }
+.manager-login-field label { font-size: 14px; font-weight: 500; }
+.manager-login-field input {
+  padding: 10px 12px; border: 1px solid var(--cab-border, #d0d0d0);
+  border-radius: 8px; font-size: 15px; outline: none; transition: border-color .15s;
+}
+.manager-login-field input:focus { border-color: var(--cab-primary, #2563eb); }
+.manager-login-btn {
+  padding: 12px; border: none; border-radius: 8px;
+  background: var(--cab-primary, #2563eb); color: #fff;
+  font-size: 16px; font-weight: 600; cursor: pointer;
+  transition: opacity .15s;
+}
+.manager-login-btn:hover { opacity: .9; }
+</style>
+{% endblock %}

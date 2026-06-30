@@ -1,0 +1,89 @@
+{% extends base_template %}
+{% load static %}
+{% block content %}
+{% if kanban_placeholder %}
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--cab-muted,#999)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+    <h2 style="margin:16px 0 8px;font-size:1.25rem;color:var(--cab-text,#333);">Канбан</h2>
+    <p style="color:var(--cab-muted,#999);font-size:0.9375rem;">В разработке</p>
+</div>
+{% else %}
+<div class="kb-header">
+    <h1 class="kb-header__title">Канбан доски</h1>
+    <button class="kb-btn kb-btn--primary" onclick="createBoard()">+ Новая доска</button>
+</div>
+
+{% if boards %}
+<div class="kb-grid">
+    {% for b in boards %}
+    <div class="kb-board-card">
+        <a href="{% url ns|add:':kanban_board' b.pk %}" class="kb-board-card__link">
+            <h3>{{ b.title }}</h3>
+            {% if b.description %}<p>{{ b.description }}</p>{% endif %}
+        </a>
+        <div class="kb-board-card__meta">
+            {{ b.created_by.get_full_name|default:b.created_by.email }} · {{ b.created_at|date:'d.m.Y' }}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="kb-empty">Досок пока нет</div>
+{% endif %}
+
+<div id="boardModal" class="kb-modal" style="display:none;">
+    <div class="kb-modal__overlay" onclick="this.parentElement.style.display='none'"></div>
+    <div class="kb-modal__content" style="max-width:420px;">
+        <div class="kb-modal__header">
+            <h3>Новая доска</h3>
+            <button class="kb-modal__close" type="button" onclick="document.getElementById('boardModal').style.display='none'">&times;</button>
+        </div>
+        <form id="boardForm">
+            {% csrf_token %}
+            <div class="kb-field">
+                <label class="kb-field__label">Название</label>
+                <input type="text" name="title" required class="kb-input" placeholder="Название доски">
+            </div>
+            <div class="kb-field">
+                <label class="kb-field__label">Описание</label>
+                <textarea name="description" class="kb-input" rows="3" placeholder="Описание (необязательно)"></textarea>
+            </div>
+            <div class="kb-modal__footer">
+                <button type="button" class="kb-btn" onclick="document.getElementById('boardModal').style.display='none'">Отмена</button>
+                <button type="submit" class="kb-btn kb-btn--primary">Создать</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+function createBoard() {
+    document.getElementById('boardModal').style.display = 'flex';
+}
+document.getElementById('boardForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var form = this;
+    var data = new FormData(form);
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '{% url ns|add:":kanban_create_board" %}', true);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.setRequestHeader('X-CSRFToken', csrfToken);
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            var r = JSON.parse(xhr.responseText);
+            if (r.ok) {
+                window.location.href = '{% url ns|add:":kanban_board" 0 %}'.replace('0', r.pk);
+            } else {
+                alert(r.error || 'Ошибка');
+            }
+        } else {
+            alert('Ошибка сервера');
+        }
+    };
+    xhr.onerror = function() { alert('Ошибка сети'); };
+    xhr.send(data);
+});
+</script>
+{% endif %}
+{% endblock %}

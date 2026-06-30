@@ -102,7 +102,7 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                         <span>Дашборд</span>
                     </a>
-                    <a href="{% url 'cabinet:clients' %}" class="cabinet-nav__link {% if active_section == 'clients' %}active{% endif %}" data-tooltip="База клиентов">
+                    <a href="{% url 'cabinet:client_list' %}" class="cabinet-nav__link {% if active_section == 'clients' %}active{% endif %}" data-tooltip="База клиентов">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         <span>База клиентов</span>
                     </a>
@@ -133,6 +133,10 @@
                         <span>Выполненные</span>
                         {% if sidebar_counts.completed %}<span class="nav-badge">{{ sidebar_counts.completed }}</span>{% endif %}
                     </a>
+                    <a href="{% url 'cabinet:kanban_list' %}" class="cabinet-nav__link {% if active_section == 'kanban' %}active{% endif %}" data-tooltip="Канбан">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        <span>Канбан</span>
+                    </a>
                     <a href="{% url 'cabinet:refusal_list' %}" class="cabinet-nav__link {% if active_section == 'refusal' %}active{% endif %}" data-tooltip="Отказ">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                         <span>Отказ</span>
@@ -141,6 +145,11 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                         <span>Обратная связь</span>
                         {% if sidebar_counts.suggestions_unread %}<span class="nav-badge" style="background:var(--cab-danger);color:#fff;">{{ sidebar_counts.suggestions_unread }}</span>{% endif %}
+                    </a>
+                    <a href="{% url 'cabinet:chat_list' %}" class="cabinet-nav__link {% if active_section == 'chats' %}active{% endif %}" data-tooltip="Чаты" id="cabChatLink">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        <span>Чаты</span>
+                        <span id="cabChatBadge" class="nav-badge" style="{% if sidebar_counts.chat_unread %}{% else %}display:none;{% endif %}background:var(--cab-danger);color:#fff;">{{ sidebar_counts.chat_unread|default:0 }}</span>
                     </a>
                 </div>
                 {% endif %}
@@ -195,6 +204,11 @@
                     <a href="{% url 'cabinet:principle_list' %}" class="cabinet-nav__link {% if model_name == 'principle' %}active{% endif %}" data-tooltip="Принципы">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                         <span>Принципы</span>
+                    </a>
+                    <a href="{% url 'cabinet:info_list' %}" class="cabinet-nav__link {% if active_section == 'info' %}active{% endif %}" data-tooltip="Информация">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <span>Информация</span>
+                        <span id="cabInfoBadge" class="nav-badge" style="{% if sidebar_counts.info_unread %}{% else %}display:none;{% endif %}background:var(--cab-danger);color:#fff;">{{ sidebar_counts.info_unread|default:0 }}</span>
                     </a>
                 </div>
                 {% endif %}
@@ -327,6 +341,55 @@
             socket.onclose = function() { setTimeout(connectWS, 3000); };
         }
         connectWS();
+    })();
+
+    // Chat WS for real-time badge update
+    (function() {
+        var proto = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        var sock = null;
+        function updateBadge(count) {
+            var badge = document.getElementById('cabChatBadge');
+            if (!badge) return;
+            if (count > 0) { badge.textContent = count; badge.style.display = ''; }
+            else { badge.style.display = 'none'; }
+        }
+        function connectChat() {
+            sock = new WebSocket(proto + window.location.host + '/ws/chats/');
+            sock.onmessage = function(e) {
+                try {
+                    var m = JSON.parse(e.data);
+                    if (m.unread_count !== undefined) {
+                        if (m.chat_id && window.__currentChatId && m.chat_id === window.__currentChatId) return;
+                        updateBadge(m.unread_count);
+                    }
+                } catch(e) {}
+            };
+            sock.onclose = function() { connectChat(); };
+        }
+        connectChat();
+    })();
+
+    // Info WS for real-time badge update
+    (function() {
+        var proto = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        var sock = null;
+        function updateInfoBadge(count) {
+            var badge = document.getElementById('cabInfoBadge');
+            if (!badge) return;
+            if (count > 0) { badge.textContent = count; badge.style.display = ''; }
+            else { badge.style.display = 'none'; }
+        }
+        function connectInfo() {
+            sock = new WebSocket(proto + window.location.host + '/ws/info/');
+            sock.onmessage = function(e) {
+                try {
+                    var m = JSON.parse(e.data);
+                    if (m.unread_count !== undefined) updateInfoBadge(m.unread_count);
+                } catch(e) {}
+            };
+            sock.onclose = function() { connectInfo(); };
+        }
+        connectInfo();
     })();
     </script>
 

@@ -1,0 +1,55 @@
+{% extends base_template %}
+{% block content %}
+<div class="kb-detail">
+    <a href="{% url ns|add:':kanban_board' card.column.board.pk %}" class="kb-btn kb-btn--ghost kb-btn--sm" style="margin-bottom:16px;">← На доску</a>
+    <div class="kb-detail__card">
+        <h1 class="kb-detail__title">{{ card.title }}</h1>
+        <div class="kb-detail__meta">
+            <span class="kb-detail__tag">{{ card.column.board.title }} · {{ card.column.title }}</span>
+            {% if card.client %}<span class="kb-badge kb-badge--client">{{ card.client }}</span>{% endif %}
+            {% if card.responsible %}<span class="kb-badge kb-badge--user">{{ card.responsible.get_full_name|default:card.responsible.email }}</span>{% endif %}
+            <span class="kb-detail__date">{{ card.created_at|date:'d.m.Y H:i' }}</span>
+        </div>
+
+        {% if can_edit %}
+        <form method="post" style="margin-top:20px;">
+            {% csrf_token %}
+            <div class="kb-field">
+                <label class="kb-field__label">Название</label>
+                <input type="text" name="title" value="{{ card.title }}" required class="kb-input">
+            </div>
+            <div class="kb-field">
+                <label class="kb-field__label">Описание</label>
+                <textarea name="description" class="kb-input kb-input--area">{{ card.description }}</textarea>
+            </div>
+            <div class="kb-field">
+                <label class="kb-field__label">Клиент</label>
+                <select name="client_id" class="kb-input">
+                    <option value="">— Не выбрано —</option>
+                    {% for c in clients %}
+                    <option value="{{ c.pk }}" {% if card.client_id == c.pk %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if request.user.is_superuser %}
+            <div class="kb-field">
+                <label class="kb-field__label">Ответственный</label>
+                <select name="responsible_id" class="kb-input">
+                    <option value="">— Не назначен —</option>
+                    {% for m in managers %}
+                    <option value="{{ m.pk }}" {% if card.responsible_id == m.pk %}selected{% endif %}>{{ m.get_full_name|default:m.email }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="kb-detail__actions">
+                <button type="submit" class="kb-btn kb-btn--primary">Сохранить</button>
+                <a href="{% url ns|add:':kanban_board' card.column.board.pk %}" class="kb-btn">Отмена</a>
+            </div>
+        </form>
+        {% else %}
+        <p style="color:var(--cab-text-muted);margin-top:20px;">Нет прав на редактирование</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

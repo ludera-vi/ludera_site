@@ -1,0 +1,284 @@
+{% extends base_template %}
+{% load static %}
+{% block content %}
+<div style="display:none;">{% csrf_token %}</div>
+<div class="kb-topbar">
+    <div class="kb-topbar__left">
+        <h1 class="kb-topbar__title">{{ board.title }}</h1>
+        {% if board.description %}<span class="kb-topbar__desc">{{ board.description }}</span>{% endif %}
+    </div>
+    <div class="kb-topbar__right">
+        <input type="text" id="clientFilter" class="kb-input kb-input--sm" placeholder="Поиск клиента..." value="{{ client_filter }}" style="width:180px;">
+        <a href="{% url ns|add:':kanban_list' %}" class="kb-btn kb-btn--ghost kb-btn--sm">← Доски</a>
+    </div>
+</div>
+
+<div class="kb-board" id="kanbanBoard">
+    {% for col in columns %}
+    <div class="kb-col{% if col.is_collapsed %} kb-col--collapsed{% endif %}" data-col-id="{{ col.pk }}" data-board-id="{{ board.pk }}">
+        <div class="kb-col__header" onclick="toggleColumn({{ col.pk }})">
+            <div class="kb-col__accent" style="background:#6366f1"></div>
+            <span class="kb-col__title">{{ col.title }}</span>
+            <span class="kb-col__count">{{ col.filtered_cards|length }}</span>
+            <div class="kb-col__actions" onclick="event.stopPropagation()">
+                <button class="kb-col__action" onclick="editColumn({{ col.pk }}, '{{ col.title|escapejs }}')" title="Редактировать">⋯</button>
+                <button class="kb-col__action" onclick="deleteColumn({{ col.pk }})" title="Удалить">✕</button>
+            </div>
+        </div>
+        <div class="kb-cards" data-col-id="{{ col.pk }}">
+            {% for card in col.filtered_cards %}
+            <div class="kb-card" data-card-id="{{ card.pk }}" draggable="true">
+                <a href="{% url ns|add:':kanban_card_detail' card.pk %}" class="kb-card__title">{{ card.title }}</a>
+                <div class="kb-card__meta">
+                    {% if card.client %}<span class="kb-badge kb-badge--client">{{ card.client.short_name|default:card.client.name }}</span>{% endif %}
+                    {% if card.responsible %}<span class="kb-badge kb-badge--user">{{ card.responsible.get_full_name|default:card.responsible.email }}</span>{% endif %}
+                </div>
+                <button class="kb-card__del" onclick="event.preventDefault();event.stopPropagation();deleteCard({{ card.pk }})" title="Удалить">✕</button>
+            </div>
+            {% endfor %}
+        </div>
+        <button class="kb-add-card" onclick="createCard({{ col.pk }})">+ Карточка</button>
+    </div>
+    {% endfor %}
+    <button class="kb-add-col" onclick="createColumn({{ board.pk }})">
+        <span>+ Колонка</span>
+    </button>
+</div>
+
+<div id="kbModal" class="kb-modal" style="display:none;">
+    <div class="kb-modal__overlay" onclick="closeModal()"></div>
+    <div class="kb-modal__content" style="max-width:480px;">
+        <div class="kb-modal__header">
+            <h3 id="kbModalTitle"></h3>
+            <button class="kb-modal__close" type="button" onclick="closeModal()">&times;</button>
+        </div>
+        <div id="kbModalBody"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+var urlCreateCard = '{% url ns|add:":kanban_create_card" %}';
+var urlCreateCol = '{% url ns|add:":kanban_create_column" %}';
+var urlMoveCard = '{% url ns|add:":kanban_move_card" 0 %}';
+var urlDelCard = '{% url ns|add:":kanban_delete_card" 0 %}';
+var urlDelCol = '{% url ns|add:":kanban_delete_column" 0 %}';
+var urlEditCol = '{% url ns|add:":kanban_edit_column" 0 %}';
+var urlToggleCol = '{% url ns|add:":kanban_toggle_column" 0 %}';
+
+function closeModal() { document.getElementById('kbModal').style.display = 'none'; }
+
+function ajax(url, data, cb) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.setRequestHeader('X-CSRFToken', csrfToken);
+    xhr.onload = function() {
+        var r = {};
+        try { r = JSON.parse(xhr.responseText); } catch(e) {}
+        if (xhr.status === 200 && r.ok) { if (cb) cb(r); }
+        else { alert(r.error || 'Ошибка'); }
+    };
+    xhr.onerror = function() { alert('Ошибка сети'); };
+    xhr.send(data);
+}
+
+function showModal(title, bodyHtml) {
+    document.getElementById('kbModalTitle').textContent = title;
+    document.getElementById('kbModalBody').innerHTML = bodyHtml;
+    document.getElementById('kbModal').style.display = 'flex';
+}
+
+function createCard(colId) {
+    showModal('Новая карточка', `
+        <form id="cardForm">
+            <input type="hidden" name="column_id" value="` + colId + `">
+            <div class="kb-field">
+                <label class="kb-field__label">Название</label>
+                <input type="text" name="title" required class="kb-input" placeholder="Название карточки">
+            </div>
+            <div class="kb-field">
+                <label class="kb-field__label">Описание</label>
+                <textarea name="description" class="kb-input" rows="3" placeholder="Описание..."></textarea>
+            </div>
+            <div class="kb-field">
+                <label class="kb-field__label">Клиент</label>
+                <select name="client_id" class="kb-input">
+                    <option value="">— Не выбрано —</option>
+                    {% for c in clients %}<option value="{{ c.pk }}">{{ c }}</option>{% endfor %}
+                </select>
+            </div>
+            {% if request.user.is_superuser %}
+            <div class="kb-field">
+                <label class="kb-field__label">Ответственный</label>
+                <select name="responsible_id" class="kb-input">
+                    <option value="">— Не назначен —</option>
+                    {% for m in managers %}<option value="{{ m.pk }}">{{ m.get_full_name|default:m.email }}</option>{% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="kb-modal__footer">
+                <button type="button" class="kb-btn" onclick="closeModal()">Отмена</button>
+                <button type="submit" class="kb-btn kb-btn--primary">Создать</button>
+            </div>
+        </form>
+    `);
+    setTimeout(function() {
+        document.getElementById('cardForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            ajax(urlCreateCard, new FormData(this), function() { location.reload(); });
+        });
+    }, 50);
+}
+
+function deleteCard(cardId) {
+    if (!confirm('Удалить карточку?')) return;
+    ajax(urlDelCard.replace('0', cardId), '', function() {
+        var el = document.querySelector('.kb-card[data-card-id="' + cardId + '"]');
+        if (el) { el.remove(); updateCounts(); }
+    });
+}
+
+function createColumn(boardId) {
+    showModal('Новая колонка', `
+        <form id="colForm">
+            <input type="hidden" name="board_id" value="` + boardId + `">
+            <div class="kb-field">
+                <label class="kb-field__label">Название</label>
+                <input type="text" name="title" required class="kb-input" placeholder="Название колонки">
+            </div>
+            <div class="kb-modal__footer">
+                <button type="button" class="kb-btn" onclick="closeModal()">Отмена</button>
+                <button type="submit" class="kb-btn kb-btn--primary">Создать</button>
+            </div>
+        </form>
+    `);
+    setTimeout(function() {
+        document.getElementById('colForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            ajax(urlCreateCol, new FormData(this), function() { location.reload(); });
+        });
+    }, 50);
+}
+
+function editColumn(colId, title) {
+    showModal('Редактировать колонку', `
+        <form id="colEditForm">
+            <input type="hidden" name="col_pk" value="` + colId + `">
+            <div class="kb-field">
+                <label class="kb-field__label">Название</label>
+                <input type="text" name="title" required class="kb-input" value="` + title + `">
+            </div>
+            <div class="kb-modal__footer">
+                <button type="button" class="kb-btn" onclick="closeModal()">Отмена</button>
+                <button type="submit" class="kb-btn kb-btn--primary">Сохранить</button>
+            </div>
+        </form>
+    `);
+    setTimeout(function() {
+        document.getElementById('colEditForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            ajax(urlEditCol.replace('0', colId), new FormData(this), function() { location.reload(); });
+        });
+    }, 50);
+}
+
+function deleteColumn(colId) {
+    if (!confirm('Удалить колонку?')) return;
+    ajax(urlDelCol.replace('0', colId), '', function() { location.reload(); });
+}
+
+function toggleColumn(colId) {
+    ajax(urlToggleCol.replace('0', colId), '', function(r) {
+        var col = document.querySelector('.kb-col[data-col-id="' + colId + '"]');
+        if (col) col.classList.toggle('kb-col--collapsed', r.is_collapsed);
+    });
+}
+
+(function() {
+    var dragEl = null;
+    document.addEventListener('dragstart', function(e) {
+        var card = e.target.closest('.kb-card');
+        if (!card) return;
+        dragEl = card;
+        card.classList.add('kb-card--drag');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    document.addEventListener('dragend', function(e) {
+        var card = e.target.closest('.kb-card');
+        if (card) card.classList.remove('kb-card--drag');
+        document.querySelectorAll('.kb-cards').forEach(function(el) { el.classList.remove('kb-cards--over'); });
+    });
+    document.addEventListener('dragover', function(e) {
+        var col = e.target.closest('.kb-cards');
+        if (!col) return;
+        e.preventDefault();
+        col.classList.add('kb-cards--over');
+    });
+    document.addEventListener('dragleave', function(e) {
+        var col = e.target.closest('.kb-cards');
+        if (col) col.classList.remove('kb-cards--over');
+    });
+    document.addEventListener('drop', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.kb-cards').forEach(function(el) { el.classList.remove('kb-cards--over'); });
+        if (!dragEl) return;
+        var target = e.target.closest('.kb-cards');
+        if (!target) return;
+        var newColId = target.dataset.colId;
+        var cardId = dragEl.dataset.cardId;
+        if (!newColId || !cardId) return;
+        var cards = target.querySelectorAll('.kb-card');
+        var insertBefore = null;
+        for (var i = 0; i < cards.length; i++) {
+            var rect = cards[i].getBoundingClientRect();
+            if (e.clientY < rect.top + rect.height / 2) { insertBefore = cards[i]; break; }
+        }
+        var pos = insertBefore ? parseInt(insertBefore.dataset.cardId) : 999;
+        ajax(urlMoveCard.replace('0', cardId), 'column_id=' + newColId + '&position=' + pos, function() {
+            if (insertBefore) target.insertBefore(dragEl, insertBefore);
+            else target.appendChild(dragEl);
+            updateCounts();
+        });
+        dragEl = null;
+    });
+})();
+
+function updateCounts() {
+    document.querySelectorAll('.kb-col').forEach(function(col) {
+        var count = col.querySelectorAll('.kb-card').length;
+        var span = col.querySelector('.kb-col__count');
+        if (span) span.textContent = count;
+    });
+}
+
+document.getElementById('clientFilter')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        var val = this.value.trim();
+        var url = new URL(window.location.href);
+        if (val && /^\d+$/.test(val)) url.searchParams.set('client', val);
+        else url.searchParams.delete('client');
+        window.location.href = url.toString();
+    }
+});
+
+(function() {
+    var proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var sock = new WebSocket(proto + '//' + window.location.host + '/ws/kanban/');
+    sock.onmessage = function(e) {
+        try {
+            var m = JSON.parse(e.data);
+            if (m.type === 'kanban_created' || m.type === 'kanban_moved') { location.reload(); }
+            else if (m.type === 'kanban_deleted') {
+                var el = document.querySelector('.kb-card[data-card-id="' + m.card_pk + '"]');
+                if (el) { el.remove(); updateCounts(); }
+            }
+        } catch(e) {}
+    };
+    sock.onclose = function() { setTimeout(function() { location.reload(); }, 5000); };
+})();
+</script>
+{% endblock %}

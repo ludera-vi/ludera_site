@@ -1,22 +1,55 @@
 import io
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import login as auth_login, authenticate
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.db.models import Count, Q, OuterRef, Subquery
+from django.core.cache import cache
+from django.db.models import Count, Max, Q, OuterRef, Subquery, Value
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.core.paginator import Paginator
+from django.utils import timezone
 
-from .models import Client, Call, ClientDocument, ClientActivity
+from .models import Client, Call, ClientDocument, ClientActivity, Board, Column, Card, Chat, ChatMember, ChatMessage, InfoTopic, InfoTopicRead
 from .forms import ClientForm
 from users.models import ManagerSuggestion, SuggestionMessage
 
 
+def manager_login(request):
+    if request.user.is_authenticated:
+        role = getattr(getattr(request.user, 'profile', None), 'role', 'admin')
+        if role == 'manager':
+            return redirect('sales:dashboard')
+        return redirect('cabinet:dashboard')
+    error = None
+    if request.method == 'POST':
+        username = request.POST.get('username', '')
+        password = request.POST.get('password', '')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            role = getattr(getattr(user, 'profile', None), 'role', 'admin')
+            if role == 'manager' or user.is_superuser:
+                auth_login(request, user)
+                if role == 'manager':
+                    return redirect('sales:dashboard')
+                return redirect('cabinet:dashboard')
+            error = 'У вас нет доступа к панели менеджера.'
+        else:
+            error = 'Неверный логин или пароль.'
+    return render(request, 'sales/login.html', {'error': error})
+
+
+def manager_logout(request):
+    from django.contrib.auth import logout
+    logout(request)
+    return redirect('sales:login')
+
+
 def _manager_required(view_func):
-    @login_required(login_url='/cabinet/login/')
+    @login_required(login_url='/manager/login/')
     def _wrapped(request, *args, **kwargs):
         role = getattr(getattr(request.user, 'profile', None), 'role', 'admin')
         if role != 'manager' and not request.user.is_superuser:
@@ -27,7 +60,7 @@ def _manager_required(view_func):
 
 
 def _ns(request):
-    return 'sales' if request.path.startswith('/cabinet/manager-panel/') else 'cabinet'
+    return 'sales' if request.path.startswith('/manager/') else 'cabinet'
 
 
 def _can_modify(request, client):
@@ -39,7 +72,7 @@ def _can_modify(request, client):
 
 
 def _base_template(request):
-    return 'sales/base.html' if request.path.startswith('/cabinet/manager-panel/') else 'cabinet/base.html'
+    return 'sales/base.html' if request.path.startswith('/manager/') else 'cabinet/base.html'
 
 
 def _list_viewname(ns, section):
@@ -60,35 +93,43 @@ def _ctx(request, **kw):
 
     sidebar = {}
     if ns in ('sales', 'cabinet'):
-        def _scoped(*statuses):
-            qs = _last_status_clients(*statuses).filter(is_archived=False, is_deleted=False)
+        cache_key = f'sidebar_counts:{ns}:{request.user.pk}'
+        sidebar = cache.get(cache_key)
+        if sidebar is None:
+            latest_status = Call.objects.filter(client=OuterRef('pk')).order_by('-created_at').values('status')[:1]
+            qs = Client.objects.filter(is_archived=False, is_deleted=False).annotate(_last_status=Subquery(latest_status))
             if ns == 'sales' and not request.user.is_superuser:
                 qs = qs.filter(assigned_manager=request.user)
-            return qs.count()
-        sidebar = {
-            'called': _scoped('call_back', 'unavailable'),
-            'in_progress': _scoped('negotiation', 'tz_creation', 'tz_approval', 'contract_signing', 'in_progress'),
-            'completed': _scoped('completed'),
-            'archive': Client.objects.filter(is_archived=True, is_deleted=False).count(),
-            'deleted': Client.objects.filter(is_deleted=True).count(),
-        }
-        if ns == 'sales':
-            sidebar['suggestions_unread'] = SuggestionMessage.objects.filter(
-                suggestion__manager=request.user,
-                author__is_superuser=True,
-                is_read=False
-            ).count()
-    if sidebar:
+            counts = dict(qs.values('_last_status').annotate(cnt=Count('id')).values_list('_last_status', 'cnt'))
+            sidebar = {
+                'called': counts.get('call_back', 0) + counts.get('unavailable', 0),
+                'in_progress': sum(counts.get(s, 0) for s in ('negotiation', 'tz_creation', 'tz_approval', 'contract_signing', 'in_progress')),
+                'completed': counts.get('completed', 0),
+                'archive': Client.objects.filter(is_archived=True, is_deleted=False).count(),
+                'deleted': Client.objects.filter(is_deleted=True).count(),
+            }
+            if ns == 'sales':
+                sidebar['suggestions_unread'] = SuggestionMessage.objects.filter(
+                    suggestion__manager=request.user,
+                    author__is_superuser=True,
+                    is_read=False
+                ).count()
+            from main.notification import _chat_unread_for_user
+            sidebar['chat_unread'] = _chat_unread_for_user(request.user.pk)
+            total_info = InfoTopic.objects.count()
+            read_by_user = InfoTopicRead.objects.filter(user=request.user).values('topic').distinct().count()
+            sidebar['info_unread'] = total_info - read_by_user
+            cache.set(cache_key, sidebar, 10)
         kw['sidebar_counts'] = sidebar
 
     kw.setdefault('managers', User.objects.filter(is_active=True).order_by('last_name', 'first_name'))
     if ns == 'cabinet':
-        kw.setdefault('url_clients', reverse('cabinet:clients'))
+        kw.setdefault('url_clients', reverse('cabinet:client_list'))
         kw.setdefault('url_call_update', '/cabinet/calls/{pk}/update/')
         kw.setdefault('url_in_progress', reverse('cabinet:in_progress_list'))
     else:
         kw.setdefault('url_clients', reverse('sales:client_list'))
-        kw.setdefault('url_call_update', '/cabinet/manager-panel/calls/{pk}/update/')
+        kw.setdefault('url_call_update', '/manager/calls/{pk}/update/')
         kw.setdefault('url_in_progress', reverse('sales:in_progress_list'))
     return kw
 
@@ -348,7 +389,7 @@ def create_call(request, pk):
     if not _can_modify(request, client):
         messages.error(request, 'Нет прав на изменение этого клиента')
         ns = _ns(request)
-        return redirect('cabinet:clients' if ns == 'cabinet' else 'sales:client_list')
+        return redirect('cabinet:client_list' if ns == 'cabinet' else 'sales:client_list')
     editable_fields = ['phone', 'company_name', 'city', 'industry', 'online_booking', 'comment', 'website_link', 'map_link']
     for field in editable_fields:
         if field in request.POST:
@@ -386,7 +427,7 @@ def create_call(request, pk):
     messages.success(request, f'Обзвон создан для {client.company_name or client.phone}')
     ns = _ns(request)
     if ns == 'cabinet':
-        return redirect('cabinet:clients')
+        return redirect('cabinet:client_list')
     return redirect('sales:client_list')
 
 
@@ -403,7 +444,7 @@ def toggle_archive(request, pk):
     messages.success(request, f'Клиент {status}')
     ns = _ns(request)
     if ns == 'cabinet':
-        return redirect('cabinet:clients')
+        return redirect('cabinet:client_list')
     return redirect('sales:client_list')
 
 
@@ -515,7 +556,7 @@ def client_import(request):
         ext = os.path.splitext(file.name)[1].lower()
         rows = []
 
-        clients_url = 'cabinet:clients' if _ns(request) == 'cabinet' else 'sales:client_list'
+        clients_url = 'cabinet:client_list' if _ns(request) == 'cabinet' else 'sales:client_list'
 
         if ext in ('.xlsx', '.xls'):
             try:
@@ -747,7 +788,7 @@ def client_delete(request, pk):
     client.save(update_fields=['is_deleted'])
     messages.success(request, f'Клиент перемещён в удалённые')
     ns = _ns(request)
-    return redirect('cabinet:clients' if ns == 'cabinet' else 'sales:client_list')
+    return redirect('cabinet:client_list' if ns == 'cabinet' else 'sales:client_list')
 
 
 @_manager_required
@@ -866,3 +907,617 @@ def suggestion_list(request):
         suggestions=suggestions_list,
         active_section='suggestions',
     ))
+
+
+# ─── Kanban ─────────────────────────────────────────────────────────
+
+
+@_manager_required
+def kanban_list(request):
+    if not request.user.is_superuser:
+        return render(request, 'sales/kanban_list.html', _ctx(request,
+            title='Канбан',
+            active_section='kanban',
+            kanban_placeholder=True,
+        ))
+    boards = Board.objects.filter().select_related('created_by')
+    return render(request, 'sales/kanban_list.html', _ctx(request,
+        title='Канбан доски',
+        boards=boards,
+        active_section='kanban',
+    ))
+
+
+@_manager_required
+def kanban_board(request, pk):
+    board = get_object_or_404(Board, pk=pk)
+    columns = list(board.columns.prefetch_related(
+        'cards', 'cards__client', 'cards__responsible', 'cards__created_by'
+    ).all())
+
+    # Auto-create cards for clients in "in progress" statuses that don't have cards on this board
+    existing_client_ids = set()
+    for col in columns:
+        for c in col.cards.all():
+            if c.client_id:
+                existing_client_ids.add(c.client_id)
+    in_progress_clients = _last_status_clients('negotiation', 'tz_creation', 'tz_approval', 'contract_signing', 'in_progress').filter(
+        is_archived=False, is_deleted=False
+    ).exclude(pk__in=existing_client_ids)
+    if in_progress_clients.exists() and columns:
+        from main.notification import broadcast_kanban_card
+        target_col = columns[0]
+        for client in in_progress_clients:
+            card = Card.objects.create(
+                column=target_col, title=str(client),
+                client=client, created_by=request.user,
+            )
+            broadcast_kanban_card(card, 'created')
+        # Refresh columns to include new cards
+        columns = list(board.columns.prefetch_related(
+            'cards', 'cards__client', 'cards__responsible', 'cards__created_by'
+        ).all())
+
+    client_filter = request.GET.get('client', '').strip()
+    if client_filter and client_filter.isdigit():
+        for col in columns:
+            col.filtered_cards = [c for c in col.cards.all() if c.client_id == int(client_filter)]
+    else:
+        for col in columns:
+            col.filtered_cards = list(col.cards.all())
+    return render(request, 'sales/kanban_board.html', _ctx(request,
+        title=board.title,
+        board=board,
+        columns=columns,
+        client_filter=client_filter,
+        clients=Client.objects.filter(is_deleted=False).order_by('name', 'company_name'),
+        managers=User.objects.filter(is_active=True).exclude(pk=request.user.pk).order_by('email'),
+        active_section='kanban',
+    ))
+
+
+@_manager_required
+@require_POST
+def kanban_create_board(request):
+    if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': False}, status=400)
+    title = request.POST.get('title', '').strip()
+    if not title:
+        return JsonResponse({'ok': False, 'error': 'Название обязательно'}, status=400)
+    board = Board.objects.create(title=title, description=request.POST.get('description', ''), created_by=request.user)
+    Column.objects.create(board=board, title='Нужно сделать', position=0)
+    Column.objects.create(board=board, title='В работе', position=1)
+    Column.objects.create(board=board, title='Готово', position=2)
+    return JsonResponse({'ok': True, 'pk': board.pk, 'title': board.title})
+
+
+@_manager_required
+@require_POST
+def kanban_delete_board(request, pk):
+    board = get_object_or_404(Board, pk=pk)
+    if not request.user.is_superuser:
+        return JsonResponse({'ok': False, 'error': 'Только админ'}, status=403)
+    board.delete()
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': True})
+    messages.success(request, 'Доска удалена')
+    return redirect('sales:kanban_list')
+
+
+@_manager_required
+@require_POST
+def kanban_create_column(request):
+    if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': False}, status=400)
+    board_id = request.POST.get('board_id', '')
+    title = request.POST.get('title', '').strip()
+    if not board_id or not title:
+        return JsonResponse({'ok': False, 'error': 'Обязательные поля'}, status=400)
+    board = get_object_or_404(Board, pk=board_id)
+    if board.columns.count() >= 10:
+        return JsonResponse({'ok': False, 'error': 'Максимум 10 колонок'}, status=400)
+    max_pos = board.columns.aggregate(m=models.Max('position'))['m'] or -1
+    col = Column.objects.create(board=board, title=title, position=max_pos + 1)
+    return JsonResponse({'ok': True, 'pk': col.pk, 'title': col.title, 'position': col.position})
+
+
+@_manager_required
+@require_POST
+def kanban_edit_column(request, pk):
+    if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': False}, status=400)
+    col = get_object_or_404(Column, pk=pk)
+    title = request.POST.get('title', '').strip()
+    if not title:
+        return JsonResponse({'ok': False, 'error': 'Название обязательно'}, status=400)
+    col.title = title
+    col.save(update_fields=['title'])
+    return JsonResponse({'ok': True})
+
+
+@_manager_required
+@require_POST
+def kanban_delete_column(request, pk):
+    col = get_object_or_404(Column, pk=pk)
+    board_pk = col.board_id
+    col.delete()
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': True})
+    ns = _ns(request)
+    return redirect(f'{ns}:kanban_board', pk=board_pk)
+
+
+@_manager_required
+@require_POST
+def kanban_create_card(request):
+    if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': False}, status=400)
+    column_id = request.POST.get('column_id', '')
+    title = request.POST.get('title', '').strip()
+    if not column_id or not title:
+        return JsonResponse({'ok': False, 'error': 'Обязательные поля'}, status=400)
+    col = get_object_or_404(Column, pk=column_id)
+    client_id = request.POST.get('client_id', '').strip()
+    responsible_id = request.POST.get('responsible_id', '').strip()
+    client = None
+    responsible = None
+    if client_id:
+        client = get_object_or_404(Client, pk=client_id)
+    if responsible_id:
+        responsible = get_object_or_404(User, pk=responsible_id)
+    max_pos = col.cards.aggregate(m=models.Max('position'))['m'] or -1
+    card = Card.objects.create(
+        column=col, title=title,
+        description=request.POST.get('description', ''),
+        client=client, responsible=responsible,
+        created_by=request.user, position=max_pos + 1,
+    )
+    from main.notification import broadcast_kanban_card
+    broadcast_kanban_card(card, 'created')
+    return JsonResponse({
+        'ok': True, 'pk': card.pk, 'title': card.title,
+        'client_name': str(card.client) if card.client else '',
+        'responsible_name': card.responsible.get_full_name() or card.responsible.email if card.responsible else '',
+    })
+
+
+@_manager_required
+def kanban_card_detail(request, pk):
+    card = get_object_or_404(Card.objects.select_related('column__board', 'client', 'responsible', 'created_by'), pk=pk)
+    can_edit = request.user.is_superuser or card.responsible == request.user
+    if request.method == 'POST' and can_edit:
+        title = request.POST.get('title', '').strip()
+        if not title:
+            messages.error(request, 'Название обязательно')
+        else:
+            card.title = title
+            card.description = request.POST.get('description', '')
+            client_id = request.POST.get('client_id', '').strip()
+            responsible_id = request.POST.get('responsible_id', '').strip()
+            card.client = get_object_or_404(Client, pk=client_id) if client_id else None
+            if responsible_id and request.user.is_superuser:
+                card.responsible = get_object_or_404(User, pk=responsible_id)
+            elif not responsible_id:
+                card.responsible = None
+            card.save()
+            from main.notification import broadcast_kanban_card
+            broadcast_kanban_card(card, 'updated')
+            messages.success(request, 'Карточка обновлена')
+            ns = _ns(request)
+            return redirect(f'{ns}:kanban_board', pk=card.column.board_id)
+    return render(request, 'sales/kanban_card_detail.html', _ctx(request,
+        title=card.title,
+        card=card,
+        can_edit=can_edit,
+        clients=Client.objects.filter(is_deleted=False).order_by('name', 'company_name'),
+        managers=User.objects.filter(is_active=True).exclude(pk=request.user.pk).order_by('email'),
+        active_section='kanban',
+    ))
+
+
+@_manager_required
+@require_POST
+def kanban_delete_card(request, pk):
+    card = get_object_or_404(Card, pk=pk)
+    if not request.user.is_superuser and card.responsible != request.user:
+        return JsonResponse({'ok': False, 'error': 'Нет прав'}, status=403)
+    board_pk = card.column.board_id
+    from main.notification import broadcast_kanban_card
+    broadcast_kanban_card(card, 'deleted')
+    card.delete()
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': True})
+    messages.success(request, 'Карточка удалена')
+    ns = _ns(request)
+    return redirect(f'{ns}:kanban_board', pk=board_pk)
+
+
+@_manager_required
+@require_POST
+def kanban_move_card(request, pk):
+    if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': False}, status=400)
+    card = get_object_or_404(Card, pk=pk)
+    if not request.user.is_superuser and card.responsible != request.user:
+        return JsonResponse({'ok': False, 'error': 'Нет прав'}, status=403)
+    column_id = request.POST.get('column_id', '').strip()
+    position = request.POST.get('position', '').strip()
+    if not column_id:
+        return JsonResponse({'ok': False, 'error': 'column_id required'}, status=400)
+    new_col = get_object_or_404(Column, pk=column_id)
+    old_col_id = card.column_id
+    card.column = new_col
+    if position:
+        card.position = int(position)
+    card.save(update_fields=['column', 'position'])
+
+    # Bidirectional sync: if card has a client, update call status
+    if card.client:
+        col_title = new_col.title.lower()
+        status_map = {
+            'нужно сделать': None,
+            'в работе': 'in_progress',
+            'согласование': 'negotiation',
+            'создание тз': 'tz_creation',
+            'согласование тз': 'tz_approval',
+            'подписание договора': 'contract_signing',
+            'выполнено': 'completed',
+            'отказ': 'refusal',
+            'перезвонить': 'call_back',
+            'не доступен': 'unavailable',
+        }
+        for key, status in status_map.items():
+            if key in col_title:
+                if status:
+                    last_call = card.client.calls.order_by('-created_at').first()
+                    if last_call:
+                        last_call.status = status
+                        last_call.save(update_fields=['status'])
+                break
+
+    from main.notification import broadcast_kanban_card
+    broadcast_kanban_card(card, 'moved', old_col_id=old_col_id)
+    return JsonResponse({'ok': True, 'new_column_id': int(column_id), 'position': card.position})
+
+
+@_manager_required
+@require_POST
+def kanban_reorder_columns(request):
+    if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': False}, status=400)
+    order = request.POST.getlist('order[]')
+    for i, col_id in enumerate(order):
+        Column.objects.filter(pk=col_id).update(position=i)
+    return JsonResponse({'ok': True})
+
+
+@_manager_required
+@require_POST
+def kanban_toggle_column(request, pk):
+    if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': False}, status=400)
+    col = get_object_or_404(Column, pk=pk)
+    col.is_collapsed = not col.is_collapsed
+    col.save(update_fields=['is_collapsed'])
+    return JsonResponse({'ok': True, 'is_collapsed': col.is_collapsed})
+
+
+@_manager_required
+def kanban_clients_json(request):
+    q = request.GET.get('q', '').strip()
+    qs = Client.objects.filter(is_deleted=False)
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(company_name__icontains=q) | Q(phone__icontains=q))
+    results = [{'id': c.pk, 'text': str(c)} for c in qs[:20]]
+    return JsonResponse({'results': results})
+
+
+# ─── Chats ─────────────────────────────────────────────────────────
+
+
+@_manager_required
+def chat_list(request):
+    qs = Chat.objects.filter(
+        members__user=request.user, members__is_active=True, is_deleted=False
+    ).select_related('client', 'card', 'created_by').prefetch_related('members__user').distinct()
+    for chat in qs:
+        last_msg = chat.messages.order_by('-created_at').first()
+        chat.last_message = last_msg
+        last_read = ChatMember.objects.filter(chat=chat, user=request.user).values_list('last_read_at', flat=True).first()
+        q = ChatMessage.objects.filter(chat=chat).exclude(author=request.user)
+        if last_read:
+            q = q.filter(created_at__gt=last_read)
+        chat.unread = q.count()
+        if not chat.title:
+            other = chat.members.exclude(user=request.user).select_related('user').first()
+            if other:
+                chat.display_title = other.user.get_full_name() or other.user.email
+            else:
+                chat.display_title = 'Чат'
+        else:
+            chat.display_title = chat.title
+    users_qs = User.objects.filter(is_active=True).exclude(pk=request.user.pk).order_by('email')
+    return render(request, 'sales/chat_list.html', _ctx(request,
+        title='Чаты',
+        chats=qs,
+        users=users_qs,
+        active_section='chats',
+    ))
+
+
+@_manager_required
+@require_POST
+def chat_create(request):
+    if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': False}, status=400)
+    chat_type = request.POST.get('chat_type', 'personal')
+    title = request.POST.get('title', '').strip()
+    member_ids = request.POST.getlist('member_ids')
+    client_id = request.POST.get('client_id', '').strip()
+    card_id = request.POST.get('card_id', '').strip()
+    if chat_type == 'personal' and not member_ids:
+        return JsonResponse({'ok': False, 'error': 'Выберите участника'}, status=400)
+    client = get_object_or_404(Client, pk=client_id) if client_id else None
+    card = get_object_or_404(Card, pk=card_id) if card_id else None
+    chat = Chat.objects.create(
+        title=title, chat_type=chat_type,
+        client=client, card=card, created_by=request.user,
+    )
+    ChatMember.objects.create(chat=chat, user=request.user, added_by=request.user)
+    for uid in member_ids:
+        u = get_object_or_404(User, pk=uid)
+        ChatMember.objects.create(chat=chat, user=u, added_by=request.user)
+    if chat_type == 'client' and client and client.assigned_manager:
+        ChatMember.objects.get_or_create(chat=chat, user=client.assigned_manager, defaults={'added_by': request.user})
+        for admin in User.objects.filter(is_superuser=True).exclude(pk=request.user.pk):
+            ChatMember.objects.get_or_create(chat=chat, user=admin, defaults={'added_by': request.user})
+    return JsonResponse({'ok': True, 'chat_id': chat.pk})
+
+
+@_manager_required
+@require_POST
+def chat_send(request, pk):
+    chat = get_object_or_404(Chat, pk=pk)
+    if not chat.members.filter(user=request.user, is_active=True).exists():
+        return JsonResponse({'ok': False, 'error': 'Нет доступа'}, status=403)
+    message = request.POST.get('message', '').strip()
+    if not message:
+        return JsonResponse({'ok': False, 'error': 'Сообщение пустое'}, status=400)
+    msg = ChatMessage.objects.create(chat=chat, author=request.user, message=message)
+    ChatMember.objects.filter(chat=chat, user=request.user).update(last_read_at=msg.created_at)
+    from main.notification import broadcast_chat_message
+    broadcast_chat_message(msg)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'ok': True, 'pk': msg.pk, 'message': msg.message,
+            'author_name': msg.author.get_full_name() or msg.author.email,
+            'author_id': msg.author_id,
+            'is_mine': True,
+            'created_at': timezone.localtime(msg.created_at).strftime('%H:%M'),
+        })
+    ns = _ns(request)
+    return redirect(f'{ns}:chat_detail', pk=chat.pk)
+
+
+@_manager_required
+def chat_detail(request, pk):
+    chat = get_object_or_404(Chat.objects.select_related('client', 'card'), pk=pk)
+    if not chat.members.filter(user=request.user, is_active=True).exists() and not request.user.is_superuser:
+        messages.error(request, 'Нет доступа')
+        return redirect('cabinet:chat_list')
+    # AJAX POST: quick mark-read without rendering the page
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        ChatMember.objects.filter(chat=chat, user=request.user).update(last_read_at=timezone.now())
+        from main.notification import broadcast_chat_unread_update
+        broadcast_chat_unread_update(request.user)
+        return JsonResponse({'ok': True})
+    messages_qs = chat.messages.select_related('author').order_by('created_at')
+    ChatMember.objects.filter(chat=chat, user=request.user).update(last_read_at=timezone.now())
+    from main.notification import broadcast_chat_unread_update
+    broadcast_chat_unread_update(request.user, chat_id=chat.pk)
+    members = chat.members.filter(is_active=True).select_related('user')
+    users_qs = User.objects.filter(is_active=True).exclude(pk=request.user.pk).order_by('email')
+    return render(request, 'sales/chat_detail.html', _ctx(request,
+        title=chat.title or 'Чат',
+        chat=chat,
+        chat_messages=messages_qs,
+        members=members,
+        users=users_qs,
+        active_section='chats',
+    ))
+
+
+@_manager_required
+def chat_messages_json(request, pk):
+    chat = get_object_or_404(Chat, pk=pk)
+    if not chat.members.filter(user=request.user, is_active=True).exists():
+        return JsonResponse({'ok': False}, status=403)
+    after = request.GET.get('after', '')
+    qs = chat.messages.select_related('author').order_by('created_at')
+    if after:
+        qs = qs.filter(pk__gt=after)
+    data = [{
+        'pk': m.pk, 'message': m.message,
+        'author_name': m.author.get_full_name() or m.author.email if m.author else '—',
+        'author_id': m.author_id,
+        'is_mine': m.author_id == request.user.pk,
+        'created_at': timezone.localtime(m.created_at).strftime('%H:%M'),
+    } for m in qs]
+    ChatMember.objects.filter(chat=chat, user=request.user).update(last_read_at=timezone.now())
+    return JsonResponse({'ok': True, 'messages': data})
+
+
+@_manager_required
+def chat_unread_count(request):
+    qs = Chat.objects.filter(members__user=request.user, members__is_active=True, is_deleted=False)
+    total = 0
+    for chat in qs:
+        total += ChatMessage.objects.filter(
+            chat=chat, created_at__gt=chat.members.filter(user=request.user).values('last_read_at')[:1]
+        ).exclude(author=request.user).count()
+    return JsonResponse({'count': total})
+
+
+@_manager_required
+@require_POST
+def chat_add_member(request, pk):
+    chat = get_object_or_404(Chat, pk=pk)
+    if not request.user.is_superuser and chat.created_by != request.user:
+        return JsonResponse({'ok': False, 'error': 'Нет прав'}, status=403)
+    user_id = request.POST.get('user_id', '').strip()
+    if not user_id:
+        return JsonResponse({'ok': False, 'error': 'user_id required'}, status=400)
+    user = get_object_or_404(User, pk=user_id)
+    member, created = ChatMember.objects.get_or_create(
+        chat=chat, user=user,
+        defaults={'added_by': request.user}
+    )
+    if not created and not member.is_active:
+        member.is_active = True
+        member.save(update_fields=['is_active'])
+    from main.notification import broadcast_chat_member_update
+    broadcast_chat_member_update(chat, 'added', user, added_by=request.user)
+    return JsonResponse({'ok': True})
+
+
+@_manager_required
+@require_POST
+def chat_remove_member(request, pk):
+    chat = get_object_or_404(Chat, pk=pk)
+    user_id = request.POST.get('user_id', '').strip()
+    if not user_id:
+        messages.error(request, 'Не указан пользователь')
+        return redirect(f'{_ns(request)}:chat_detail', pk=pk)
+    if not request.user.is_superuser and request.user.pk != int(user_id):
+        messages.error(request, 'Нет прав')
+        return redirect(f'{_ns(request)}:chat_detail', pk=pk)
+    try:
+        member = ChatMember.objects.get(chat=chat, user_id=user_id, is_active=True)
+    except ChatMember.DoesNotExist:
+        messages.error(request, 'Участник не найден')
+        return redirect(f'{_ns(request)}:chat_detail', pk=pk)
+    if request.user.is_superuser or member.user == request.user:
+        if request.user.is_superuser:
+            member.is_active = False
+            member.save(update_fields=['is_active'])
+        else:
+            member.delete()
+        from main.notification import broadcast_chat_member_update
+        broadcast_chat_member_update(chat, 'removed', member.user)
+        if member.user == request.user:
+            return redirect(f'{_ns(request)}:chat_list')
+        return redirect(f'{_ns(request)}:chat_detail', pk=pk)
+    messages.error(request, 'Нет прав')
+    return redirect(f'{_ns(request)}:chat_detail', pk=pk)
+
+
+@_manager_required
+@require_POST
+def chat_delete(request, pk):
+    chat = get_object_or_404(Chat, pk=pk)
+    if request.user.is_superuser:
+        chat.is_deleted = True
+        chat.save(update_fields=['is_deleted'])
+        messages.success(request, 'Чат удалён')
+    else:
+        member = get_object_or_404(ChatMember, chat=chat, user=request.user)
+        member.delete()
+        messages.success(request, 'Вы вышли из чата')
+    return redirect('cabinet:chat_list')
+
+
+# ─── Info Topics ──────────────────────────────────────────────────
+
+
+@_manager_required
+def info_list(request):
+    qs = InfoTopic.objects.all()
+    search = request.GET.get('q', '').strip()
+    if search:
+        qs = qs.filter(Q(title__icontains=search) | Q(content__icontains=search))
+    read_pks = set(InfoTopicRead.objects.filter(user=request.user).values_list('topic_id', flat=True))
+    for t in qs:
+        t.is_read = t.pk in read_pks
+    return render(request, 'sales/info_list.html', _ctx(request,
+        title='Информация',
+        topics=qs,
+        search=search,
+        active_section='info',
+    ))
+
+
+@_manager_required
+def info_detail(request, pk):
+    topic = get_object_or_404(InfoTopic, pk=pk)
+    InfoTopicRead.objects.get_or_create(topic=topic, user=request.user)
+    from main.notification import broadcast_info_unread_update
+    broadcast_info_unread_update(request.user)
+    return render(request, 'sales/info_detail.html', _ctx(request,
+        title=topic.title,
+        topic=topic,
+        active_section='info',
+    ))
+
+
+@_manager_required
+def info_create(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'Только администратор может создавать топики')
+        return redirect(f'{_ns(request)}:info_list')
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
+        if not title:
+            messages.error(request, 'Заголовок обязателен')
+        else:
+            topic = InfoTopic.objects.create(title=title, content=content, created_by=request.user)
+            make_read = InfoTopicRead.objects.create(topic=topic, user=request.user)
+            from main.notification import broadcast_info_topic
+            broadcast_info_topic(topic, 'created')
+            messages.success(request, 'Топик создан')
+            return redirect(f'{_ns(request)}:info_detail', pk=topic.pk)
+    return render(request, 'sales/info_list.html', _ctx(request,
+        title='Новый топик',
+        creating=True,
+        active_section='info',
+    ))
+
+
+@_manager_required
+def info_edit(request, pk):
+    if not request.user.is_superuser:
+        messages.error(request, 'Только администратор может редактировать топики')
+        return redirect(f'{_ns(request)}:info_detail', pk=pk)
+    topic = get_object_or_404(InfoTopic, pk=pk)
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
+        if not title:
+            messages.error(request, 'Заголовок обязателен')
+        else:
+            topic.title = title
+            topic.content = content
+            topic.save(update_fields=['title', 'content'])
+            from main.notification import broadcast_info_topic
+            broadcast_info_topic(topic, 'updated')
+            messages.success(request, 'Топик обновлён')
+            return redirect(f'{_ns(request)}:info_detail', pk=topic.pk)
+    return render(request, 'sales/info_form.html', _ctx(request,
+        title='Редактировать топик',
+        topic=topic,
+        active_section='info',
+    ))
+
+
+@_manager_required
+@require_POST
+def info_delete(request, pk):
+    if not request.user.is_superuser:
+        messages.error(request, 'Только администратор может удалять топики')
+        return redirect(f'{_ns(request)}:info_list')
+    topic = get_object_or_404(InfoTopic, pk=pk)
+    topic.delete()
+    from main.notification import broadcast_info_unread_update
+    broadcast_info_unread_update(request.user)
+    messages.success(request, 'Топик удалён')
+    return redirect(f'{_ns(request)}:info_list')

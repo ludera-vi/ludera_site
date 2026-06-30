@@ -10,6 +10,7 @@ from django.forms import inlineformset_factory, modelformset_factory
 from django.urls import reverse
 from django.core.paginator import Paginator
 from datetime import timedelta
+import uuid
 
 from .models import (
     SiteSetting, HeroSection, NavLink, Service, Project,
@@ -24,7 +25,7 @@ from .forms import (
 )
 from users.models import UserProfile, UserProduct, ProductFile, UserSetting, Goods, GoodsFile, UserGoods, CabinetPermission, ManagerSuggestion, SuggestionMessage
 from users.forms import UserProfileForm, UserCreateForm
-from sales.models import Client, Call, ClientActivity, CALL_STATUSES
+from sales.models import Client, Call, ClientActivity, CALL_STATUSES, InfoTopic, InfoTopicRead
 from sales.views import _last_status_clients
 
 
@@ -74,18 +75,24 @@ def dashboard(request):
         days_data.append(sd_dict.get(d, 0))
 
     avg_session_seconds = 0
-    sessions = (
-        PageView.objects.values('session_key')
+    from django.db.models import ExpressionWrapper, FloatField, Sum, Count
+    session_durations = (
+        PageView.objects.filter(timestamp__date__gte=month_ago)
         .exclude(session_key='')
-        .annotate(start=Min('timestamp'), end=Max('timestamp'))
+        .values('session_key')
+        .annotate(
+            duration=ExpressionWrapper(
+                Max('timestamp') - Min('timestamp'),
+                output_field=FloatField()
+            )
+        )
+        .filter(duration__gt=5, duration__lt=3600)
     )
-    durations = []
-    for s in sessions:
-        secs = (s['end'] - s['start']).total_seconds()
-        if 5 < secs < 3600:
-            durations.append(secs)
-    if durations:
-        avg_session_seconds = sum(durations) / len(durations)
+    agg = session_durations.aggregate(
+        total=Sum('duration'), count=Count('session_key')
+    )
+    if agg['count']:
+        avg_session_seconds = agg['total'] / agg['count']
 
     views_by_url = list(top_pages)
     top_urls = [v['url'][:40] for v in views_by_url]
@@ -173,10 +180,7 @@ def dashboard(request):
 def cabinet_login(request):
     access_error = None
     if request.user.is_authenticated:
-        role = getattr(getattr(request.user, 'profile', None), 'role', 'admin')
-        if role == 'manager':
-            return redirect('/cabinet/manager-panel/')
-        if request.user.is_superuser or role == 'admin':
+        if request.user.is_superuser:
             return redirect('cabinet:dashboard')
         access_error = 'У вас нет доступа к панели управления.'
     form = LoginForm()
@@ -190,9 +194,9 @@ def cabinet_login(request):
                 access_error = 'У вас нет доступа к панели управления. Пожалуйста, используйте <a href="/account/login/" style="color:var(--cab-primary);text-decoration:none;font-weight:600;">аккаунт пользователя</a> или перейдите на <a href="/" style="color:var(--cab-primary);text-decoration:none;font-weight:600;">главную страницу</a>.'
             else:
                 login(request, user)
-                if role == 'manager':
-                    return redirect('/cabinet/manager-panel/')
-                return redirect('cabinet:dashboard')
+                if user.is_superuser:
+                    return redirect('cabinet:dashboard')
+                access_error = 'У вас нет доступа к панели управления.'
     return render(request, 'cabinet/login.html', {'form': form, 'access_error': access_error})
 
 
@@ -567,8 +571,8 @@ def user_detail(request, pk):
         'form': form,
         'user_goods': user_goods,
         'user_products': user_products,
-        'goods_list': Goods.objects.all(),
-        'products_list': Product.objects.all(),
+        'goods_list': Goods.objects.all()[:200],
+        'products_list': Product.objects.all()[:200],
         'user_sections': user_sections,
         'CabinetPermission': CabinetPermission,
         'role_choices': UserProfile.ROLES,
@@ -960,35 +964,75 @@ def manager_dashboard(request):
 
     # ── Managers ──
     managers = User.objects.filter(profile__role='manager').order_by('last_name', 'first_name')
+    manager_ids = list(managers.values_list('pk', flat=True))
+
+    # Batch-load call stats per manager
+    from django.db.models import Q as DQ
+    call_stats = dict(
+        Call.objects.filter(manager_id__in=manager_ids)
+        .values('manager_id')
+        .annotate(
+            total=Count('id'),
+            today=Count('id', filter=DQ(created_at__date=today)),
+            week=Count('id', filter=DQ(created_at__gte=week_ago)),
+            month=Count('id', filter=DQ(created_at__gte=month_ago)),
+            non_refusal=Count('id', filter=~DQ(status='refusal')),
+        )
+        .values_list('manager_id', 'total', 'today', 'week', 'month', 'non_refusal')
+    )
+    # Normalize: {manager_id: {...}}
+    call_data = {}
+    for row in Call.objects.filter(manager_id__in=manager_ids).values('manager_id', 'status').annotate(cnt=Count('id')):
+        mid = row['manager_id']
+        if mid not in call_data:
+            call_data[mid] = {}
+        call_data[mid][row['status']] = row['cnt']
+
+    # Batch-load client stats per manager
+    assigned_stats = dict(
+        Client.objects.filter(assigned_manager_id__in=manager_ids, is_deleted=False)
+        .values('assigned_manager_id')
+        .annotate(
+            assigned=Count('id'),
+            active=Count('id', filter=DQ(calls__isnull=False, is_archived=False) & ~DQ(calls__status__in=['refusal', 'completed'])),
+        )
+        .values_list('assigned_manager_id', 'assigned', 'active')
+    )
+
+    # Batch-load last activity per manager
+    last_activities = dict(
+        ClientActivity.objects.filter(user_id__in=manager_ids)
+        .values('user_id')
+        .annotate(last_created=Max('created_at'))
+        .values_list('user_id', 'last_created')
+    )
 
     manager_rows = []
     for m in managers:
-        calls = Call.objects.filter(manager=m)
-        calls_today = calls.filter(created_at__date=today).count()
-        calls_week = calls.filter(created_at__gte=week_ago).count()
-        calls_month = calls.filter(created_at__gte=month_ago).count()
-        total = calls.count()
+        stats = call_stats.get(m.pk, (0, 0, 0, 0, 0))
+        total_calls = stats[0]
+        calls_today = stats[1]
+        calls_week = stats[2]
+        calls_month = stats[3]
+        non_refusal = stats[4]
+        conversion = round(non_refusal / total_calls * 100, 1) if total_calls else 0
 
-        # Conversion: refusal = 0, any other = 1
-        non_refusal = calls.exclude(status='refusal').count()
-        conversion = round(non_refusal / total * 100, 1) if total else 0
+        assigned_total = assigned_stats.get(m.pk, (0, 0))[0]
+        active_clients = assigned_stats.get(m.pk, (0, 0))[1]
 
-        # Active clients (assigned, not archived, has a call not in refusal/completed)
-        assigned = Client.objects.filter(assigned_manager=m)
-        active = assigned.filter(calls__isnull=False, is_archived=False).exclude(calls__status__in=['refusal', 'completed']).distinct().count()
-        assigned_total = assigned.count()
+        status_counts = call_data.get(m.pk, {})
+        total_mgr_calls = sum(status_counts.values()) or 1
+        status_breakdown = []
+        for code, label in CALL_STATUSES:
+            cnt = status_counts.get(code, 0)
+            status_breakdown.append({
+                'status': code,
+                'label': label,
+                'count': cnt,
+                'pct': round(cnt / total_mgr_calls * 100, 1),
+            })
 
-        # Status breakdown for this manager
-        status_breakdown = list(
-            calls.values('status').annotate(count=Count('id')).order_by('status')
-        )
-        total_mgr_calls = sum(s['count'] for s in status_breakdown) or 1
-        for s in status_breakdown:
-            s['label'] = status_labels.get(s['status'], s['status'])
-            s['pct'] = round(s['count'] / total_mgr_calls * 100, 1)
-
-        # Last activity
-        last_act = ClientActivity.objects.filter(user=m).order_by('-created_at').first()
+        last_activity = last_activities.get(m.pk)
 
         manager_rows.append({
             'manager': m,
@@ -996,13 +1040,13 @@ def manager_dashboard(request):
             'calls_today': calls_today,
             'calls_week': calls_week,
             'calls_month': calls_month,
-            'total_calls': total,
+            'total_calls': total_calls,
             'conversion': conversion,
-            'active_clients': active,
+            'active_clients': active_clients,
             'assigned_total': assigned_total,
             'status_breakdown': status_breakdown,
             'last_login': m.last_login,
-            'last_activity': last_act.created_at if last_act else None,
+            'last_activity': last_activity,
         })
 
     # ── Donut chart data ──
@@ -1066,6 +1110,7 @@ def manager_dashboard(request):
             author__is_superuser=False,
             is_read=False,
         ).count(),
+        'info_unread': InfoTopic.objects.count() - InfoTopicRead.objects.filter(user=request.user).values('topic').distinct().count(),
     }
 
     return render(request, 'cabinet/admin_dashboard.html', {
@@ -1198,6 +1243,8 @@ def suggestion_mark_read(request):
                 suggestion=sug,
                 is_read=False
             ).exclude(author=request.user).update(is_read=True)
+            from main.notification import _clear_sidebar_cache
+            _clear_sidebar_cache(request.user.pk)
             if request.user.is_superuser and sug.status == 'unread':
                 sug.status = 'read'
                 sug.save(update_fields=['status'])

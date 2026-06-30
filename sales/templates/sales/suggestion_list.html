@@ -183,55 +183,6 @@
     flex-shrink: 0;
 }
 
-/* Messages thread */
-.sug-thread { padding: 16px 16px 0; display: flex; flex-direction: column; gap: 12px; }
-.sug-msg {
-    display: flex;
-    gap: 10px;
-    max-width: 85%;
-}
-.sug-msg--admin { align-self: flex-end; flex-direction: row-reverse; }
-.sug-msg__avatar {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.625rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    flex-shrink: 0;
-}
-.sug-msg__avatar--manager { background: rgba(107,114,128,0.1); color: #6b7280; }
-.sug-msg__avatar--admin { background: var(--cab-primary-light); color: var(--cab-primary); }
-.sug-msg__bubble {
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-size: 0.8125rem;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-.sug-msg--manager .sug-msg__bubble {
-    background: var(--cab-hover-bg);
-    color: var(--cab-text);
-    border-bottom-left-radius: 4px;
-}
-.sug-msg--admin .sug-msg__bubble {
-    background: var(--cab-primary-light);
-    color: var(--cab-text);
-    border-bottom-right-radius: 4px;
-}
-.sug-msg__meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 3px;
-}
-.sug-msg__author { font-size: 0.6875rem; font-weight: 600; color: var(--cab-text-muted); }
-.sug-msg__time { font-size: 0.625rem; color: var(--cab-text-muted); }
-.sug-msg--admin .sug-msg__meta { justify-content: flex-end; }
-
 /* Init msg */
 .sug-init-msg { padding: 16px 16px 0; }
 .sug-init-msg__text {
@@ -247,48 +198,6 @@
 
 /* Reply form */
 .sug-reply-wrap { padding: 0 16px 12px; }
-.sug-reply-form {
-    padding: 12px 0;
-    border-top: 1px solid var(--cab-border);
-    margin-top: 8px;
-}
-.sug-reply-form textarea {
-    width: 100%;
-    min-height: 60px;
-    max-height: 120px;
-    padding: 8px 12px;
-    border: 1px solid var(--cab-border);
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 0.8125rem;
-    line-height: 1.5;
-    resize: vertical;
-    background: var(--cab-bg);
-    color: var(--cab-text);
-    box-sizing: border-box;
-}
-.sug-reply-form textarea:focus { outline: none; border-color: var(--cab-primary); }
-.sug-reply-form-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 8px;
-}
-.sug-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 7px 14px;
-    border: none;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    background: var(--cab-primary);
-    color: #fff;
-}
-.sug-btn:hover { background: var(--cab-primary-hover); }
-
 .sug-closed-banner {
     display: flex;
     align-items: center;
@@ -459,6 +368,18 @@ function toggleSugBody(header) {
         }
     }
 }
+
+// Enter to send (event delegation for static + dynamic forms)
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        var ta = e.target.closest('.sug-reply-form textarea');
+        if (ta) {
+            e.preventDefault();
+            var btn = ta.closest('.sug-reply-form').querySelector('button[type="submit"]');
+            if (btn) btn.click();
+        }
+    }
+});
 
 // AJAX reply submission
 document.querySelectorAll('.sug-reply-form').forEach(function(form) {

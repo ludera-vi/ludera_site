@@ -271,6 +271,10 @@ table.client-table thead th:last-child .col-resizer { display: none; }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
         В архив
     </button>
+    <button type="button" class="context-menu__item" id="ctxCreateChat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Создать чат
+    </button>
     <button type="button" class="context-menu__item context-menu__item--danger" id="ctxDelete">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         Удалить
@@ -396,6 +400,7 @@ table.client-table thead th:last-child .col-resizer { display: none; }
         });
     }
 
+    var urlChatCreate = '{% url ns|add:":chat_create" %}';
     var searchEl = document.getElementById('filterSearch');
     var searchTimer = null;
     if (searchEl) {
@@ -458,6 +463,7 @@ table.client-table thead th:last-child .col-resizer { display: none; }
     var ctxForm = document.getElementById('ctxForm');
     var ctxView = document.getElementById('ctxView');
     var ctxCreateCall = document.getElementById('ctxCreateCall');
+    var ctxCreateChat = document.getElementById('ctxCreateChat');
     var ctxEdit = document.getElementById('ctxEdit');
     var ctxArchive = document.getElementById('ctxArchive');
     var ctxDelete = document.getElementById('ctxDelete');
@@ -476,8 +482,11 @@ table.client-table thead th:last-child .col-resizer { display: none; }
         document.querySelectorAll('.client-table tbody tr.selected').forEach(function(r) { r.classList.remove('selected'); });
         row.classList.add('selected');
         var isSuperuser = {{ user.is_superuser|yesno:'true,false' }};
+        var status = row.dataset.lastStatus || '';
+        var isActiveStatus = ['negotiation','tz_creation','tz_approval','contract_signing','in_progress'].includes(status);
         if (section === 'deleted') {
             ctxCreateCall.style.display = 'none';
+            ctxCreateChat.style.display = 'none';
             ctxEdit.style.display = 'none';
             ctxArchive.style.display = 'none';
             ctxDelete.style.display = isSuperuser ? '' : 'none';
@@ -485,6 +494,7 @@ table.client-table thead th:last-child .col-resizer { display: none; }
             ctxRestore.style.display = '';
         } else if (section === 'archive') {
             ctxCreateCall.style.display = 'none';
+            ctxCreateChat.style.display = 'none';
             ctxEdit.style.display = 'none';
             ctxArchive.style.display = 'none';
             ctxDelete.style.display = isSuperuser ? '' : 'none';
@@ -492,6 +502,7 @@ table.client-table thead th:last-child .col-resizer { display: none; }
             ctxRestore.style.display = '';
         } else if (section === 'refusal') {
             ctxCreateCall.style.display = 'none';
+            ctxCreateChat.style.display = 'none';
             ctxEdit.style.display = isSuperuser ? '' : 'none';
             ctxArchive.style.display = 'none';
             ctxDelete.style.display = isSuperuser ? '' : 'none';
@@ -499,6 +510,7 @@ table.client-table thead th:last-child .col-resizer { display: none; }
             ctxRestore.style.display = isSuperuser ? '' : 'none';
         } else if (isResp || !hasManager) {
             ctxCreateCall.style.display = (section === 'called') ? '' : ((hasCall) ? 'none' : '');
+            ctxCreateChat.style.display = isActiveStatus ? '' : 'none';
             ctxEdit.style.display = '';
             ctxArchive.style.display = '';
             ctxDelete.style.display = '';
@@ -506,6 +518,7 @@ table.client-table thead th:last-child .col-resizer { display: none; }
             ctxRestore.style.display = 'none';
         } else {
             ctxCreateCall.style.display = 'none';
+            ctxCreateChat.style.display = 'none';
             ctxEdit.style.display = 'none';
             ctxArchive.style.display = 'none';
             ctxDelete.style.display = 'none';
@@ -565,6 +578,27 @@ table.client-table thead th:last-child .col-resizer { display: none; }
         window.location.href = baseUrl + selectedId + '/?from=' + section;
     });
     ctxCreateCall.addEventListener('click', function() { openEditModal(true); });
+    ctxCreateChat.addEventListener('click', function() {
+        if (!selectedId) return;
+        menu.classList.remove('context-menu--visible');
+        var row = document.querySelector('tr[data-client-id="' + selectedId + '"]');
+        var clientName = row ? row.dataset.clientName : '';
+        var fd = new FormData();
+        fd.append('chat_type', 'client');
+        fd.append('client_id', selectedId);
+        fd.append('title', clientName);
+        fd.append('csrfmiddlewaretoken', csrfToken);
+        fetch(urlChatCreate, {
+            method: 'POST', body: fd,
+            headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken}
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.ok) {
+                window.location.href = urlChatCreate.replace('/create/', '/') + d.chat_id + '/';
+            } else {
+                alert(d.error || 'Ошибка создания чата');
+            }
+        }).catch(function() { alert('Ошибка сети'); });
+    });
     ctxEdit.addEventListener('click', function() {
         if (!selectedId) return;
         menu.classList.remove('context-menu--visible');

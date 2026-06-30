@@ -24,6 +24,8 @@ def field(obj, attr):
 
 @register.filter
 def can_access(user, section):
+    if not user.is_authenticated:
+        return False
     if user.is_superuser:
         return True
     return user.cabinet_permissions.filter(section=section).exists()

@@ -1,5 +1,5 @@
 {% for client in clients %}
-<tr data-client-id="{{ client.pk }}" data-client-name="{{ client.company_name|default:client.phone }}" data-client-phone="{{ client.phone }}" data-client-comment="{{ client.comment }}" data-has-call="{% if client.calls.exists %}true{% else %}false{% endif %}" data-has-manager="{% if client.assigned_manager %}true{% else %}false{% endif %}" data-is-responsible="{% if user.is_superuser or client.assigned_manager == user %}true{% else %}false{% endif %}" data-manager-id="{{ client.assigned_manager_id }}">
+<tr data-client-id="{{ client.pk }}" data-client-name="{{ client.company_name|default:client.phone }}" data-client-phone="{{ client.phone }}" data-client-comment="{{ client.comment }}" data-has-call="{% if client.calls.exists %}true{% else %}false{% endif %}" data-has-manager="{% if client.assigned_manager %}true{% else %}false{% endif %}" data-is-responsible="{% if user.is_superuser or client.assigned_manager == user %}true{% else %}false{% endif %}" data-manager-id="{{ client.assigned_manager_id }}" data-last-status="{% with call=client.calls.last %}{{ call.status|default:'' }}{% endwith %}">
     <td>{{ client.industry|default:'' }}</td>
     <td>{{ client.city|default:'' }}</td>
     <td>{{ client.company_name|default:'' }}</td>

@@ -1,0 +1,113 @@
+{% extends base_template %}
+{% block content %}
+<div class="ch-page">
+    <div class="ch-lhead">
+        <h1 class="ch-lhead__title">Чаты</h1>
+        <button class="kb-btn kb-btn--primary" id="chatCreateBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Новый чат
+        </button>
+    </div>
+
+    <div class="ch-list">
+        {% for chat in chats %}
+        <a href="{% url ns|add:':chat_detail' chat.pk %}" class="ch-list__item {% if chat.unread > 0 %}ch-list__item--unread{% endif %}" data-chat-id="{{ chat.pk }}">
+            <div class="ch-list__av">
+                {% if chat.chat_type == 'group' %}
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                {% else %}
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                {% endif %}
+            </div>
+            <div class="ch-list__body">
+                <div class="ch-list__top">
+                    <span class="ch-list__name">{{ chat.display_title }}</span>
+                    {% if chat.last_message %}
+                    <span class="ch-list__time">{{ chat.last_message.created_at|date:"H:i" }}</span>
+                    {% endif %}
+                </div>
+                <div class="ch-list__prev">
+                    {% if chat.last_message %}
+                    <span class="ch-list__author">{{ chat.last_message.author.get_full_name|default:chat.last_message.author.email }}:</span>
+                    {{ chat.last_message.message|truncatechars:60 }}
+                    {% else %}
+                    <span class="ch-list__empty">Нет сообщений</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if chat.unread > 0 %}
+            <span class="ch-list__badge">{{ chat.unread }}</span>
+            {% endif %}
+        </a>
+        {% empty %}
+        <div class="ch-list__empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="color:var(--kb-muted);opacity:.4;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <p>Нет чатов</p>
+            <button class="kb-btn kb-btn--primary kb-btn--sm" onclick="document.getElementById('chatCreateBtn')?.click()">Создать первый чат</button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% include 'sales/_chat_create_modal.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+    // ─── Create chat ───
+    document.getElementById('chatCreateBtn')?.addEventListener('click', function() {
+        document.getElementById('chatCreateModal').style.display = 'flex';
+    });
+
+    var form = document.getElementById('chatCreateForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var fd = new FormData(form);
+            fetch(form.action, {
+                method: 'POST', body: fd,
+                headers: {'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken}
+            }).then(function(r) { return r.json(); }).then(function(d) {
+                if (d.ok) {
+                    window.location.href = '{% url ns|add:":chat_detail" 0 %}'.replace('0', d.chat_id);
+                } else {
+                    alert(d.error || 'Ошибка');
+                }
+            }).catch(function() { alert('Ошибка сети'); });
+        });
+    }
+
+    // ─── WS: real-time circles on new messages ───
+    (function() {
+        var proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        var sock = null;
+        function connect() {
+            sock = new WebSocket(proto + '//' + window.location.host + '/ws/chats/');
+            sock.onmessage = function(e) {
+                try {
+                    var m = JSON.parse(e.data);
+                    if (m.type === 'chat_message') {
+                        var item = document.querySelector('.ch-list__item[data-chat-id="' + m.chat_id + '"]');
+                        if (item) {
+                            item.classList.add('ch-list__item--unread');
+                            var badge = item.querySelector('.ch-list__badge');
+                            if (!badge) {
+                                badge = document.createElement('span');
+                                badge.className = 'ch-list__badge';
+                                item.appendChild(badge);
+                            }
+                            badge.textContent = (parseInt(badge.textContent) || 0) + 1;
+                        }
+                    }
+                } catch(e) {}
+            };
+            sock.onclose = function() { connect(); };
+        }
+        connect();
+    })();
+})();
+</script>
+{% endblock %}

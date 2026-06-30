@@ -1,6 +1,7 @@
 from django.urls import path
 from . import cabinet_views
 from sales import views as sales_views
+from sales.site_urls import urlpatterns as sales_shared_patterns
 
 app_name = 'cabinet'
 
@@ -99,30 +100,7 @@ urlpatterns = [
     path('usersetting/<int:pk>/delete/', cabinet_views.usersetting_delete, name='usersetting_delete'),
 
     # Sales / CRM (superuser access from cabinet)
-    path('manager/', cabinet_views.manager_dashboard, name='manager'),
-    path('clients/', sales_views.client_list, name='clients'),
-    path('clients/create/', sales_views.client_create, name='client_create'),
-    path('clients/import/', sales_views.client_import, name='client_import'),
-    path('clients/export/', sales_views.client_export, name='client_export'),
-    path('clients/<int:pk>/', sales_views.client_detail, name='client_detail'),
-    path('clients/<int:pk>/create-call/', sales_views.create_call, name='create_call'),
-    path('clients/<int:pk>/edit/', sales_views.client_update, name='client_update'),
-    path('clients/<int:pk>/delete/', sales_views.client_delete, name='client_delete'),
-    path('clients/<int:pk>/archive/', sales_views.toggle_archive, name='toggle_archive'),
-    path('clients/<int:client_pk>/documents/<int:doc_pk>/delete/', sales_views.delete_document, name='delete_document'),
-    path('called/', sales_views.called_list, name='called_list'),
-    path('in_progress/', sales_views.in_progress_list, name='in_progress_list'),
-    path('archive/', sales_views.archive_list, name='archive_list'),
-    path('deleted/', sales_views.deleted_list, name='deleted_list'),
-    path('clients/<int:pk>/restore/', sales_views.client_restore, name='client_restore'),
-    path('refusal/', sales_views.refusal_list, name='refusal_list'),
-    path('clients/<int:pk>/restore-from-refusal/', sales_views.client_restore_from_refusal, name='client_restore_from_refusal'),
-    path('completed/', sales_views.completed_list, name='completed_list'),
-    path('calls/<int:pk>/update/', sales_views.call_update, name='call_update'),
-
-    # Manager Suggestions (Feedback)
+    path('manager/', sales_views.dashboard, name='manager'),
     path('suggestions/', cabinet_views.admin_suggestion_list, name='admin_suggestion_list'),
     path('suggestions/<int:pk>/action/', cabinet_views.admin_suggestion_action, name='admin_suggestion_action'),
-    path('suggestions/mark-read/', cabinet_views.suggestion_mark_read, name='suggestion_mark_read'),
-
-]
+] + sales_shared_patterns

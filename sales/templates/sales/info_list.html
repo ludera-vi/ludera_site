@@ -1,0 +1,139 @@
+{% extends base_template %}
+{% block content %}
+<style>
+.info-page { max-width: 900px; margin: 0 auto; }
+.info-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 12px; flex-wrap: wrap; }
+.info-header h1 { font-size: 1.5rem; font-weight: 600; margin: 0; color: var(--cab-text); }
+.info-actions { display: flex; gap: 8px; }
+.info-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 0.8125rem; font-weight: 500; border: 1px solid var(--cab-border); background: var(--cab-surface); color: var(--cab-text); cursor: pointer; text-decoration: none; transition: all .15s; font-family: inherit; }
+.info-btn:hover { border-color: var(--cab-primary); color: var(--cab-primary); }
+.info-btn--primary { background: var(--cab-primary); color: #fff; border-color: var(--cab-primary); }
+.info-btn--primary:hover { background: var(--cab-primary-hover); color: #fff; }
+.info-btn--danger { color: var(--cab-danger); }
+.info-btn--danger:hover { border-color: var(--cab-danger); color: var(--cab-danger); }
+
+.info-search { position: relative; width: 100%; max-width: 400px; margin-bottom: 16px; }
+.info-search input { width: 100%; padding: 8px 12px 8px 36px; border: 1px solid var(--cab-border); border-radius: 8px; font-size: 0.8125rem; background: var(--cab-bg); color: var(--cab-text); outline: none; transition: border-color .15s; font-family: inherit; }
+.info-search input:focus { border-color: var(--cab-primary); box-shadow: 0 0 0 2px rgba(45,143,94,0.1); }
+.info-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--cab-text-muted); pointer-events: none; }
+
+.info-grid { display: flex; flex-direction: column; gap: 8px; }
+.info-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--cab-border); background: var(--cab-surface); text-decoration: none; color: var(--cab-text); transition: all .15s; cursor: pointer; }
+.info-card:hover { border-color: var(--cab-primary); box-shadow: 0 2px 8px rgba(45,143,94,0.08); }
+.info-card--unread { border-left: 3px solid var(--cab-primary); background: var(--cab-primary-light); }
+.info-card__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--cab-primary); }
+.info-card__body { flex: 1; min-width: 0; }
+.info-card__title { font-size: 0.9375rem; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.info-card__meta { font-size: 0.75rem; color: var(--cab-text-muted); }
+.info-card__actions { display: flex; gap: 4px; flex-shrink: 0; }
+.info-card__actions form { display: inline; }
+
+.info-empty { text-align: center; padding: 60px 20px; color: var(--cab-text-muted); }
+.info-empty svg { width: 48px; height: 48px; stroke: var(--cab-border); margin-bottom: 12px; }
+.info-empty p { font-size: 0.875rem; }
+
+.creating-form { max-width: 800px; }
+.creating-form .field { margin-bottom: 16px; }
+.creating-form label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--cab-text); margin-bottom: 4px; }
+.creating-form input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid var(--cab-border); border-radius: 8px; font-size: 0.875rem; background: var(--cab-bg); color: var(--cab-text); outline: none; font-family: inherit; box-sizing: border-box; }
+.creating-form input[type="text"]:focus { border-color: var(--cab-primary); }
+.creating-form .form-actions { display: flex; gap: 8px; margin-top: 20px; }
+</style>
+
+<div class="info-page">
+    <div class="info-header">
+        <h1>{{ title }}</h1>
+        <div class="info-actions">
+            {% if user.is_superuser and not creating %}
+            <a href="{% url ns|add:':info_create' %}" class="info-btn info-btn--primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Создать топик
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if creating %}
+    <div class="creating-form">
+        <form method="post" id="infoCreateForm">
+            {% csrf_token %}
+            <div class="field">
+                <label>Заголовок</label>
+                <input type="text" name="title" placeholder="Название топика" required autofocus>
+            </div>
+            <div class="field">
+                <label>Содержание</label>
+                <textarea name="content" class="rich-editor" rows="12" style="display:none;"></textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="info-btn info-btn--primary">Создать</button>
+                <a href="{% url ns|add:':info_list' %}" class="info-btn">Отмена</a>
+            </div>
+        </form>
+    </div>
+    {% else %}
+    <div class="info-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="infoSearch" placeholder="Поиск по топикам..." value="{{ search }}" autocomplete="off">
+    </div>
+
+    <div class="info-grid" id="infoGrid">
+        {% for topic in topics %}
+        <a href="{% url ns|add:':info_detail' topic.pk %}" class="info-card {% if not topic.is_read %}info-card--unread{% endif %}">
+            {% if not topic.is_read %}<div class="info-card__dot"></div>{% endif %}
+            <div class="info-card__body">
+                <div class="info-card__title">{{ topic.title }}</div>
+                <div class="info-card__meta">{{ topic.created_at|date:"d.m.Y H:i" }}{% if topic.created_by %} · {{ topic.created_by.get_full_name|default:topic.created_by.email }}{% endif %}</div>
+            </div>
+            {% if user.is_superuser %}
+            <div class="info-card__actions">
+                <a href="{% url ns|add:':info_edit' topic.pk %}" class="info-btn" style="padding:4px 8px;font-size:0.75rem;" title="Редактировать">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </a>
+                <form method="post" action="{% url ns|add:':info_delete' topic.pk %}" onsubmit="return confirm('Удалить топик «{{ topic.title }}»?')">
+                    {% csrf_token %}
+                    <button type="submit" class="info-btn" style="padding:4px 8px;font-size:0.75rem;color:var(--cab-danger);" title="Удалить">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </a>
+        {% empty %}
+        <div class="info-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            {% if search %}
+            <p>Ничего не найдено по запросу «{{ search }}»</p>
+            {% else %}
+            <p>Нет топиков информации</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if creating %}
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.min.js"></script>
+{% include "cabinet/_quill_editor.html" %}
+{% else %}
+<script>
+(function() {
+    var searchInput = document.getElementById('infoSearch');
+    if (!searchInput) return;
+    var grid = document.getElementById('infoGrid');
+    var cards = grid ? Array.from(grid.querySelectorAll('.info-card')) : [];
+    searchInput.addEventListener('input', function() {
+        var q = this.value.toLowerCase().trim();
+        cards.forEach(function(card) {
+            var title = card.querySelector('.info-card__title')?.textContent.toLowerCase() || '';
+            card.style.display = (!q || title.includes(q)) ? '' : 'none';
+        });
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}
