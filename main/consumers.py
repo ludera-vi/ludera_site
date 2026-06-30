@@ -18,6 +18,8 @@ class SuggestionConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     async def disconnect(self, close_code):
+        if not hasattr(self, 'admin_group') or not hasattr(self, 'manager_group'):
+            return
         if self.user.is_superuser:
             await self.channel_layer.group_discard(self.admin_group, self.channel_name)
         else:

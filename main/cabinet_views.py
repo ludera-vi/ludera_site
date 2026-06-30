@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
 from django.db.models import Count, Min, Max, Q, Sum, ExpressionWrapper, FloatField
-from django.db.models.functions import TruncDate
+from django.db.models.functions import TruncDate, Extract
 from django.utils import timezone
 from django.forms import inlineformset_factory, modelformset_factory
 from django.urls import reverse
@@ -80,10 +80,7 @@ def dashboard(request):
         .exclude(session_key='')
         .values('session_key')
         .annotate(
-            duration=ExpressionWrapper(
-                Max('timestamp') - Min('timestamp'),
-                output_field=FloatField()
-            )
+            duration=Extract(Max('timestamp') - Min('timestamp'), 'epoch')
         )
         .filter(duration__gt=5, duration__lt=3600)
     )
