@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
-from django.db.models import Count, Min, Max, Q
+from django.db.models import Count, Min, Max, Q, Sum, ExpressionWrapper, FloatField
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.forms import inlineformset_factory, modelformset_factory
@@ -75,7 +75,6 @@ def dashboard(request):
         days_data.append(sd_dict.get(d, 0))
 
     avg_session_seconds = 0
-    from django.db.models import ExpressionWrapper, FloatField, Sum, Count
     session_durations = (
         PageView.objects.filter(timestamp__date__gte=month_ago)
         .exclude(session_key='')
