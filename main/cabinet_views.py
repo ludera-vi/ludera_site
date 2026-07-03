@@ -3,8 +3,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
-from django.db.models import Count, Min, Max, Q, Sum, ExpressionWrapper, FloatField
-from django.db.models.functions import TruncDate, Extract
+from django.db.models import Count, Min, Max, Q, Sum
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.forms import inlineformset_factory, modelformset_factory
 from django.urls import reverse
@@ -75,20 +75,19 @@ def dashboard(request):
         days_data.append(sd_dict.get(d, 0))
 
     avg_session_seconds = 0
-    session_durations = (
+    session_data = (
         PageView.objects.filter(timestamp__date__gte=month_ago)
         .exclude(session_key='')
         .values('session_key')
-        .annotate(
-            duration=Extract(Max('timestamp') - Min('timestamp'), 'epoch')
-        )
-        .filter(duration__gt=5, duration__lt=3600)
+        .annotate(min_ts=Min('timestamp'), max_ts=Max('timestamp'))
     )
-    agg = session_durations.aggregate(
-        total=Sum('duration'), count=Count('session_key')
-    )
-    if agg['count']:
-        avg_session_seconds = agg['total'] / agg['count']
+    durations = []
+    for s in session_data:
+        dur = (s['max_ts'] - s['min_ts']).total_seconds()
+        if 5 < dur < 3600:
+            durations.append(dur)
+    if durations:
+        avg_session_seconds = sum(durations) / len(durations)
 
     views_by_url = list(top_pages)
     top_urls = [v['url'][:40] for v in views_by_url]
@@ -955,7 +954,12 @@ def manager_dashboard(request):
     in_progress = Call.objects.exclude(status__in=['refusal', 'completed']).count()
     archived = Client.objects.filter(is_archived=True, is_deleted=False).count()
 
-    status_counts = list(Call.objects.values('status').annotate(count=Count('id')).order_by('status'))
+    qs_status_counts = list(Call.objects.values('status').annotate(count=Count('id')).order_by('status'))
+    count_by_status = {s['status']: s['count'] for s in qs_status_counts}
+    status_counts = [
+        {'status': code, 'count': count_by_status.get(code, 0)}
+        for code, _ in CALL_STATUSES
+    ]
     total_calls = sum(s['count'] for s in status_counts) or 1
 
     # ── Managers ──
@@ -964,7 +968,9 @@ def manager_dashboard(request):
 
     # Batch-load call stats per manager
     from django.db.models import Q as DQ
-    call_stats = dict(
+    call_stats = {
+        mgr: (total, today, week, month, non_refusal)
+        for mgr, total, today, week, month, non_refusal in
         Call.objects.filter(manager_id__in=manager_ids)
         .values('manager_id')
         .annotate(
@@ -975,7 +981,7 @@ def manager_dashboard(request):
             non_refusal=Count('id', filter=~DQ(status='refusal')),
         )
         .values_list('manager_id', 'total', 'today', 'week', 'month', 'non_refusal')
-    )
+    }
     # Normalize: {manager_id: {...}}
     call_data = {}
     for row in Call.objects.filter(manager_id__in=manager_ids).values('manager_id', 'status').annotate(cnt=Count('id')):
@@ -985,7 +991,9 @@ def manager_dashboard(request):
         call_data[mid][row['status']] = row['cnt']
 
     # Batch-load client stats per manager
-    assigned_stats = dict(
+    assigned_stats = {
+        mgr: (assigned, active)
+        for mgr, assigned, active in
         Client.objects.filter(assigned_manager_id__in=manager_ids, is_deleted=False)
         .values('assigned_manager_id')
         .annotate(
@@ -993,7 +1001,7 @@ def manager_dashboard(request):
             active=Count('id', filter=DQ(calls__isnull=False, is_archived=False) & ~DQ(calls__status__in=['refusal', 'completed'])),
         )
         .values_list('assigned_manager_id', 'assigned', 'active')
-    )
+    }
 
     # Batch-load last activity per manager
     last_activities = dict(
@@ -1006,21 +1014,21 @@ def manager_dashboard(request):
     manager_rows = []
     for m in managers:
         stats = call_stats.get(m.pk, (0, 0, 0, 0, 0))
-        total_calls = stats[0]
+        mgr_total = stats[0]
         calls_today = stats[1]
         calls_week = stats[2]
         calls_month = stats[3]
         non_refusal = stats[4]
-        conversion = round(non_refusal / total_calls * 100, 1) if total_calls else 0
+        conversion = round(non_refusal / mgr_total * 100, 1) if mgr_total else 0
 
         assigned_total = assigned_stats.get(m.pk, (0, 0))[0]
         active_clients = assigned_stats.get(m.pk, (0, 0))[1]
 
-        status_counts = call_data.get(m.pk, {})
-        total_mgr_calls = sum(status_counts.values()) or 1
+        mgr_status_counts = call_data.get(m.pk, {})
+        total_mgr_calls = sum(mgr_status_counts.values()) or 1
         status_breakdown = []
         for code, label in CALL_STATUSES:
-            cnt = status_counts.get(code, 0)
+            cnt = mgr_status_counts.get(code, 0)
             status_breakdown.append({
                 'status': code,
                 'label': label,
@@ -1036,7 +1044,7 @@ def manager_dashboard(request):
             'calls_today': calls_today,
             'calls_week': calls_week,
             'calls_month': calls_month,
-            'total_calls': total_calls,
+            'total_calls': mgr_total,
             'conversion': conversion,
             'active_clients': active_clients,
             'assigned_total': assigned_total,

@@ -100,7 +100,7 @@ urlpatterns = [
     path('usersetting/<int:pk>/delete/', cabinet_views.usersetting_delete, name='usersetting_delete'),
 
     # Sales / CRM (superuser access from cabinet)
-    path('manager/', sales_views.dashboard, name='manager'),
+    path('manager/', cabinet_views.manager_dashboard, name='manager'),
     path('suggestions/', cabinet_views.admin_suggestion_list, name='admin_suggestion_list'),
     path('suggestions/<int:pk>/action/', cabinet_views.admin_suggestion_action, name='admin_suggestion_action'),
 ] + sales_shared_patterns
